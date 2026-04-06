@@ -21,11 +21,11 @@ app.use(express.static(path.join(__dirname, 'public')));
 // Conexión a PostgreSQL
 // ============================================
 const pool = new Pool({
-  host:     process.env.DB_HOST     || 'localhost',
-  port:     process.env.DB_PORT     || 5432,
-  database: process.env.DB_NAME     || 'parqueo_airbin',
-  user:     process.env.DB_USER     || 'postgres',
-  password: process.env.DB_PASSWORD || 'postgres',
+  host: process.env.DB_HOST || 'localhost',
+  port: process.env.DB_PORT || 5433,
+  database: process.env.DB_NAME || 'parqueo_airbin',
+  user: process.env.DB_USER || 'postgres',
+  password: process.env.DB_PASSWORD || 'root',
 });
 
 // Verificar conexión al iniciar
