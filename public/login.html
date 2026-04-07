@@ -137,8 +137,10 @@
             <div class="collapse navbar-collapse" id="navMenu">
                 <ul class="navbar-nav ms-auto gap-2">
                     <li class="nav-item"><a class="nav-link" href="index.html">Inicio</a></li>
-                    <li class="nav-item"><a class="nav-link" href="registro.html">Registro</a></li>
-                    <li class="nav-item"><a class="nav-link active" href="login.html">Iniciar Sesión</a></li>
+                    <li class="nav-item d-none" id="navRegistro"><a class="nav-link" href="registro.html">Registro</a></li>
+                    <li class="nav-item d-none" id="navLogin"><a class="nav-link active" href="login.html">Iniciar Sesión</a></li>
+                    <li class="nav-item d-none" id="navPanel"><a class="nav-link" href="dashboard.html">Ir a mi Panel</a></li>
+                    <li class="nav-item d-none" id="navLogout"><a class="nav-link" href="#" id="btnLogout" style="color:var(--danger)">Cerrar sesión</a></li>
                 </ul>
             </div>
         </div>
@@ -187,6 +189,25 @@
         const alertError   = document.getElementById('alertError');
         const btnLogin     = document.getElementById('btnLogin');
 
+        // Check if already logged in
+        (function() {
+            const userData = localStorage.getItem('usuario');
+            if (userData) {
+                document.getElementById('navPanel').classList.remove('d-none');
+                document.getElementById('navLogout').classList.remove('d-none');
+                document.getElementById('btnLogout').addEventListener('click', (e) => {
+                    e.preventDefault();
+                    localStorage.removeItem('usuario');
+                    window.location.reload();
+                });
+                // Redirect logged-in users away from login page
+                window.location.href = 'dashboard.html';
+            } else {
+                document.getElementById('navRegistro').classList.remove('d-none');
+                document.getElementById('navLogin').classList.remove('d-none');
+            }
+        })();
+
         function showAlert(element, message) {
             alertSuccess.style.display = 'none';
             alertError.style.display = 'none';
@@ -219,8 +240,12 @@
 
                 if (res.ok) {
                     showAlert(alertSuccess, `✅ ${data.mensaje} Bienvenido, ${data.usuario.nombre}.`);
-                    // Guardar datos del usuario en localStorage
+                    // Guardar datos del usuario en localStorage (incluye id, nombre, correo, rol)
                     localStorage.setItem('usuario', JSON.stringify(data.usuario));
+                    // Redirigir al dashboard siempre
+                    setTimeout(() => {
+                        window.location.href = 'dashboard.html';
+                    }, 1500);
                 } else {
                     showAlert(alertError, data.mensaje || 'Error al iniciar sesión.');
                 }
