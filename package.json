@@ -1,18 +1,19 @@
 {
-  "name": "parqueo-airbin",
+  "name": "estairbnb",
   "version": "1.0.0",
-  "description": "Plataforma de alquiler de parqueos - Módulo de Identidad",
+  "description": "Plataforma de alquiler de parqueos - Airbnb de Parqueos",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
-    "dev": "node --watch server.js"
+    "dev": "node --watch server.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
   },
   "keywords": [],
   "author": "",
   "license": "ISC",
+  "type": "commonjs",
   "dependencies": {
-    "express": "^4.21.2",
-    "pg": "^8.13.3",
-    "cors": "^2.8.5"
+    "express": "^5.2.1",
+    "mssql": "^12.2.1"
   }
 }
