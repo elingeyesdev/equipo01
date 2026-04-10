@@ -18,8 +18,8 @@ if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
 
 const storage = multer.diskStorage({
   destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-  filename:    (_req, file, cb) => {
-    const ext      = path.extname(file.originalname).toLowerCase();
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
     const filename = `perfil_${Date.now()}${ext}`;
     cb(null, filename);
   },
@@ -299,8 +299,8 @@ app.post('/api/perfil/upload-foto', (req, res) => {
 
       // Guardar nueva ruta en la BD
       await db.request()
-        .input('foto_url',   sql.NVarChar(255), foto_url)
-        .input('usuario_id', sql.Int,           usuario_id)
+        .input('foto_url', sql.NVarChar(255), foto_url)
+        .input('usuario_id', sql.Int, usuario_id)
         .query('UPDATE Usuarios SET foto_url = @foto_url WHERE id = @usuario_id');
 
       console.log('✅ foto_url guardada en BD:', foto_url);
@@ -312,6 +312,62 @@ app.post('/api/perfil/upload-foto', (req, res) => {
       return res.status(500).json({ status: 'error', message: 'Error interno al guardar la foto.' });
     }
   });
+});
+
+// ============================================================
+// SEGURIDAD — Cambio de contraseña
+// PUT /api/perfil/seguridad/password
+// Body: { usuario_id, passwordActual, passwordNueva }
+// ============================================================
+app.put('/api/perfil/seguridad/password', async (req, res) => {
+  console.log('\n🔐 [PUT /api/perfil/seguridad/password]');
+  const { usuario_id, passwordActual, passwordNueva } = req.body;
+
+  if (!usuario_id)
+    return res.status(400).json({ status: 'error', message: 'usuario_id requerido.' });
+  if (!passwordActual)
+    return res.status(400).json({ status: 'error', message: 'La contraseña actual es obligatoria.' });
+  if (!passwordNueva || passwordNueva.length < 6)
+    return res.status(400).json({ status: 'error', message: 'La nueva contraseña debe tener al menos 6 caracteres.' });
+
+  try {
+    const db = await getPool();
+
+    // Obtener hash actual del usuario
+    const result = await db.request()
+      .input('id', sql.Int, parseInt(usuario_id, 10))
+      .query('SELECT password FROM Usuarios WHERE id = @id');
+
+    if (result.recordset.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
+    }
+
+    const hashActual = result.recordset[0].password;
+
+    // Comparar contraseña actual con el hash
+    const coincide = await bcrypt.compare(passwordActual, hashActual);
+    if (!coincide) {
+      console.log('❌ La contraseña actual no coincide');
+      return res.status(401).json({ status: 'error', message: 'La contraseña actual es incorrecta.' });
+    }
+
+    // Hashear la nueva contraseña
+    const nuevoHash = await bcrypt.hash(passwordNueva, 10);
+
+    // Actualizar en la BD
+    await db.request()
+      .input('password', sql.NVarChar(255), nuevoHash)
+      .input('id', sql.Int, parseInt(usuario_id, 10))
+      .query('UPDATE Usuarios SET password = @password WHERE id = @id');
+
+    console.log('✅ Contraseña actualizada para usuario:', usuario_id);
+
+    return res.json({ status: 'ok', message: '¡Contraseña actualizada correctamente!' });
+
+  } catch (err) {
+    console.error('❌ Error al cambiar contraseña:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al cambiar la contraseña.' });
+  }
 });
 
 // ============================================================
