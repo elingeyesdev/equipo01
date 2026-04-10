@@ -301,65 +301,114 @@
       padding: 24px;
     }
 
-    /* Settings Row — each config item */
-    .setting-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 16px 0;
-      border-bottom: 1px solid #f0f2f5;
-      transition: background var(--transition-fast);
+    /* ============================
+       Form Styles
+    ============================ */
+    .form-floating {
+      margin-bottom: 20px;
     }
 
-    .setting-row:last-child {
-      border-bottom: none;
-    }
-
-    .setting-row:hover {
+    .form-floating .form-control {
+      border: 1.5px solid var(--sidebar-border);
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.938rem;
+      padding: 1rem 0.875rem 0.5rem;
+      height: calc(3.25rem + 2px);
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
       background: #fafbfc;
-      margin: 0 -24px;
-      padding-left: 24px;
-      padding-right: 24px;
+    }
+
+    .form-floating .form-control:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+      background: #fff;
+    }
+
+    .form-floating label {
+      font-family: inherit;
+      color: var(--text-secondary);
+      font-size: 0.938rem;
+    }
+
+    .form-text {
+      font-size: 0.8rem;
+      color: var(--text-secondary);
+      margin-top: 4px;
+    }
+
+    /* Submit Button */
+    .btn-save {
+      background: var(--accent);
+      color: #fff;
+      border: none;
       border-radius: 8px;
-    }
-
-    .setting-info {
-      display: flex;
-      flex-direction: column;
-      gap: 2px;
-    }
-
-    .setting-info .label {
+      padding: 10px 28px;
       font-size: 0.938rem;
       font-weight: 600;
-      color: var(--text-primary);
-    }
-
-    .setting-info .value {
-      font-size: 0.85rem;
-      color: var(--text-secondary);
-    }
-
-    .setting-action .btn-edit {
-      padding: 6px 16px;
-      font-size: 0.85rem;
-      font-weight: 600;
-      border-radius: 6px;
-      border: none;
-      background: var(--sidebar-hover);
-      color: var(--text-primary);
-      cursor: pointer;
-      transition: background var(--transition-fast), transform var(--transition-fast);
       font-family: inherit;
+      cursor: pointer;
+      transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
     }
 
-    .setting-action .btn-edit:hover {
-      background: #e4e6eb;
+    .btn-save:hover {
+      background: var(--accent-hover);
       transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3);
     }
 
-    .setting-action .btn-edit:active {
+    .btn-save:active {
       transform: translateY(0);
+      box-shadow: none;
+    }
+
+    .btn-save:disabled {
+      opacity: 0.65;
+      cursor: not-allowed;
+      transform: none;
+      box-shadow: none;
+    }
+
+    .btn-save .spinner-border {
+      width: 1rem;
+      height: 1rem;
+      border-width: 0.15em;
+    }
+
+    /* Toast custom */
+    .toast-container {
+      z-index: 9999;
+    }
+
+    .toast.toast-success {
+      background: #d4edda;
+      border-left: 4px solid #28a745;
+      color: #155724;
+    }
+
+    .toast.toast-error {
+      background: #f8d7da;
+      border-left: 4px solid #dc3545;
+      color: #721c24;
+    }
+
+    .toast .toast-body {
+      font-family: inherit;
+      font-size: 0.9rem;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Divider */
+    .form-divider {
+      border: none;
+      border-top: 1px solid var(--sidebar-border);
+      margin: 8px 0 20px;
     }
 
     /* ============================
@@ -414,12 +463,6 @@
       .settings-sidebar .sidebar-header h1 {
         font-size: 1.25rem;
       }
-
-      .setting-row:hover {
-        margin: 0;
-        padding-left: 0;
-        padding-right: 0;
-      }
     }
 
     /* ============================
@@ -454,12 +497,27 @@
       EstAirbnb
     </a>
     <div class="nav-user">
-      <button class="btn btn-sm" style="border: none; background: transparent; color: var(--text-secondary); font-size: 1.1rem;" title="Notificaciones">
-        <i class="fa-solid fa-bell"></i>
+      <span id="navUserName" style="font-size:0.875rem;font-weight:600;color:var(--text-secondary);"></span>
+      <div class="user-avatar" id="userAvatar" title="Mi cuenta">?</div>
+      <button id="btnLogout" title="Cerrar sesión"
+        style="border:none;background:transparent;color:var(--text-secondary);font-size:1rem;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.15s;"
+        onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">
+        <i class="fa-solid fa-right-from-bracket"></i>
       </button>
-      <div class="user-avatar" title="Mi cuenta">JP</div>
     </div>
   </nav>
+
+  <!-- ==============================
+       Toast Notifications
+  ============================== -->
+  <div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="toastNotification" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-body" id="toastBody">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toastMessage">Mensaje</span>
+      </div>
+    </div>
+  </div>
 
   <!-- ==============================
        Settings Layout
@@ -521,57 +579,86 @@
         <div class="card-header-custom">
           <h2><i class="fa-solid fa-gear"></i> Configuración General</h2>
         </div>
-        <div class="card-body-custom">
+        <div class="card-body-custom" id="profileCardBody">
 
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="label">Nombre</span>
-              <span class="value">Juan Pérez</span>
+          <!-- Estado de carga -->
+          <div id="loadingState" class="text-center py-4">
+            <div class="spinner-border text-primary" role="status" style="width:2rem;height:2rem;">
+              <span class="visually-hidden">Cargando...</span>
             </div>
-            <div class="setting-action">
-              <button class="btn-edit" id="btnEditNombre">Editar</button>
-            </div>
+            <p class="mt-2 text-muted" style="font-size:0.9rem;">Cargando datos del perfil...</p>
           </div>
 
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="label">Correo electrónico</span>
-              <span class="value">juan.perez@email.com</span>
-            </div>
-            <div class="setting-action">
-              <button class="btn-edit" id="btnEditEmail">Editar</button>
-            </div>
-          </div>
+          <!-- Filas de campos (ocultas hasta que cargue) -->
+          <div id="fieldsContainer" style="display:none;">
 
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="label">Teléfono</span>
-              <span class="value">+1 (809) 555-1234</span>
+            <!-- Fila: Nombre -->
+            <div class="profile-row" id="rowNombre">
+              <div class="profile-row-info">
+                <span class="profile-field-label">Nombre</span>
+                <span class="profile-field-value" id="valNombre">—</span>
+                <input type="text" class="profile-field-input form-control" id="inpNombre"
+                       placeholder="Tu nombre" maxlength="100" style="display:none;">
+              </div>
+              <div class="profile-row-action">
+                <button class="btn-toggle-edit" data-field="Nombre" onclick="toggleEdit('Nombre')">Editar</button>
+              </div>
             </div>
-            <div class="setting-action">
-              <button class="btn-edit" id="btnEditTelefono">Editar</button>
-            </div>
-          </div>
+            <div class="profile-divider"></div>
 
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="label">Idioma</span>
-              <span class="value">Español (República Dominicana)</span>
+            <!-- Fila: Apellidos -->
+            <div class="profile-row" id="rowApellidos">
+              <div class="profile-row-info">
+                <span class="profile-field-label">Apellidos</span>
+                <span class="profile-field-value" id="valApellidos">—</span>
+                <input type="text" class="profile-field-input form-control" id="inpApellidos"
+                       placeholder="Tus apellidos" maxlength="100" style="display:none;">
+              </div>
+              <div class="profile-row-action">
+                <button class="btn-toggle-edit" data-field="Apellidos" onclick="toggleEdit('Apellidos')">Editar</button>
+              </div>
             </div>
-            <div class="setting-action">
-              <button class="btn-edit" id="btnEditIdioma">Editar</button>
-            </div>
-          </div>
+            <div class="profile-divider"></div>
 
-          <div class="setting-row">
-            <div class="setting-info">
-              <span class="label">Zona horaria</span>
-              <span class="value">América/Santo_Domingo (UTC−04:00)</span>
+            <!-- Fila: Teléfono -->
+            <div class="profile-row" id="rowTelefono">
+              <div class="profile-row-info">
+                <span class="profile-field-label">Teléfono</span>
+                <span class="profile-field-value" id="valTelefono">—</span>
+                <input type="tel" class="profile-field-input form-control" id="inpTelefono"
+                       placeholder="Número de contacto (opcional)" maxlength="20" style="display:none;">
+              </div>
+              <div class="profile-row-action">
+                <button class="btn-toggle-edit" data-field="Telefono" onclick="toggleEdit('Telefono')">Editar</button>
+              </div>
             </div>
-            <div class="setting-action">
-              <button class="btn-edit" id="btnEditZona">Editar</button>
+
+            <!-- Fila: Email (solo lectura) -->
+            <div class="profile-divider"></div>
+            <div class="profile-row" id="rowEmail">
+              <div class="profile-row-info">
+                <span class="profile-field-label">Correo electrónico</span>
+                <span class="profile-field-value" id="valEmail" style="color:var(--text-secondary);">—</span>
+              </div>
+              <div class="profile-row-action">
+                <span style="font-size:0.8rem;color:var(--text-secondary);"><i class="fa-solid fa-lock me-1"></i>Solo lectura</span>
+              </div>
             </div>
-          </div>
+
+            <!-- Botón guardar (aparece cuando hay ediciones activas) -->
+            <div id="saveBarWrapper" style="display:none; margin-top:20px;">
+              <hr style="border-color:var(--sidebar-border); margin-bottom:16px;">
+              <div class="d-flex justify-content-end gap-2">
+                <button class="btn btn-sm" style="border:1.5px solid var(--sidebar-border);border-radius:8px;padding:8px 20px;font-weight:600;font-family:inherit;font-size:0.9rem;" onclick="cancelarTodo()">
+                  Cancelar todo
+                </button>
+                <button id="btnGuardar" class="btn-save" onclick="guardarCambios()">
+                  <i class="fa-solid fa-floppy-disk"></i> Guardar Cambios
+                </button>
+              </div>
+            </div>
+
+          </div><!-- /fieldsContainer -->
 
         </div>
       </section>
@@ -583,45 +670,292 @@
   <!-- Bootstrap 5 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+  <style>
+    /* ============================
+       Profile Row (Facebook style)
+    ============================ */
+    .profile-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 14px 0;
+      gap: 16px;
+      transition: background var(--transition-fast);
+    }
+
+    .profile-row-info {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .profile-field-label {
+      font-size: 0.78rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+    }
+
+    .profile-field-value {
+      font-size: 0.975rem;
+      font-weight: 500;
+      color: var(--text-primary);
+    }
+
+    .profile-field-input {
+      font-size: 0.938rem;
+      font-family: inherit;
+      border: 1.5px solid var(--accent);
+      border-radius: 8px;
+      padding: 8px 12px;
+      max-width: 340px;
+      transition: box-shadow var(--transition-fast);
+      background: #fff;
+    }
+
+    .profile-field-input:focus {
+      box-shadow: 0 0 0 3px rgba(24,119,242,0.15);
+      outline: none;
+    }
+
+    .profile-row-action {
+      flex-shrink: 0;
+    }
+
+    .btn-toggle-edit {
+      background: transparent;
+      border: none;
+      color: var(--accent);
+      font-size: 0.938rem;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      padding: 6px 14px;
+      border-radius: 6px;
+      transition: background var(--transition-fast), color var(--transition-fast);
+    }
+
+    .btn-toggle-edit:hover {
+      background: var(--sidebar-active);
+    }
+
+    .btn-toggle-edit.cancel-mode {
+      color: var(--text-secondary);
+    }
+
+    .btn-toggle-edit.cancel-mode:hover {
+      background: var(--sidebar-hover);
+      color: #dc3545;
+    }
+
+    .profile-divider {
+      border-top: 1px solid var(--sidebar-border);
+    }
+  </style>
+
   <script>
     // ============================================================
-    // Sidebar Navigation — Active State Toggle
+    // Sesión — Leer usuario del localStorage (establecido en login/register)
+    // ============================================================
+    const USUARIO_KEY = 'estairbnb_user';
+    const session     = JSON.parse(localStorage.getItem(USUARIO_KEY));
+
+    // Protección de ruta: si no hay sesión, redirigir a login
+    if (!session || !session.id) {
+      window.location.href = '/login.html';
+      throw new Error('No autenticado');
+    }
+
+    const USUARIO_ID = session.id;
+
+    // Mostrar nombre e iniciales en navbar
+    document.getElementById('navUserName').textContent = session.nombre || '';
+    const initials = ((session.nombre || '?')[0] + (session.apellidos || '?')[0]).toUpperCase();
+    document.getElementById('userAvatar').textContent = initials;
+
+    // Cerrar sesión
+    document.getElementById('btnLogout').addEventListener('click', () => {
+      localStorage.removeItem(USUARIO_KEY);
+      window.location.href = '/login.html';
+    });
+
+    // Rastreo de qué campos están en modo edición
+    const editState = { Nombre: false, Apellidos: false, Telefono: false };
+
+    // ============================================================
+    // Toast
+    // ============================================================
+    function showToast(message, type = 'success') {
+      const toastEl   = document.getElementById('toastNotification');
+      const toastBody = document.getElementById('toastBody');
+      toastEl.classList.remove('toast-success', 'toast-error');
+      toastEl.classList.add(type === 'success' ? 'toast-success' : 'toast-error');
+      const icon = type === 'success'
+        ? '<i class="fa-solid fa-circle-check"></i>'
+        : '<i class="fa-solid fa-circle-exclamation"></i>';
+      toastBody.innerHTML = `${icon} <span>${message}</span>`;
+      new bootstrap.Toast(toastEl, { delay: 4000 }).show();
+    }
+
+    // ============================================================
+    // Toggle Edit — activa/desactiva la edición de un campo
+    // ============================================================
+    function toggleEdit(field) {
+      const val = document.getElementById(`val${field}`);
+      const inp = document.getElementById(`inp${field}`);
+      const btn = document.querySelector(`[data-field="${field}"]`);
+
+      const isEditing = editState[field];
+
+      if (!isEditing) {
+        // Entrar en modo edición
+        inp.value = val.textContent === '—' ? '' : val.textContent;
+        val.style.display = 'none';
+        inp.style.display  = 'block';
+        inp.focus();
+        btn.textContent = 'Cancelar';
+        btn.classList.add('cancel-mode');
+        editState[field] = true;
+      } else {
+        // Cancelar edición de este campo
+        val.style.display  = '';
+        inp.style.display  = 'none';
+        btn.textContent = 'Editar';
+        btn.classList.remove('cancel-mode');
+        editState[field] = false;
+      }
+
+      actualizarBarraGuardar();
+    }
+
+    // Muestra u oculta el botón de Guardar según si hay algún campo activo
+    function actualizarBarraGuardar() {
+      const hayEdiciones = Object.values(editState).some(v => v);
+      document.getElementById('saveBarWrapper').style.display = hayEdiciones ? 'block' : 'none';
+    }
+
+    // Cancela TODAS las ediciones activas
+    function cancelarTodo() {
+      ['Nombre', 'Apellidos', 'Telefono'].forEach(f => {
+        if (editState[f]) toggleEdit(f);
+      });
+    }
+
+    // ============================================================
+    // Guardar Cambios — recoge los inputs activos y hace PUT
+    // ============================================================
+    async function guardarCambios() {
+      const btn = document.getElementById('btnGuardar');
+
+      // Recolectar valores: si en edición toma el input, si no toma el span
+      const nombre    = editState.Nombre    ? document.getElementById('inpNombre').value.trim()    : document.getElementById('valNombre').textContent;
+      const apellidos = editState.Apellidos ? document.getElementById('inpApellidos').value.trim() : document.getElementById('valApellidos').textContent;
+      const telefono  = editState.Telefono  ? document.getElementById('inpTelefono').value.trim()  : document.getElementById('valTelefono').textContent;
+
+      // Validaciones rápidas
+      if (!nombre || nombre.length < 2) {
+        showToast('El nombre debe tener al menos 2 caracteres.', 'error');
+        document.getElementById('inpNombre').focus();
+        return;
+      }
+      if (!apellidos || apellidos.length < 2) {
+        showToast('Los apellidos deben tener al menos 2 caracteres.', 'error');
+        document.getElementById('inpApellidos').focus();
+        return;
+      }
+
+      // Estado cargando
+      const originalHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...`;
+
+      try {
+        const response = await fetch('/api/perfil/general', {
+          method:  'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body:    JSON.stringify({ usuario_id: USUARIO_ID, nombre, apellidos, telefono }),
+        });
+
+        const data = await response.json();
+
+        if (response.ok && data.status === 'ok') {
+          // Actualizar los spans con los nuevos valores
+          document.getElementById('valNombre').textContent    = nombre;
+          document.getElementById('valApellidos').textContent = apellidos;
+          document.getElementById('valTelefono').textContent  = telefono || '—';
+
+          // Cerrar todos los modos de edición
+          cancelarTodo();
+          showToast('¡Perfil actualizado correctamente!', 'success');
+        } else {
+          showToast(data.message || 'Error al actualizar.', 'error');
+        }
+
+      } catch (err) {
+        console.error('Error de red:', err);
+        showToast('No se pudo conectar con el servidor.', 'error');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = originalHTML;
+      }
+    }
+
+    // ============================================================
+    // Cargar datos reales desde la BD al abrir la página
+    // ============================================================
+    async function cargarPerfil() {
+      try {
+        const res = await fetch(`/api/perfil/general?usuario_id=${USUARIO_ID}`);
+        const data = await res.json();
+
+        if (res.ok && data.status === 'ok') {
+          const u = data.data;
+          document.getElementById('valNombre').textContent    = u.nombre    || '—';
+          document.getElementById('valApellidos').textContent = u.apellidos || '—';
+          document.getElementById('valTelefono').textContent  = u.telefono  || '—';
+          document.getElementById('valEmail').textContent     = u.email     || '—';
+        } else {
+          showToast('No se pudo cargar el perfil.', 'error');
+        }
+      } catch (err) {
+        console.error('Error al cargar perfil:', err);
+        showToast('Error de conexión al cargar el perfil.', 'error');
+      } finally {
+        document.getElementById('loadingState').style.display  = 'none';
+        document.getElementById('fieldsContainer').style.display = 'block';
+      }
+    }
+
+    // ============================================================
+    // Sidebar Navigation — Active State
     // ============================================================
     document.addEventListener('DOMContentLoaded', () => {
+      // Cargar datos del servidor al iniciar
+      cargarPerfil();
 
+      // Sidebar navigation
       const navLinks = document.querySelectorAll('#sidebarNav a');
-
       navLinks.forEach(link => {
-        link.addEventListener('click', (e) => {
+        link.addEventListener('click', e => {
           e.preventDefault();
-
-          // Remove active from all
           navLinks.forEach(l => l.classList.remove('active'));
-
-          // Set active on clicked
           link.classList.add('active');
-
-          // Placeholder: In the future, toggle content sections here
-          const section = link.dataset.section;
-          console.log(`Sección seleccionada: ${section}`);
         });
       });
 
-      // ============================================================
-      // Sidebar Search — Filter navigation items
-      // ============================================================
+      // Sidebar search
       const searchInput = document.getElementById('sidebarSearch');
-
-      searchInput.addEventListener('input', (e) => {
-        const query = e.target.value.toLowerCase().trim();
-        const items = document.querySelectorAll('#sidebarNav li');
-
-        items.forEach(item => {
-          const label = item.querySelector('.nav-label').textContent.toLowerCase();
-          item.style.display = label.includes(query) ? '' : 'none';
+      if (searchInput) {
+        searchInput.addEventListener('input', e => {
+          const q = e.target.value.toLowerCase().trim();
+          document.querySelectorAll('#sidebarNav li').forEach(item => {
+            const label = item.querySelector('.nav-label').textContent.toLowerCase();
+            item.style.display = label.includes(q) ? '' : 'none';
+          });
         });
-      });
-
+      }
     });
   </script>
 
