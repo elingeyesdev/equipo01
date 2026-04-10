@@ -7,6 +7,35 @@ const express = require('express');
 const path = require('path');
 const sql = require('mssql/msnodesqlv8');
 const bcrypt = require('bcryptjs');
+const multer = require('multer');
+const fs = require('fs');
+
+// ------------------------------------------------------------
+// Multer — Subida de fotos de perfil
+// ------------------------------------------------------------
+const UPLOADS_DIR = path.join(__dirname, 'public', 'uploads', 'perfiles');
+if (!fs.existsSync(UPLOADS_DIR)) fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+
+const storage = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
+  filename:    (_req, file, cb) => {
+    const ext      = path.extname(file.originalname).toLowerCase();
+    const filename = `perfil_${Date.now()}${ext}`;
+    cb(null, filename);
+  },
+});
+
+const fileFilter = (_req, file, cb) => {
+  const allowed = ['image/jpeg', 'image/png', 'image/webp', 'image/gif'];
+  if (allowed.includes(file.mimetype)) cb(null, true);
+  else cb(new Error('Solo se permiten imágenes (JPG, PNG, WEBP).'), false);
+};
+
+const upload = multer({
+  storage,
+  fileFilter,
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
+});
 
 // ------------------------------------------------------------
 // Configuración de SQL Server — Windows Authentication (ODBC)
@@ -36,6 +65,7 @@ const PORT = process.env.PORT || 3000;
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
+app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 
 // ============================================================
 // AUTH — Registro
@@ -115,8 +145,8 @@ app.post('/api/auth/login', async (req, res) => {
     const db = await getPool();
 
     const result = await db.request()
-      .input('email', sql.VarChar(150), email.toLowerCase().trim())
-      .query('SELECT id, nombre, apellidos, email, password, telefono FROM Usuarios WHERE email = @email');
+      .input('email', sql.NVarChar(150), email.toLowerCase().trim())
+      .query('SELECT id, nombre, apellidos, email, password, telefono, foto_url FROM Usuarios WHERE email = @email');
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ status: 'error', message: 'Correo o contraseña incorrectos.' });
@@ -140,6 +170,7 @@ app.post('/api/auth/login', async (req, res) => {
         apellidos: user.apellidos,
         email: user.email,
         telefono: user.telefono,
+        foto_url: user.foto_url
       }
     });
 
@@ -166,7 +197,7 @@ app.get('/api/perfil/general', async (req, res) => {
 
     const result = await db.request()
       .input('usuario_id', sql.Int, usuario_id)
-      .query('SELECT id, nombre, apellidos, telefono, email FROM Usuarios WHERE id = @usuario_id');
+      .query('SELECT id, nombre, apellidos, telefono, email, foto_url FROM Usuarios WHERE id = @usuario_id');
 
     if (result.recordset.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
@@ -221,6 +252,66 @@ app.put('/api/perfil/general', async (req, res) => {
     console.error('❌ Error al actualizar:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al actualizar el perfil.' });
   }
+});
+
+// ============================================================
+// FOTO DE PERFIL — Subir y guardar
+// POST /api/perfil/upload-foto
+// ============================================================
+app.post('/api/perfil/upload-foto', (req, res) => {
+  const uploader = upload.single('foto');
+
+  uploader(req, res, async (err) => {
+    // Error de Multer (tipo de archivo, tamaño, etc.)
+    if (err) {
+      const msg = err.code === 'LIMIT_FILE_SIZE'
+        ? 'La imagen no puede superar los 5 MB.'
+        : err.message || 'Error al procesar la imagen.';
+      return res.status(400).json({ status: 'error', message: msg });
+    }
+
+    if (!req.file) {
+      return res.status(400).json({ status: 'error', message: 'No se recibió ningún archivo.' });
+    }
+
+    const usuario_id = parseInt(req.body.usuario_id, 10);
+    if (!usuario_id) {
+      fs.unlinkSync(req.file.path); // Borrar archivo huérfano
+      return res.status(400).json({ status: 'error', message: 'usuario_id requerido.' });
+    }
+
+    const foto_url = `/uploads/perfiles/${req.file.filename}`;
+    console.log(`\n🖼️  [POST /api/perfil/upload-foto] Archivo: ${foto_url} | Usuario: ${usuario_id}`);
+
+    try {
+      const db = await getPool();
+
+      // Obtener foto anterior para borrarla del disco
+      const prev = await db.request()
+        .input('id', sql.Int, usuario_id)
+        .query('SELECT foto_url FROM Usuarios WHERE id = @id');
+
+      const prevUrl = prev.recordset[0]?.foto_url;
+      if (prevUrl) {
+        const prevPath = path.join(__dirname, 'public', prevUrl);
+        if (fs.existsSync(prevPath)) fs.unlinkSync(prevPath);
+      }
+
+      // Guardar nueva ruta en la BD
+      await db.request()
+        .input('foto_url',   sql.NVarChar(255), foto_url)
+        .input('usuario_id', sql.Int,           usuario_id)
+        .query('UPDATE Usuarios SET foto_url = @foto_url WHERE id = @usuario_id');
+
+      console.log('✅ foto_url guardada en BD:', foto_url);
+      return res.json({ status: 'ok', message: '¡Foto actualizada!', foto_url });
+
+    } catch (dbErr) {
+      console.error('❌ Error BD al guardar foto:', dbErr.message);
+      fs.unlinkSync(req.file.path);
+      return res.status(500).json({ status: 'error', message: 'Error interno al guardar la foto.' });
+    }
+  });
 });
 
 // ============================================================
