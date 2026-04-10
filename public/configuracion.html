@@ -15,7 +15,7 @@
 
   <style>
     /* ============================
-       Variables & Global
+       Variables & Global (Light)
     ============================ */
     :root {
       --sidebar-width: 320px;
@@ -29,10 +29,36 @@
       --text-secondary: #65676b;
       --accent: #1877f2;
       --accent-hover: #166fe5;
+      --card-bg: #ffffff;
       --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
       --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
+      --input-bg: #fafbfc;
+      --input-bg-focus: #ffffff;
+      --navbar-bg: #ffffff;
       --transition-fast: 0.2s ease;
       --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* ============================
+       Dark Mode Variables
+    ============================ */
+    [data-theme="dark"] {
+      --sidebar-bg: #1a1a2e;
+      --sidebar-hover: #16213e;
+      --sidebar-active: #0f3460;
+      --sidebar-active-text: #64b5f6;
+      --sidebar-border: #2a2a4a;
+      --body-bg: #0f0f1a;
+      --text-primary: #e4e6f0;
+      --text-secondary: #8b8fa3;
+      --accent: #5b9bf5;
+      --accent-hover: #4a8de8;
+      --card-bg: #1a1a2e;
+      --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+      --card-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.45);
+      --input-bg: #16213e;
+      --input-bg-focus: #1a2744;
+      --navbar-bg: #1a1a2e;
     }
 
     * {
@@ -46,13 +72,14 @@
       background-color: var(--body-bg);
       color: var(--text-primary);
       min-height: 100vh;
+      transition: background-color 0.35s ease, color 0.35s ease;
     }
 
     /* ============================
        Top Navbar
     ============================ */
     .top-navbar {
-      background: #ffffff;
+      background: var(--navbar-bg);
       border-bottom: 1px solid var(--sidebar-border);
       height: 56px;
       display: flex;
@@ -62,6 +89,7 @@
       top: 0;
       z-index: 1000;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+      transition: background 0.35s ease, border-color 0.35s ease;
     }
 
     .top-navbar .brand {
@@ -232,7 +260,7 @@
     }
 
     .sidebar-search input:focus {
-      background: #fff;
+      background: var(--input-bg-focus);
       box-shadow: 0 0 0 2px var(--accent);
     }
 
@@ -333,11 +361,11 @@
 
     /* Settings Card */
     .settings-card {
-      background: #ffffff;
+      background: var(--card-bg);
       border-radius: 12px;
       box-shadow: var(--card-shadow);
       overflow: hidden;
-      transition: box-shadow var(--transition-smooth);
+      transition: box-shadow var(--transition-smooth), background 0.35s ease;
       animation: fadeInUp 0.4s ease;
     }
 
@@ -385,14 +413,15 @@
       font-size: 0.938rem;
       padding: 1rem 0.875rem 0.5rem;
       height: calc(3.25rem + 2px);
-      transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-      background: #fafbfc;
+      transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background 0.35s;
+      background: var(--input-bg);
+      color: var(--text-primary);
     }
 
     .form-floating .form-control:focus {
       border-color: var(--accent);
       box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
-      background: #fff;
+      background: var(--input-bg-focus);
     }
 
     .form-floating label {
@@ -514,7 +543,86 @@
     .sidebar-nav li:nth-child(1) { animation-delay: 0.05s; }
     .sidebar-nav li:nth-child(2) { animation-delay: 0.10s; }
     .sidebar-nav li:nth-child(3) { animation-delay: 0.15s; }
-    .sidebar-nav li:nth-child(4) { animation-delay: 0.20s; }
+
+    /* ============================
+       Dark Mode Toggle Button
+    ============================ */
+    .theme-toggle {
+      border: none;
+      background: transparent;
+      color: var(--text-secondary);
+      font-size: 1.15rem;
+      cursor: pointer;
+      padding: 6px;
+      border-radius: 50%;
+      width: 36px;
+      height: 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: background 0.2s, color 0.2s, transform 0.3s;
+      position: relative;
+    }
+    .theme-toggle:hover {
+      background: var(--sidebar-hover);
+      color: var(--accent);
+      transform: rotate(20deg);
+    }
+    .theme-toggle i {
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .theme-toggle:active i {
+      transform: rotate(360deg);
+    }
+
+    /* ============================
+       Privacy Switches
+    ============================ */
+    .privacy-switch-row {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 16px 0;
+      gap: 16px;
+    }
+    .privacy-switch-info {
+      flex: 1;
+    }
+    .privacy-switch-title {
+      font-size: 0.938rem;
+      font-weight: 600;
+      color: var(--text-primary);
+      margin-bottom: 4px;
+    }
+    .privacy-switch-desc {
+      font-size: 0.82rem;
+      color: var(--text-secondary);
+      line-height: 1.4;
+    }
+    .privacy-switch-row .form-check-input {
+      width: 3rem;
+      height: 1.5rem;
+      margin-top: 2px;
+      cursor: pointer;
+      flex-shrink: 0;
+    }
+    .privacy-switch-row .form-check-input:checked {
+      background-color: var(--accent);
+      border-color: var(--accent);
+    }
+    .role-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 16px;
+      border-radius: 20px;
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+    .role-badge.conductor {
+      background: rgba(91,155,245,0.15);
+      color: var(--accent);
+    }
 
     /* ============================
        Responsive
@@ -568,6 +676,10 @@
     </a>
     <div class="nav-user">
       <span id="navUserName" style="font-size:0.875rem;font-weight:600;color:var(--text-secondary);"></span>
+      <!-- Dark mode toggle -->
+      <button id="btnThemeToggle" class="theme-toggle" title="Cambiar tema">
+        <i class="fa-solid fa-moon" id="themeIcon"></i>
+      </button>
       <!-- Avatar clickeable en navbar -->
       <div class="user-avatar" id="userAvatar" title="Cambiar foto" onclick="document.getElementById('inputFoto').click()">
         <span id="navInitials">?</span>
@@ -576,8 +688,7 @@
       <input type="file" id="inputFoto" accept="image/jpeg,image/png,image/webp"
              style="display:none;" onchange="onFotoSeleccionada(event)">
       <button id="btnLogout" title="Cerrar sesión"
-        style="border:none;background:transparent;color:var(--text-secondary);font-size:1rem;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.15s;"
-        onmouseover="this.style.background='#f0f2f5'" onmouseout="this.style.background='transparent'">
+        style="border:none;background:transparent;color:var(--text-secondary);font-size:1rem;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.15s;">
         <i class="fa-solid fa-right-from-bracket"></i>
       </button>
     </div>
@@ -625,13 +736,6 @@
           <a href="#seguridad" data-section="seguridad" id="navSeguridad">
             <span class="nav-icon"><i class="fa-solid fa-shield-halved"></i></span>
             <span class="nav-label">Seguridad e inicio de sesión</span>
-            <i class="fa-solid fa-chevron-right nav-chevron"></i>
-          </a>
-        </li>
-        <li>
-          <a href="#personalizacion" data-section="personalizacion" id="navPersonalizacion">
-            <span class="nav-icon"><i class="fa-solid fa-palette"></i></span>
-            <span class="nav-label">Personalización</span>
             <i class="fa-solid fa-chevron-right nav-chevron"></i>
           </a>
         </li>
@@ -840,6 +944,77 @@
         </div>
       </section>
 
+      <!-- ---- Sección: Privacidad ---- -->
+      <section class="settings-card" id="sectionPrivacidad" style="display:none;">
+        <div class="card-header-custom">
+          <h2><i class="fa-solid fa-lock"></i> Privacidad</h2>
+        </div>
+        <div class="card-body-custom">
+
+          <!-- Rol actual -->
+          <div style="margin-bottom:20px;">
+            <span class="profile-field-label">Tu rol actual</span>
+            <div style="margin-top:8px;">
+              <span class="role-badge conductor" id="rolBadge">
+                <i class="fa-solid fa-car"></i> Conductor
+              </span>
+            </div>
+            <p style="font-size:0.8rem;color:var(--text-secondary);margin-top:6px;">El rol determina qué funciones están disponibles para ti en la plataforma.</p>
+          </div>
+
+          <div class="profile-divider" style="margin:0 0 8px;"></div>
+
+          <p style="font-size:0.9rem;color:var(--text-secondary);margin-bottom:16px;">
+            <i class="fa-solid fa-circle-info me-1"></i>
+            Controla quién puede ver tu información personal.
+          </p>
+
+          <!-- Alerta inline -->
+          <div id="privAlertBox" style="border-radius:10px;padding:12px 16px;font-size:0.875rem;font-weight:500;display:none;align-items:center;gap:10px;margin-bottom:16px;">
+            <i id="privAlertIcon" class="fa-solid fa-circle-check"></i>
+            <span id="privAlertMsg"></span>
+          </div>
+
+          <!-- Switch 1: Teléfono -->
+          <div class="privacy-switch-row">
+            <div class="privacy-switch-info">
+              <div class="privacy-switch-title">Mostrar mi teléfono solo a usuarios con reserva</div>
+              <div class="privacy-switch-desc">Tu número de teléfono solo será visible para usuarios que tengan una reserva confirmada contigo.</div>
+            </div>
+            <input class="form-check-input" type="checkbox" id="switchTelefono" role="switch">
+          </div>
+          <div class="profile-divider"></div>
+
+          <!-- Switch 2: Calificaciones -->
+          <div class="privacy-switch-row">
+            <div class="privacy-switch-info">
+              <div class="privacy-switch-title">Permitir ver mi promedio de calificaciones</div>
+              <div class="privacy-switch-desc">Otros usuarios podrán ver tu calificación promedio en tu perfil público.</div>
+            </div>
+            <input class="form-check-input" type="checkbox" id="switchCalificaciones" role="switch" checked>
+          </div>
+          <div class="profile-divider"></div>
+
+          <!-- Switch 3: Email -->
+          <div class="privacy-switch-row">
+            <div class="privacy-switch-info">
+              <div class="privacy-switch-title">Ocultar mi correo electrónico</div>
+              <div class="privacy-switch-desc">Tu dirección de correo no se mostrará en tu perfil público.</div>
+            </div>
+            <input class="form-check-input" type="checkbox" id="switchEmail" role="switch">
+          </div>
+
+          <div class="profile-divider" style="margin-top:8px;"></div>
+
+          <div class="d-flex justify-content-end" style="margin-top:16px;">
+            <button id="btnGuardarPriv" class="btn-save" onclick="guardarPrivacidad()">
+              <i class="fa-solid fa-floppy-disk"></i> Guardar Preferencias
+            </button>
+          </div>
+
+        </div>
+      </section>
+
     </main>
 
   </div>
@@ -888,8 +1063,9 @@
       border-radius: 8px;
       padding: 8px 12px;
       max-width: 340px;
-      transition: box-shadow var(--transition-fast);
-      background: #fff;
+      transition: box-shadow var(--transition-fast), background 0.35s;
+      background: var(--input-bg-focus);
+      color: var(--text-primary);
     }
 
     .profile-field-input:focus {
@@ -1181,19 +1357,24 @@
     // Sidebar Navigation — Section Switching
     // ============================================================
     const SECTIONS = {
-      general:        'sectionGeneral',
-      seguridad:      'sectionSeguridad',
-      personalizacion: 'sectionGeneral', // placeholder
-      privacidad:     'sectionGeneral',  // placeholder
+      general:    'sectionGeneral',
+      seguridad:  'sectionSeguridad',
+      privacidad: 'sectionPrivacidad',
     };
 
     function showSection(sectionKey) {
+      // Ocultar todas las secciones
       Object.values(SECTIONS).forEach(id => {
         const el = document.getElementById(id);
         if (el) el.style.display = 'none';
       });
       const target = document.getElementById(SECTIONS[sectionKey]);
-      if (target) target.style.display = 'block';
+      if (target) {
+        target.style.display = 'block';
+        target.style.animation = 'none';
+        target.offsetHeight; // trigger reflow
+        target.style.animation = 'fadeInUp 0.4s ease';
+      }
     }
 
     document.addEventListener('DOMContentLoaded', () => {
@@ -1245,7 +1426,37 @@
           label.textContent     = score > 0 ? labels[score - 1] : '';
         });
       }
+
+      // ============================================================
+      // Dark Mode Toggle
+      // ============================================================
+      const THEME_KEY = 'estairbnb_theme';
+      const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
+      applyTheme(savedTheme);
+
+      document.getElementById('btnThemeToggle').addEventListener('click', () => {
+        const current = document.documentElement.getAttribute('data-theme') || 'light';
+        const next = current === 'dark' ? 'light' : 'dark';
+        applyTheme(next);
+        localStorage.setItem(THEME_KEY, next);
+      });
+
+      // Cargar privacidad
+      cargarPrivacidad();
     });
+
+    // ============================================================
+    // Aplicar tema (Dark / Light)
+    // ============================================================
+    function applyTheme(theme) {
+      document.documentElement.setAttribute('data-theme', theme);
+      const icon = document.getElementById('themeIcon');
+      if (theme === 'dark') {
+        icon.className = 'fa-solid fa-sun';
+      } else {
+        icon.className = 'fa-solid fa-moon';
+      }
+    }
 
     // ============================================================
     // Toggle password visibility
@@ -1280,14 +1491,12 @@
     }
 
     async function cambiarPassword() {
-      // Limpiar alerta
       document.getElementById('pwAlertBox').style.display = 'none';
 
       const passwordActual = document.getElementById('pwActual').value;
       const passwordNueva  = document.getElementById('pwNueva').value;
       const confirmacion   = document.getElementById('pwConfirmar').value;
 
-      // Validaciones cliente
       if (!passwordActual) {
         showPwAlert('Ingresa tu contraseña actual.');
         document.getElementById('pwActual').focus();
@@ -1325,7 +1534,6 @@
         if (res.ok && data.status === 'ok') {
           showPwAlert('¡Contraseña actualizada correctamente!', 'success');
           showToast('¡Contraseña cambiada con éxito!', 'success');
-          // Limpiar campos
           document.getElementById('pwActual').value    = '';
           document.getElementById('pwNueva').value     = '';
           document.getElementById('pwConfirmar').value = '';
@@ -1337,6 +1545,78 @@
       } catch (err) {
         console.error('Error al cambiar contraseña:', err);
         showPwAlert('No se pudo conectar con el servidor.');
+      } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHTML;
+      }
+    }
+
+    // ============================================================
+    // Privacidad — Cargar y Guardar preferencias
+    // ============================================================
+    function showPrivAlert(msg, type = 'success') {
+      const box  = document.getElementById('privAlertBox');
+      const icon = document.getElementById('privAlertIcon');
+      box.style.display = 'flex';
+      if (type === 'error') {
+        box.style.background = '#fff2f3';
+        box.style.color      = '#c0392b';
+        box.style.border     = '1.5px solid #f5c6cb';
+        icon.className       = 'fa-solid fa-circle-exclamation';
+      } else {
+        box.style.background = '#f0faf4';
+        box.style.color      = '#1a7a42';
+        box.style.border     = '1.5px solid #b7dfcb';
+        icon.className       = 'fa-solid fa-circle-check';
+      }
+      document.getElementById('privAlertMsg').textContent = msg;
+    }
+
+    async function cargarPrivacidad() {
+      try {
+        const res = await fetch(`/api/perfil/privacidad?usuario_id=${USUARIO_ID}`);
+        const data = await res.json();
+        if (res.ok && data.status === 'ok') {
+          const p = data.data;
+          document.getElementById('switchTelefono').checked      = !!p.priv_telefono;
+          document.getElementById('switchCalificaciones').checked = !!p.priv_calificaciones;
+          document.getElementById('switchEmail').checked          = !!p.priv_email;
+        }
+      } catch (err) {
+        console.error('Error al cargar privacidad:', err);
+      }
+    }
+
+    async function guardarPrivacidad() {
+      const btn = document.getElementById('btnGuardarPriv');
+      const origHTML = btn.innerHTML;
+      btn.disabled = true;
+      btn.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...`;
+
+      const body = {
+        usuario_id: USUARIO_ID,
+        priv_telefono:       document.getElementById('switchTelefono').checked,
+        priv_calificaciones: document.getElementById('switchCalificaciones').checked,
+        priv_email:          document.getElementById('switchEmail').checked,
+      };
+
+      try {
+        const res = await fetch('/api/perfil/privacidad', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(body),
+        });
+        const data = await res.json();
+
+        if (res.ok && data.status === 'ok') {
+          showPrivAlert('¡Preferencias de privacidad guardadas!');
+          showToast('¡Privacidad actualizada!', 'success');
+        } else {
+          showPrivAlert(data.message || 'Error al guardar.', 'error');
+        }
+      } catch (err) {
+        console.error('Error al guardar privacidad:', err);
+        showPrivAlert('No se pudo conectar con el servidor.', 'error');
       } finally {
         btn.disabled = false;
         btn.innerHTML = origHTML;

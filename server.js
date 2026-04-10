@@ -371,6 +371,70 @@ app.put('/api/perfil/seguridad/password', async (req, res) => {
 });
 
 // ============================================================
+// PRIVACIDAD — Cargar preferencias
+// GET /api/perfil/privacidad?usuario_id=X
+// ============================================================
+app.get('/api/perfil/privacidad', async (req, res) => {
+  const usuario_id = parseInt(req.query.usuario_id, 10);
+  console.log(`\n🔒 [GET /api/perfil/privacidad] ID: ${usuario_id}`);
+
+  if (!usuario_id)
+    return res.status(400).json({ status: 'error', message: 'usuario_id requerido.' });
+
+  try {
+    const db = await getPool();
+    const result = await db.request()
+      .input('id', sql.Int, usuario_id)
+      .query('SELECT priv_telefono, priv_calificaciones, priv_email FROM Usuarios WHERE id = @id');
+
+    if (result.recordset.length === 0)
+      return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
+
+    console.log('✅ Privacidad cargada:', result.recordset[0]);
+    return res.json({ status: 'ok', data: result.recordset[0] });
+  } catch (err) {
+    console.error('❌ Error al cargar privacidad:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno.' });
+  }
+});
+
+// ============================================================
+// PRIVACIDAD — Guardar preferencias
+// PUT /api/perfil/privacidad
+// Body: { usuario_id, priv_telefono, priv_calificaciones, priv_email }
+// ============================================================
+app.put('/api/perfil/privacidad', async (req, res) => {
+  console.log('\n🔒 [PUT /api/perfil/privacidad]');
+  const { usuario_id, priv_telefono, priv_calificaciones, priv_email } = req.body;
+
+  if (!usuario_id)
+    return res.status(400).json({ status: 'error', message: 'usuario_id requerido.' });
+
+  try {
+    const db = await getPool();
+
+    await db.request()
+      .input('priv_telefono',       sql.Bit, priv_telefono ? 1 : 0)
+      .input('priv_calificaciones', sql.Bit, priv_calificaciones ? 1 : 0)
+      .input('priv_email',          sql.Bit, priv_email ? 1 : 0)
+      .input('id',                  sql.Int, parseInt(usuario_id, 10))
+      .query(`
+        UPDATE Usuarios
+        SET priv_telefono = @priv_telefono,
+            priv_calificaciones = @priv_calificaciones,
+            priv_email = @priv_email
+        WHERE id = @id
+      `);
+
+    console.log('✅ Privacidad actualizada para usuario:', usuario_id);
+    return res.json({ status: 'ok', message: '¡Preferencias de privacidad guardadas!' });
+  } catch (err) {
+    console.error('❌ Error al guardar privacidad:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al guardar la privacidad.' });
+  }
+});
+
+// ============================================================
 // Status
 // ============================================================
 app.get('/api/status', (req, res) => {
