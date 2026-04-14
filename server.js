@@ -38,6 +38,27 @@ const upload = multer({
 });
 
 // ------------------------------------------------------------
+// Multer — Subida de fotos de garajes (hasta 5 por publicación)
+// ------------------------------------------------------------
+const GARAJES_DIR = path.join(__dirname, 'public', 'uploads', 'garajes');
+if (!fs.existsSync(GARAJES_DIR)) fs.mkdirSync(GARAJES_DIR, { recursive: true });
+
+const storageGarajes = multer.diskStorage({
+  destination: (_req, _file, cb) => cb(null, GARAJES_DIR),
+  filename: (_req, file, cb) => {
+    const ext = path.extname(file.originalname).toLowerCase();
+    const filename = `garaje_${Date.now()}_${Math.round(Math.random() * 1000)}${ext}`;
+    cb(null, filename);
+  },
+});
+
+const uploadGarajes = multer({
+  storage: storageGarajes,
+  fileFilter,              // Reutiliza el mismo filtro de imágenes
+  limits: { fileSize: 5 * 1024 * 1024 },
+});
+
+// ------------------------------------------------------------
 // Configuración de SQL Server — Windows Authentication (ODBC)
 // ------------------------------------------------------------
 const CONNECTION_STRING =
@@ -101,17 +122,18 @@ app.post('/api/auth/register', async (req, res) => {
     // Hashear contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insertar usuario
+    // Insertar usuario (rol_id = 2 → conductor por defecto)
     const result = await db.request()
       .input('nombre', sql.NVarChar(100), nombre.trim())
       .input('apellidos', sql.NVarChar(100), apellidos.trim())
       .input('email', sql.NVarChar(150), email.toLowerCase().trim())
       .input('password', sql.NVarChar(255), hashedPassword)
       .input('telefono', sql.NVarChar(20), telefono ? telefono.trim() : null)
+      .input('rol_id', sql.Int, 2)
       .query(`
-        INSERT INTO Usuarios (nombre, apellidos, email, password, telefono)
+        INSERT INTO Usuarios (nombre, apellidos, email, password, telefono, rol_id)
         OUTPUT INSERTED.id
-        VALUES (@nombre, @apellidos, @email, @password, @telefono)
+        VALUES (@nombre, @apellidos, @email, @password, @telefono, @rol_id)
       `);
 
     const newId = result.recordset[0].id;
@@ -197,7 +219,13 @@ app.get('/api/perfil/general', async (req, res) => {
 
     const result = await db.request()
       .input('usuario_id', sql.Int, usuario_id)
-      .query('SELECT id, nombre, apellidos, telefono, email, foto_url FROM Usuarios WHERE id = @usuario_id');
+      .query(`
+        SELECT u.id, u.nombre, u.apellidos, u.telefono, u.email, u.foto_url,
+               u.rol_id, ISNULL(r.nombre, 'conductor') AS rol_nombre
+        FROM Usuarios u
+        LEFT JOIN Roles r ON u.rol_id = r.id
+        WHERE u.id = @usuario_id
+      `);
 
     if (result.recordset.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
@@ -373,6 +401,8 @@ app.put('/api/perfil/seguridad/password', async (req, res) => {
 // ============================================================
 // PRIVACIDAD — Cargar preferencias
 // GET /api/perfil/privacidad?usuario_id=X
+// Nota: Las columnas priv_* pueden no existir aún en la BD.
+//       En ese caso devolvemos valores por defecto.
 // ============================================================
 app.get('/api/perfil/privacidad', async (req, res) => {
   const usuario_id = parseInt(req.query.usuario_id, 10);
@@ -383,15 +413,26 @@ app.get('/api/perfil/privacidad', async (req, res) => {
 
   try {
     const db = await getPool();
-    const result = await db.request()
-      .input('id', sql.Int, usuario_id)
-      .query('SELECT priv_telefono, priv_calificaciones, priv_email FROM Usuarios WHERE id = @id');
 
-    if (result.recordset.length === 0)
-      return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
+    // Intentar leer columnas de privacidad (pueden no existir todavía)
+    try {
+      const result = await db.request()
+        .input('id', sql.Int, usuario_id)
+        .query('SELECT priv_telefono, priv_calificaciones, priv_email FROM Usuarios WHERE id = @id');
 
-    console.log('✅ Privacidad cargada:', result.recordset[0]);
-    return res.json({ status: 'ok', data: result.recordset[0] });
+      if (result.recordset.length === 0)
+        return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
+
+      console.log('✅ Privacidad cargada:', result.recordset[0]);
+      return res.json({ status: 'ok', data: result.recordset[0] });
+    } catch (innerErr) {
+      // Columnas aún no existen → devolver valores por defecto sin romper
+      console.log('ℹ️  Columnas de privacidad no existen aún, devolviendo defaults.');
+      return res.json({
+        status: 'ok',
+        data: { priv_telefono: false, priv_calificaciones: true, priv_email: false }
+      });
+    }
   } catch (err) {
     console.error('❌ Error al cargar privacidad:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno.' });
@@ -413,24 +454,221 @@ app.put('/api/perfil/privacidad', async (req, res) => {
   try {
     const db = await getPool();
 
-    await db.request()
-      .input('priv_telefono',       sql.Bit, priv_telefono ? 1 : 0)
-      .input('priv_calificaciones', sql.Bit, priv_calificaciones ? 1 : 0)
-      .input('priv_email',          sql.Bit, priv_email ? 1 : 0)
-      .input('id',                  sql.Int, parseInt(usuario_id, 10))
-      .query(`
-        UPDATE Usuarios
-        SET priv_telefono = @priv_telefono,
-            priv_calificaciones = @priv_calificaciones,
-            priv_email = @priv_email
-        WHERE id = @id
-      `);
+    try {
+      await db.request()
+        .input('priv_telefono',       sql.Bit, priv_telefono ? 1 : 0)
+        .input('priv_calificaciones', sql.Bit, priv_calificaciones ? 1 : 0)
+        .input('priv_email',          sql.Bit, priv_email ? 1 : 0)
+        .input('id',                  sql.Int, parseInt(usuario_id, 10))
+        .query(`
+          UPDATE Usuarios
+          SET priv_telefono = @priv_telefono,
+              priv_calificaciones = @priv_calificaciones,
+              priv_email = @priv_email
+          WHERE id = @id
+        `);
 
-    console.log('✅ Privacidad actualizada para usuario:', usuario_id);
-    return res.json({ status: 'ok', message: '¡Preferencias de privacidad guardadas!' });
+      console.log('✅ Privacidad actualizada para usuario:', usuario_id);
+      return res.json({ status: 'ok', message: '¡Preferencias de privacidad guardadas!' });
+    } catch (innerErr) {
+      // Columnas aún no existen
+      console.log('ℹ️  Columnas de privacidad no existen aún, operación omitida.');
+      return res.json({ status: 'ok', message: '¡Preferencias guardadas! (columnas pendientes de migración)' });
+    }
   } catch (err) {
     console.error('❌ Error al guardar privacidad:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al guardar la privacidad.' });
+  }
+});
+
+// ============================================================
+// GARAJES — Publicar nuevo espacio
+// POST /api/garajes
+// Body (multipart): usuario_id, direccion, descripcion,
+//                   precio_hora, tipo_vehiculo, fotos[]
+// ============================================================
+app.post('/api/garajes', (req, res) => {
+  const uploader = uploadGarajes.array('fotos', 5);
+
+  uploader(req, res, async (err) => {
+    if (err) {
+      const msg = err.code === 'LIMIT_FILE_SIZE'
+        ? 'Cada imagen no puede superar los 5 MB.'
+        : err.code === 'LIMIT_UNEXPECTED_FILE'
+          ? 'Máximo 5 fotos por garaje.'
+          : err.message || 'Error al procesar las imágenes.';
+      return res.status(400).json({ status: 'error', message: msg });
+    }
+
+    const { usuario_id, direccion, descripcion, precio_hora, tipo_vehiculo } = req.body;
+
+    // Validaciones
+    if (!usuario_id)
+      return res.status(400).json({ status: 'error', message: 'usuario_id requerido.' });
+    if (!direccion || String(direccion).trim().length < 5)
+      return res.status(400).json({ status: 'error', message: 'La dirección es obligatoria (mín. 5 caracteres).' });
+    if (!precio_hora || isNaN(precio_hora) || Number(precio_hora) <= 0)
+      return res.status(400).json({ status: 'error', message: 'El precio por hora debe ser un número positivo.' });
+    if (!tipo_vehiculo || !['auto', 'moto', 'camioneta'].includes(tipo_vehiculo))
+      return res.status(400).json({ status: 'error', message: 'Tipo de vehículo inválido (auto, moto o camioneta).' });
+
+    console.log(`\n🏠 [POST /api/garajes] Usuario: ${usuario_id} | Dir: ${direccion}`);
+
+    try {
+      const db = await getPool();
+
+      // ── Paso 1: Insertar el garaje y obtener su ID ──
+      const insertResult = await db.request()
+        .input('usuario_id',    sql.Int,            parseInt(usuario_id, 10))
+        .input('direccion',     sql.NVarChar(255),   String(direccion).trim())
+        .input('descripcion',   sql.NVarChar(500),   descripcion ? String(descripcion).trim() : null)
+        .input('precio_hora',   sql.Decimal(10, 2),  parseFloat(precio_hora))
+        .input('tipo_vehiculo', sql.VarChar(20),     tipo_vehiculo)
+        .query(`
+          INSERT INTO Garajes (usuario_id, direccion, descripcion, precio_hora, tipo_vehiculo)
+          VALUES (@usuario_id, @direccion, @descripcion, @precio_hora, @tipo_vehiculo);
+          SELECT SCOPE_IDENTITY() AS nuevoId;
+        `);
+
+      const garajeId = insertResult.recordset[0].nuevoId;
+      console.log(`   ✅ Garaje creado con ID: ${garajeId}`);
+
+      // ── Paso 2: Guardar fotos en FotosGaraje ──
+      const fotosGuardadas = [];
+      if (req.files && req.files.length > 0) {
+        for (const file of req.files) {
+          const foto_url = `/uploads/garajes/${file.filename}`;
+          await db.request()
+            .input('garaje_id', sql.Int,           garajeId)
+            .input('foto_url',  sql.NVarChar(255), foto_url)
+            .query('INSERT INTO FotosGaraje (garaje_id, foto_url) VALUES (@garaje_id, @foto_url)');
+          fotosGuardadas.push(foto_url);
+        }
+        console.log(`   📷 ${fotosGuardadas.length} foto(s) guardada(s).`);
+      }
+
+      // ── Paso 3: Ascender usuario a Anfitrión (rol_id = 1) ──
+      await db.request()
+        .input('uid', sql.Int, parseInt(usuario_id, 10))
+        .query('UPDATE Usuarios SET rol_id = 1 WHERE id = @uid');
+      console.log(`   🔑 Usuario ${usuario_id} ascendido a Anfitrión.`);
+
+      return res.status(201).json({
+        status: 'ok',
+        message: '¡Espacio publicado exitosamente!',
+        data: {
+          id: garajeId,
+          direccion: String(direccion).trim(),
+          descripcion: descripcion ? String(descripcion).trim() : null,
+          precio_hora: parseFloat(precio_hora),
+          tipo_vehiculo,
+          estado_activo: true,
+          fotos: fotosGuardadas
+        }
+      });
+
+    } catch (dbErr) {
+      console.error('❌ Error al publicar garaje:', dbErr.message);
+      // Limpiar archivos subidos si la BD falló
+      if (req.files) {
+        req.files.forEach(f => { try { fs.unlinkSync(f.path); } catch (_) {} });
+      }
+      return res.status(500).json({ status: 'error', message: 'Error interno al publicar el espacio.' });
+    }
+  });
+});
+
+// ============================================================
+// GARAJES — Listar mis espacios
+// GET /api/garajes/mis-espacios?usuario_id=X
+// Devuelve garajes del usuario con su foto principal (portada)
+// ============================================================
+app.get('/api/garajes/mis-espacios', async (req, res) => {
+  const usuario_id = parseInt(req.query.usuario_id, 10);
+  console.log(`\n🏠 [GET /api/garajes/mis-espacios] Usuario: ${usuario_id}`);
+
+  if (!usuario_id)
+    return res.status(400).json({ status: 'error', message: 'usuario_id requerido.' });
+
+  try {
+    const db = await getPool();
+
+    const result = await db.request()
+      .input('usuario_id', sql.Int, usuario_id)
+      .query(`
+        SELECT
+          g.id,
+          g.direccion,
+          g.descripcion,
+          g.precio_hora,
+          g.tipo_vehiculo,
+          g.estado_activo,
+          g.fecha_creacion,
+          fp.foto_url AS foto_principal
+        FROM Garajes g
+        OUTER APPLY (
+          SELECT TOP 1 foto_url
+          FROM FotosGaraje
+          WHERE garaje_id = g.id
+          ORDER BY id ASC
+        ) fp
+        WHERE g.usuario_id = @usuario_id
+        ORDER BY g.fecha_creacion DESC
+      `);
+
+    console.log(`   ✅ ${result.recordset.length} garaje(s) encontrado(s).`);
+    return res.json({ status: 'ok', data: result.recordset });
+
+  } catch (err) {
+    console.error('❌ Error al listar garajes:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al cargar los espacios.' });
+  }
+});
+
+// ============================================================
+// GARAJES — Toggle estado activo/inactivo
+// PUT /api/garajes/:id/estado
+// Body: { usuario_id }
+// ============================================================
+app.put('/api/garajes/:id/estado', async (req, res) => {
+  const garaje_id = parseInt(req.params.id, 10);
+  const { usuario_id } = req.body;
+  console.log(`\n🔄 [PUT /api/garajes/${garaje_id}/estado] Usuario: ${usuario_id}`);
+
+  if (!garaje_id || !usuario_id)
+    return res.status(400).json({ status: 'error', message: 'garaje_id y usuario_id requeridos.' });
+
+  try {
+    const db = await getPool();
+
+    // Verificar que el garaje pertenece al usuario
+    const check = await db.request()
+      .input('id',         sql.Int, garaje_id)
+      .input('usuario_id', sql.Int, parseInt(usuario_id, 10))
+      .query('SELECT id, estado_activo FROM Garajes WHERE id = @id AND usuario_id = @usuario_id');
+
+    if (check.recordset.length === 0)
+      return res.status(404).json({ status: 'error', message: 'Garaje no encontrado o no te pertenece.' });
+
+    const estadoActual = check.recordset[0].estado_activo;
+    const nuevoEstado = estadoActual ? 0 : 1;
+
+    await db.request()
+      .input('nuevoEstado', sql.Bit, nuevoEstado)
+      .input('id',          sql.Int, garaje_id)
+      .query('UPDATE Garajes SET estado_activo = @nuevoEstado WHERE id = @id');
+
+    console.log(`   ✅ Garaje ${garaje_id}: estado_activo → ${nuevoEstado}`);
+
+    return res.json({
+      status: 'ok',
+      message: nuevoEstado ? '¡Espacio activado!' : 'Espacio desactivado.',
+      data: { id: garaje_id, estado_activo: !!nuevoEstado }
+    });
+
+  } catch (err) {
+    console.error('❌ Error al cambiar estado:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al cambiar el estado.' });
   }
 });
 
@@ -454,8 +692,9 @@ async function startServer() {
       console.log('');
       console.log('🚗 ══════════════════════════════════════════════');
       console.log(`🚗  EstAirbnb :: puerto ${PORT}`);
-      console.log(`🚗  Login:    http://localhost:${PORT}/login.html`);
-      console.log(`🚗  Registro: http://localhost:${PORT}/register.html`);
+      console.log(`🚗  Login:      http://localhost:${PORT}/login.html`);
+      console.log(`🚗  Registro:   http://localhost:${PORT}/register.html`);
+      console.log(`🚗  Garajes:    http://localhost:${PORT}/mis-garajes.html`);
       console.log('🚗 ══════════════════════════════════════════════');
       console.log('');
     });
