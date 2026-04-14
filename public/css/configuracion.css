@@ -1,0 +1,804 @@
+/* ============================================================
+   EstAirbnb — configuracion.css
+   Estilos para la página de Configuración de Perfil
+   ============================================================ */
+
+/* ============================
+   Variables & Global (Light)
+============================ */
+:root {
+  --sidebar-width: 320px;
+  --sidebar-bg: #ffffff;
+  --sidebar-hover: #f0f2f5;
+  --sidebar-active: #e7f3ff;
+  --sidebar-active-text: #1877f2;
+  --sidebar-border: #e4e6eb;
+  --body-bg: #f0f2f5;
+  --text-primary: #1c1e21;
+  --text-secondary: #65676b;
+  --accent: #1877f2;
+  --accent-hover: #166fe5;
+  --card-bg: #ffffff;
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --input-bg: #fafbfc;
+  --input-bg-focus: #ffffff;
+  --navbar-bg: #ffffff;
+  --transition-fast: 0.2s ease;
+  --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================
+   Dark Mode Variables
+============================ */
+[data-theme="dark"] {
+  --sidebar-bg: #1a1a2e;
+  --sidebar-hover: #16213e;
+  --sidebar-active: #0f3460;
+  --sidebar-active-text: #64b5f6;
+  --sidebar-border: #2a2a4a;
+  --body-bg: #0f0f1a;
+  --text-primary: #e4e6f0;
+  --text-secondary: #8b8fa3;
+  --accent: #5b9bf5;
+  --accent-hover: #4a8de8;
+  --card-bg: #1a1a2e;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --card-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.45);
+  --input-bg: #16213e;
+  --input-bg-focus: #1a2744;
+  --navbar-bg: #1a1a2e;
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--body-bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+/* ============================
+   Top Navbar
+============================ */
+.top-navbar {
+  background: var(--navbar-bg);
+  border-bottom: 1px solid var(--sidebar-border);
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  transition: background 0.35s ease, border-color 0.35s ease;
+}
+
+.top-navbar .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.top-navbar .brand i {
+  font-size: 1.5rem;
+}
+
+.top-navbar .nav-user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ============================
+   User Avatar (Navbar)
+============================ */
+.nav-user .user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #42a5f5);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.nav-user .user-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.3);
+}
+
+/* ============================
+   Avatar grande (tarjeta)
+============================ */
+.profile-avatar-wrapper {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px 0 4px;
+  gap: 10px;
+}
+
+.profile-avatar-big {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #42a5f5);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 2rem;
+  font-weight: 700;
+  cursor: pointer;
+  position: relative;
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.profile-avatar-big:hover {
+  box-shadow: 0 4px 20px rgba(24, 119, 242, 0.35);
+}
+
+.avatar-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-align: center;
+}
+
+.profile-avatar-big:hover .avatar-overlay {
+  opacity: 1;
+}
+
+.avatar-uploading {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-uploading.show {
+  display: flex;
+}
+
+/* ============================
+   Layout Container
+============================ */
+.settings-layout {
+  display: flex;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  gap: 16px;
+  min-height: calc(100vh - 56px);
+}
+
+/* ============================
+   Sidebar
+============================ */
+.settings-sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+  position: sticky;
+  top: 80px;
+  height: fit-content;
+}
+
+.sidebar-header {
+  padding: 0 8px 16px 8px;
+}
+
+.sidebar-header h1 {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+}
+
+.sidebar-search {
+  position: relative;
+  margin-bottom: 8px;
+  padding: 0 8px;
+}
+
+.sidebar-search input {
+  width: 100%;
+  padding: 8px 12px 8px 36px;
+  border-radius: 20px;
+  border: none;
+  background: var(--sidebar-hover);
+  font-size: 0.9rem;
+  font-family: inherit;
+  color: var(--text-primary);
+  transition: box-shadow var(--transition-fast), background var(--transition-fast);
+  outline: none;
+}
+
+.sidebar-search input::placeholder {
+  color: var(--text-secondary);
+}
+
+.sidebar-search input:focus {
+  background: var(--input-bg-focus);
+  box-shadow: 0 0 0 2px var(--accent);
+}
+
+.sidebar-search .search-icon {
+  position: absolute;
+  left: 20px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-secondary);
+  font-size: 0.85rem;
+  pointer-events: none;
+}
+
+/* ============================
+   Sidebar Navigation Menu
+============================ */
+.sidebar-nav {
+  list-style: none;
+  padding: 4px 0;
+  margin: 0;
+}
+
+.sidebar-nav li {
+  margin: 2px 0;
+}
+
+.sidebar-nav a {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  text-decoration: none;
+  color: var(--text-primary);
+  font-size: 0.938rem;
+  font-weight: 500;
+  transition: background var(--transition-fast), color var(--transition-fast);
+  position: relative;
+}
+
+.sidebar-nav a:hover {
+  background: var(--sidebar-hover);
+}
+
+.sidebar-nav a.active {
+  background: var(--sidebar-active);
+  color: var(--sidebar-active-text);
+}
+
+.sidebar-nav a.active .nav-icon {
+  color: var(--sidebar-active-text);
+}
+
+.sidebar-nav .nav-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--sidebar-hover);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  color: var(--text-primary);
+  flex-shrink: 0;
+  transition: background var(--transition-fast), color var(--transition-fast), transform var(--transition-fast);
+}
+
+.sidebar-nav a:hover .nav-icon {
+  transform: scale(1.05);
+}
+
+.sidebar-nav a.active .nav-icon {
+  background: var(--sidebar-active);
+  color: var(--sidebar-active-text);
+}
+
+.sidebar-nav .nav-label {
+  line-height: 1.3;
+}
+
+.sidebar-nav .nav-chevron {
+  margin-left: auto;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  opacity: 0;
+  transition: opacity var(--transition-fast);
+}
+
+.sidebar-nav a:hover .nav-chevron {
+  opacity: 1;
+}
+
+/* ============================
+   Content Panel
+============================ */
+.settings-content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* ============================
+   Settings Card
+============================ */
+.settings-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  transition: box-shadow var(--transition-smooth), background 0.35s ease;
+  animation: fadeInUp 0.4s ease;
+}
+
+.settings-card:hover {
+  box-shadow: var(--card-shadow-hover);
+}
+
+.card-header-custom {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--sidebar-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-header-custom h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-header-custom h2 i {
+  color: var(--accent);
+}
+
+.card-body-custom {
+  padding: 24px;
+}
+
+/* ============================
+   Form Styles
+============================ */
+.form-floating {
+  margin-bottom: 20px;
+}
+
+.form-floating .form-control {
+  border: 1.5px solid var(--sidebar-border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.938rem;
+  padding: 1rem 0.875rem 0.5rem;
+  height: calc(3.25rem + 2px);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background 0.35s;
+  background: var(--input-bg);
+  color: var(--text-primary);
+}
+
+.form-floating .form-control:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+  background: var(--input-bg-focus);
+}
+
+.form-floating label {
+  font-family: inherit;
+  color: var(--text-secondary);
+  font-size: 0.938rem;
+}
+
+.form-text {
+  font-size: 0.8rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+}
+
+/* ============================
+   Submit / Save Button
+============================ */
+.btn-save {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 28px;
+  font-size: 0.938rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-save:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3);
+}
+
+.btn-save:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.btn-save:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-save .spinner-border {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.15em;
+}
+
+/* ============================
+   Toast Notifications
+============================ */
+.toast-container {
+  z-index: 9999;
+}
+
+.toast.toast-success {
+  background: #d4edda;
+  border-left: 4px solid #28a745;
+  color: #155724;
+}
+
+.toast.toast-error {
+  background: #f8d7da;
+  border-left: 4px solid #dc3545;
+  color: #721c24;
+}
+
+.toast .toast-body {
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ============================
+   Form Divider
+============================ */
+.form-divider {
+  border: none;
+  border-top: 1px solid var(--sidebar-border);
+  margin: 8px 0 20px;
+}
+
+/* ============================
+   Profile Row (Facebook style)
+============================ */
+.profile-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 0;
+  gap: 16px;
+  transition: background var(--transition-fast);
+}
+
+.profile-row-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.profile-field-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.profile-field-value {
+  font-size: 0.975rem;
+  font-weight: 500;
+  color: var(--text-primary);
+}
+
+.profile-field-input {
+  font-size: 0.938rem;
+  font-family: inherit;
+  border: 1.5px solid var(--accent);
+  border-radius: 8px;
+  padding: 8px 12px;
+  max-width: 340px;
+  transition: box-shadow var(--transition-fast), background 0.35s;
+  background: var(--input-bg-focus);
+  color: var(--text-primary);
+}
+
+.profile-field-input:focus {
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+  outline: none;
+}
+
+.profile-row-action {
+  flex-shrink: 0;
+}
+
+.btn-toggle-edit {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-size: 0.938rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  padding: 6px 14px;
+  border-radius: 6px;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.btn-toggle-edit:hover {
+  background: var(--sidebar-active);
+}
+
+.btn-toggle-edit.cancel-mode {
+  color: var(--text-secondary);
+}
+
+.btn-toggle-edit.cancel-mode:hover {
+  background: var(--sidebar-hover);
+  color: #dc3545;
+}
+
+.profile-divider {
+  border-top: 1px solid var(--sidebar-border);
+}
+
+/* ============================
+   Password Toggle Eye
+============================ */
+.pw-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--text-secondary);
+  font-size: 0.9rem;
+  cursor: pointer;
+  padding: 4px;
+}
+
+.pw-toggle:hover {
+  color: var(--accent);
+}
+
+/* ============================
+   Dark Mode Toggle Button
+============================ */
+.theme-toggle {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.15rem;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s, transform 0.3s;
+  position: relative;
+}
+
+.theme-toggle:hover {
+  background: var(--sidebar-hover);
+  color: var(--accent);
+  transform: rotate(20deg);
+}
+
+.theme-toggle i {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-toggle:active i {
+  transform: rotate(360deg);
+}
+
+/* ============================
+   Privacy Switches
+============================ */
+.privacy-switch-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 16px 0;
+  gap: 16px;
+}
+
+.privacy-switch-info {
+  flex: 1;
+}
+
+.privacy-switch-title {
+  font-size: 0.938rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+}
+
+.privacy-switch-desc {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.privacy-switch-row .form-check-input {
+  width: 3rem;
+  height: 1.5rem;
+  margin-top: 2px;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.privacy-switch-row .form-check-input:checked {
+  background-color: var(--accent);
+  border-color: var(--accent);
+}
+
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.role-badge.conductor {
+  background: rgba(91, 155, 245, 0.15);
+  color: var(--accent);
+}
+
+.role-badge.anfitrion {
+  background: rgba(40, 167, 69, 0.15);
+  color: #28a745;
+}
+
+[data-theme="dark"] .role-badge.anfitrion {
+  background: rgba(76, 175, 80, 0.15);
+  color: #4caf50;
+}
+
+/* ============================
+   Animations
+============================ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-16px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.sidebar-nav li {
+  animation: slideInLeft 0.3s ease forwards;
+  opacity: 0;
+}
+
+.sidebar-nav li:nth-child(1) {
+  animation-delay: 0.05s;
+}
+
+.sidebar-nav li:nth-child(2) {
+  animation-delay: 0.10s;
+}
+
+.sidebar-nav li:nth-child(3) {
+  animation-delay: 0.15s;
+}
+
+/* ============================
+   Responsive
+============================ */
+@media (max-width: 768px) {
+  .settings-layout {
+    flex-direction: column;
+    padding: 12px;
+  }
+
+  .settings-sidebar {
+    width: 100%;
+    position: static;
+  }
+
+  .settings-sidebar .sidebar-header h1 {
+    font-size: 1.25rem;
+  }
+}
+
+/* ============================
+   Scrollbar custom
+============================ */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c4c4c4;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
