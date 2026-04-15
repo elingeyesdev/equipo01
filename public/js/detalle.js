@@ -36,7 +36,17 @@
   const tipoIcon         = document.getElementById('tipoIcon');
   const garajeDescripcion = document.getElementById('garajeDescripcion');
   const descripcionContainer = document.getElementById('descripcionContainer');
+  
+  // Reserva elements
+  const fechaEntrada     = document.getElementById('fechaEntrada');
+  const fechaSalida      = document.getElementById('fechaSalida');
+  const resumenPrecio    = document.getElementById('resumenPrecio');
+  const textoHoras       = document.getElementById('textoHoras');
+  const textoTotal       = document.getElementById('textoTotal');
   const btnReserva       = document.getElementById('btnReserva');
+  const reservaAlert     = document.getElementById('reservaAlert');
+
+  let garajeCargado = null; // Guardar toda la data de garaje
 
   const btnThemeToggle   = document.getElementById('btnThemeToggle');
   const themeIcon        = document.getElementById('themeIcon');
@@ -170,6 +180,7 @@
       }
 
       const garaje = json.data;
+      garajeCargado = garaje; // Almacenar en la variable global
 
       // Render sections
       renderCarousel(garaje.fotos);
@@ -177,6 +188,9 @@
 
       // Show content
       detalleContent.style.display = 'grid';
+
+      // Verificar si ya tiene una reserva aquí
+      await verificarReservaExistente();
 
     } catch (err) {
       console.error('Error al cargar detalle:', err);
@@ -190,9 +204,98 @@
     detalleContent.style.display = 'none';
   }
 
-  // ─── Solicitar Reserva (placeholder Sprint 1) ───
-  btnReserva.addEventListener('click', () => {
-    alert('Funcionalidad para el Sprint 1');
+  // ─── Lógica de Precios en Vivo ───
+  function calcularPrecio() {
+    reservaAlert.style.display = 'none';
+    if (!fechaEntrada.value || !fechaSalida.value || !garajeCargado) {
+      resumenPrecio.style.setProperty('display', 'none', 'important');
+      btnReserva.disabled = true;
+      return;
+    }
+
+    const start = new Date(fechaEntrada.value).getTime();
+    const end = new Date(fechaSalida.value).getTime();
+
+    if (end <= start) {
+      resumenPrecio.style.setProperty('display', 'none', 'important');
+      btnReserva.disabled = true;
+      return;
+    }
+
+    const difMs = end - start;
+    const difHoras = Math.ceil(difMs / (1000 * 60 * 60));
+    const total = difHoras * parseFloat(garajeCargado.precio_hora);
+
+    textoHoras.textContent = `${difHoras} hora${difHoras > 1 ? 's' : ''} x Bs. ${parseFloat(garajeCargado.precio_hora).toFixed(2)}`;
+    textoTotal.textContent = `Bs. ${total.toFixed(2)}`;
+    
+    resumenPrecio.style.setProperty('display', 'flex', 'important');
+    btnReserva.disabled = false;
+  }
+
+  fechaEntrada.addEventListener('change', calcularPrecio);
+  fechaSalida.addEventListener('change', calcularPrecio);
+
+  // ─── Verificar si ya tiene reserva ───
+  async function verificarReservaExistente() {
+    try {
+      const res = await fetch(`/api/reservas/verificar-existente?usuario_id=${currentUser.id}&garaje_id=${garajeCargado.id}`);
+      const json = await res.json();
+      if (res.ok && json.status === 'ok' && json.existe) {
+        // Ocultar formulario de reservas e inyectar el aviso
+        document.querySelector('.reserva-card').innerHTML = `
+          <div class="text-center p-3 animate-fade-in">
+            <h5 class="text-success mb-3" style="font-weight: 700;"><i class="fa-solid fa-circle-check fa-lg text-success mb-2"></i><br>¡Ya tienes una reserva para este lugar!</h5>
+            <p class="text-muted" style="font-size:0.9rem;">Revisa tu panel de gestión de reservas para conocer más detalles y el estado actual de tu solicitud.</p>
+            <a href="/mis-reservas.html" class="btn btn-primary w-100 mt-2" style="font-weight: 600;"><i class="fa-solid fa-calendar-days"></i> Ir a mis reservas</a>
+          </div>
+        `;
+      }
+    } catch (err) {
+      console.error('Error al verificar reservas previas', err);
+    }
+  }
+
+  // ─── Solicitar Reserva ───
+  btnReserva.addEventListener('click', async () => {
+    if (!garajeCargado || !fechaEntrada.value || !fechaSalida.value) return;
+
+    btnReserva.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Solicitando...';
+    btnReserva.disabled = true;
+    reservaAlert.style.display = 'none';
+
+    try {
+      const response = await fetch('/api/reservas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          garaje_id: garajeCargado.id,
+          usuario_id: currentUser.id,
+          fecha_inicio: fechaEntrada.value,
+          fecha_fin: fechaSalida.value
+        })
+      });
+
+      const json = await response.json();
+
+      if (response.ok && json.status === 'ok') {
+        // Éxito, redirigir a mis-reservas
+        window.location.href = '/mis-reservas.html';
+      } else {
+        // Error como double-booking
+        reservaAlert.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${json.message}`;
+        reservaAlert.style.display = 'block';
+        btnReserva.innerHTML = '<i class="fa-solid fa-calendar-check"></i> Solicitar Reserva';
+        btnReserva.disabled = false;
+      }
+
+    } catch (err) {
+      console.error(err);
+      reservaAlert.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Error de conexión.';
+      reservaAlert.style.display = 'block';
+      btnReserva.innerHTML = '<i class="fa-solid fa-calendar-check"></i> Solicitar Reserva';
+      btnReserva.disabled = false;
+    }
   });
 
   // ─── Init ───

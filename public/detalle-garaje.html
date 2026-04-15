@@ -123,11 +123,34 @@
             </div>
           </div>
 
-          <!-- CTA Button -->
-          <button class="btn-reserva" id="btnReserva">
-            <i class="fa-solid fa-calendar-check"></i>
-            Solicitar Reserva
-          </button>
+          <!-- Reserva Section (Airbnb Style) -->
+          <div class="reserva-card mt-5 p-4 border rounded" style="background-color: var(--card-bg); border-color: var(--sidebar-border) !important;">
+            <h5 class="mb-3" style="font-weight: 600;"><i class="fa-regular fa-calendar"></i> Reservar espacio</h5>
+            
+            <div id="reservaAlert" class="alert alert-danger" style="display: none; font-size: 0.9rem;"></div>
+
+            <div class="row g-2 mb-3">
+              <div class="col-6">
+                <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Llegada</label>
+                <input type="datetime-local" class="form-control" id="fechaEntrada" required>
+              </div>
+              <div class="col-6">
+                <label class="form-label" style="font-size: 0.85rem; font-weight: 600;">Salida</label>
+                <input type="datetime-local" class="form-control" id="fechaSalida" required>
+              </div>
+            </div>
+            
+            <div class="d-flex justify-content-between mb-3 pb-2 border-bottom" id="resumenPrecio" style="display: none !important;">
+              <span id="textoHoras" style="color: var(--text-muted);">0 horas x Bs. 0</span>
+              <strong id="textoTotal">Bs. 0.00</strong>
+            </div>
+
+            <!-- CTA Button -->
+            <button class="btn-reserva w-100 mt-2" id="btnReserva" disabled>
+              <i class="fa-solid fa-calendar-check"></i>
+              Solicitar Reserva
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -139,5 +162,7 @@
   <!-- Detalle Logic -->
   <script src="/js/detalle.js"></script>
 
+  <!-- Badge navbar -->
+  <script src="/js/navbar-badge.js"></script>
 </body>
 </html>

@@ -826,6 +826,249 @@ app.get('/api/explorar/:id', async (req, res) => {
 });
 
 // ============================================================
+// RESERVAS — Crear Reserva (Doble Booking Validation)
+// POST /api/reservas
+// Body: { garaje_id, usuario_id, fecha_inicio, fecha_fin }
+// ============================================================
+app.post('/api/reservas', async (req, res) => {
+  console.log('\n📅 [POST /api/reservas]');
+  const { garaje_id, usuario_id, fecha_inicio, fecha_fin } = req.body;
+
+  if (!garaje_id || !usuario_id || !fecha_inicio || !fecha_fin) {
+    return res.status(400).json({ status: 'error', message: 'Faltan datos requeridos (garaje_id, usuario_id, fecha_inicio, fecha_fin).' });
+  }
+
+  try {
+    const db = await getPool();
+
+    // 1. Validar si el garaje existe y obtener el precio_hora
+    const garajeResult = await db.request()
+      .input('garaje_id', sql.Int, parseInt(garaje_id, 10))
+      .query('SELECT precio_hora FROM Garajes WHERE id = @garaje_id');
+
+    if (garajeResult.recordset.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Garaje no encontrado.' });
+    }
+    const precio_hora = garajeResult.recordset[0].precio_hora;
+
+    // 2. Validación de Double-Booking
+    // Buscamos si existe alguna reserva para el mismo garaje que se solape en fechas
+    // Solapamiento: nueva_inicio < reserva_fin AND nueva_fin > reserva_inicio
+    // Solo consideramos reservas 'pendiente' y 'confirmada'
+    const solapamientoResult = await db.request()
+      .input('garaje_id', sql.Int, parseInt(garaje_id, 10))
+      .input('nueva_inicio', sql.DateTime, new Date(fecha_inicio))
+      .input('nueva_fin', sql.DateTime, new Date(fecha_fin))
+      .query(`
+        SELECT id 
+        FROM Reservas 
+        WHERE garaje_id = @garaje_id 
+          AND estado IN ('pendiente', 'confirmada')
+          AND (@nueva_inicio < fecha_fin AND @nueva_fin > fecha_inicio)
+      `);
+
+    if (solapamientoResult.recordset.length > 0) {
+      return res.status(400).json({ status: 'error', message: 'Las fechas seleccionadas no están disponibles, ya existe una reserva en este periodo de tiempo.' });
+    }
+
+    // 3. Calcular Diferencia de Horas y Precio Total
+    const msInicio = new Date(fecha_inicio).getTime();
+    const msFin = new Date(fecha_fin).getTime();
+    const difMs = msFin - msInicio;
+    
+    if (difMs <= 0) {
+      return res.status(400).json({ status: 'error', message: 'La fecha de salida debe ser mayor a la de entrada.' });
+    }
+
+    const difHoras = Math.ceil(difMs / (1000 * 60 * 60)); 
+    const precio_total = difHoras * parseFloat(precio_hora);
+
+    // 4. Insertar la nueva Reserva
+    const reservaResult = await db.request()
+      .input('garaje_id', sql.Int, parseInt(garaje_id, 10))
+      .input('usuario_id', sql.Int, parseInt(usuario_id, 10))
+      .input('fecha_inicio', sql.DateTime, new Date(fecha_inicio))
+      .input('fecha_fin', sql.DateTime, new Date(fecha_fin))
+      .input('precio_total', sql.Decimal(10, 2), precio_total)
+      .query(`
+        INSERT INTO Reservas (garaje_id, usuario_id, fecha_inicio, fecha_fin, precio_total, estado)
+        OUTPUT INSERTED.id
+        VALUES (@garaje_id, @usuario_id, @fecha_inicio, @fecha_fin, @precio_total, 'pendiente')
+      `);
+
+    const nuevaReservaId = reservaResult.recordset[0].id;
+    console.log(`✅ Reserva ${nuevaReservaId} creada. Total a pagar: Bs. ${precio_total}`);
+
+    return res.status(201).json({
+      status: 'ok',
+      message: '¡Reserva solicitada de forma exitosa!',
+      data: { id: nuevaReservaId, precio_total }
+    });
+
+  } catch (err) {
+    console.error('❌ Error general creando reserva:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al crear reserva' });
+  }
+});
+
+// ============================================================
+// RESERVAS — Mis Reservas (Anfitrión o Conductor)
+// GET /api/reservas/mis-reservas
+// Query: usuario_id, rol_id
+// ============================================================
+app.get('/api/reservas/mis-reservas', async (req, res) => {
+  console.log('\n📅 [GET /api/reservas/mis-reservas]');
+  const { usuario_id, rol_id } = req.query;
+
+  if (!usuario_id || !rol_id) {
+    return res.status(400).json({ status: 'error', message: 'Faltan parámetros requeridos (usuario_id, rol_id).' });
+  }
+
+  try {
+    const db = await getPool();
+    let query = '';
+
+    if (parseInt(rol_id, 10) === 2) {
+      // Como CONDUCTOR: ver las reservas que yo he hecho en garajes
+      query = `
+        SELECT 
+          r.id, r.fecha_inicio, r.fecha_fin, r.estado, r.precio_total,
+          g.direccion as garaje_direccion, g.tipo_vehiculo
+        FROM Reservas r
+        JOIN Garajes g ON r.garaje_id = g.id
+        WHERE r.usuario_id = @usuario_id
+        ORDER BY r.fecha_inicio DESC
+      `;
+    } else if (parseInt(rol_id, 10) === 1) {
+      // Como ANFITRIÓN: ver las reservas que recayeron en mis garajes, mostrando quién reserva.
+      query = `
+        SELECT 
+          r.id, r.fecha_inicio, r.fecha_fin, r.estado, r.precio_total,
+          g.direccion as garaje_direccion,
+          u.nombre + ' ' + u.apellidos as conductor_nombre, u.telefono as conductor_telefono
+        FROM Reservas r
+        JOIN Garajes g ON r.garaje_id = g.id
+        JOIN Usuarios u ON r.usuario_id = u.id
+        WHERE g.usuario_id = @usuario_id
+        ORDER BY r.fecha_inicio DESC
+      `;
+    } else {
+      return res.status(400).json({ status: 'error', message: 'Rol inválido.' });
+    }
+
+    const result = await db.request()
+      .input('usuario_id', sql.Int, parseInt(usuario_id, 10))
+      .query(query);
+
+    return res.json({ status: 'ok', data: result.recordset });
+
+  } catch (err) {
+    console.error('❌ Error al obtener mis reservas:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al consultar mis reservas.' });
+  }
+});
+
+// ============================================================
+// RESERVAS — Cambiar estado
+// PUT /api/reservas/:id/estado
+// Body: { estado }
+// ============================================================
+app.put('/api/reservas/:id/estado', async (req, res) => {
+  const reserva_id = parseInt(req.params.id, 10);
+  const { estado } = req.body;
+  console.log(`\n🔄 [PUT /api/reservas/${reserva_id}/estado] -> ${estado}`);
+
+  if (!reserva_id || !estado) {
+    return res.status(400).json({ status: 'error', message: 'reserva_id y estado son requeridos.' });
+  }
+
+  const validEstados = ['pendiente', 'confirmada', 'rechazada', 'finalizada'];
+  if (!validEstados.includes(estado)) {
+    return res.status(400).json({ status: 'error', message: 'Estado inválido.' });
+  }
+
+  try {
+    const db = await getPool();
+
+    const check = await db.request()
+      .input('reserva_id', sql.Int, reserva_id)
+      .query('SELECT id FROM Reservas WHERE id = @reserva_id');
+
+    if (check.recordset.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Reserva no encontrada.' });
+    }
+
+    await db.request()
+      .input('estado', sql.VarChar(20), estado)
+      .input('reserva_id', sql.Int, reserva_id)
+      .query('UPDATE Reservas SET estado = @estado WHERE id = @reserva_id');
+
+    console.log(`✅ Estado de reserva ${reserva_id} cambiado a ${estado}`);
+
+    return res.json({ status: 'ok', message: `Reserva ${estado} correctamente.` });
+
+  } catch (err) {
+    console.error('❌ Error al cambiar estado de reserva:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al cambiar el estado.' });
+  }
+});
+
+// ============================================================
+// RESERVAS — Verificar Existente
+// GET /api/reservas/verificar-existente
+// ============================================================
+app.get('/api/reservas/verificar-existente', async (req, res) => {
+  const { usuario_id, garaje_id } = req.query;
+  if (!usuario_id || !garaje_id) {
+    return res.status(400).json({ status: 'error', message: 'Faltan parámetros.' });
+  }
+
+  try {
+    const db = await getPool();
+    const result = await db.request()
+      .input('usuario_id', sql.Int, parseInt(usuario_id, 10))
+      .input('garaje_id', sql.Int, parseInt(garaje_id, 10))
+      .query(`
+        SELECT id 
+        FROM Reservas 
+        WHERE usuario_id = @usuario_id 
+          AND garaje_id = @garaje_id 
+          AND estado IN ('pendiente', 'confirmada')
+      `);
+
+    return res.json({ status: 'ok', existe: result.recordset.length > 0 });
+  } catch (err) {
+    console.error('❌ Error al verificar reserva existente:', err.message);
+    return res.status(500).json({ status: 'error' });
+  }
+});
+
+// ============================================================
+// RESERVAS — Contar Pendientes (Anfitrión)
+// GET /api/reservas/pendientes-count
+// ============================================================
+app.get('/api/reservas/pendientes-count', async (req, res) => {
+  const { usuario_id } = req.query;
+  if (!usuario_id) return res.status(400).json({ status: 'error' });
+
+  try {
+    const db = await getPool();
+    const result = await db.request()
+      .input('usuario_id', sql.Int, parseInt(usuario_id, 10))
+      .query(`
+        SELECT COUNT(r.id) AS cuenta
+        FROM Reservas r
+        JOIN Garajes g ON r.garaje_id = g.id
+        WHERE g.usuario_id = @usuario_id AND r.estado = 'pendiente'
+      `);
+
+    return res.json({ status: 'ok', count: result.recordset[0].cuenta || 0 });
+  } catch (err) {
+    console.error('❌ Error al contar reservas pendientes:', err.message);
+    return res.status(500).json({ status: 'error' });
+  }
+});
+
 // Status
 // ============================================================
 app.get('/api/status', (req, res) => {
