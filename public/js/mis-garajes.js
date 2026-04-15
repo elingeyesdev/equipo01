@@ -13,6 +13,11 @@ if (!currentUser || !currentUser.id) {
   window.location.href = '/login.html';
 }
 
+// Solo anfitriones (rol_id = 1) pueden acceder a esta página
+if (currentUser && currentUser.rol_id !== 1) {
+  window.location.href = '/explorar.html';
+}
+
 // ============================================================
 // DOM Elements
 // ============================================================
@@ -339,7 +344,7 @@ function crearTarjetaGaraje(garaje) {
       <div class="garaje-card-descripcion">${garaje.descripcion ? escapeHTML(garaje.descripcion) : '<em style="opacity:0.5;">Sin descripción</em>'}</div>
       <div class="garaje-card-meta">
         <div class="garaje-card-precio">
-          RD$${Number(garaje.precio_hora).toFixed(2)} <span>/hora</span>
+          Bs. ${Number(garaje.precio_hora).toFixed(2)} <span>/hora</span>
         </div>
         <div class="garaje-card-tipo">
           ${tipoIconos[garaje.tipo_vehiculo] || ''} ${garaje.tipo_vehiculo}

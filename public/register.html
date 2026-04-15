@@ -62,6 +62,24 @@
         <input type="tel" id="inpTelefono" placeholder="Teléfono (opcional)" maxlength="20">
       </div>
 
+      <!-- Selector de Rol -->
+      <span class="role-selector-label">¿Cómo usarás EstAirbnb?</span>
+      <div class="role-selector" id="roleSelector">
+        <div class="role-option" data-rol="conductor" id="rolConductor" onclick="seleccionarRol('conductor')">
+          <div class="role-check"><i class="fa-solid fa-check"></i></div>
+          <span class="role-icon">🚗</span>
+          <span class="role-name">Conductor</span>
+          <span class="role-desc">Busco espacios de parqueo</span>
+        </div>
+        <div class="role-option" data-rol="anfitrion" id="rolAnfitrion" onclick="seleccionarRol('anfitrion')">
+          <div class="role-check"><i class="fa-solid fa-check"></i></div>
+          <span class="role-icon">🏠</span>
+          <span class="role-name">Anfitrión</span>
+          <span class="role-desc">Publico espacios de parqueo</span>
+        </div>
+      </div>
+      <div class="role-error" id="errRol">Debes seleccionar un rol.</div>
+
       <!-- Contraseña -->
       <div class="input-group-custom">
         <i class="fa-solid fa-lock field-icon"></i>

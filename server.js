@@ -63,7 +63,7 @@ const uploadGarajes = multer({
 // ------------------------------------------------------------
 const CONNECTION_STRING =
   'Driver={ODBC Driver 17 for SQL Server};' +
-  'Server=ACHO;' +
+  'Server=DESKTOP-56G7UA1\\SQLEXPRESS;;' +
   'Database=EstAirbnbDB;' +
   'Trusted_Connection=yes;';
 
@@ -91,11 +91,12 @@ app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 // ============================================================
 // AUTH — Registro
 // POST /api/auth/register
-// Body: { nombre, apellidos, email, password, telefono? }
+// Body: { nombre, apellidos, email, password, telefono?, rol }
+// rol: 'anfitrion' | 'conductor'
 // ============================================================
 app.post('/api/auth/register', async (req, res) => {
   console.log('\n📝 [POST /api/auth/register]');
-  const { nombre, apellidos, email, password, telefono } = req.body;
+  const { nombre, apellidos, email, password, telefono, rol } = req.body;
 
   // Validaciones
   if (!nombre || nombre.trim().length < 2)
@@ -106,6 +107,14 @@ app.post('/api/auth/register', async (req, res) => {
     return res.status(400).json({ status: 'error', message: 'El correo no es válido.' });
   if (!password || password.length < 6)
     return res.status(400).json({ status: 'error', message: 'La contraseña debe tener al menos 6 caracteres.' });
+
+  // Validar rol seleccionado
+  const rolesValidos = { anfitrion: 1, conductor: 2 };
+  const rol_id = rolesValidos[rol];
+  if (!rol_id)
+    return res.status(400).json({ status: 'error', message: 'Debes seleccionar un rol válido (anfitrion o conductor).' });
+
+  const rol_nombre = rol; // 'anfitrion' o 'conductor'
 
   try {
     const db = await getPool();
@@ -122,14 +131,14 @@ app.post('/api/auth/register', async (req, res) => {
     // Hashear contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insertar usuario (rol_id = 2 → conductor por defecto)
+    // Insertar usuario con el rol elegido
     const result = await db.request()
       .input('nombre', sql.NVarChar(100), nombre.trim())
       .input('apellidos', sql.NVarChar(100), apellidos.trim())
       .input('email', sql.NVarChar(150), email.toLowerCase().trim())
       .input('password', sql.NVarChar(255), hashedPassword)
       .input('telefono', sql.NVarChar(20), telefono ? telefono.trim() : null)
-      .input('rol_id', sql.Int, 2)
+      .input('rol_id', sql.Int, rol_id)
       .query(`
         INSERT INTO Usuarios (nombre, apellidos, email, password, telefono, rol_id)
         OUTPUT INSERTED.id
@@ -137,12 +146,19 @@ app.post('/api/auth/register', async (req, res) => {
       `);
 
     const newId = result.recordset[0].id;
-    console.log(`✅ Usuario registrado con ID: ${newId}`);
+    console.log(`✅ Usuario registrado con ID: ${newId} | Rol: ${rol_nombre}`);
 
     return res.status(201).json({
       status: 'ok',
       message: '¡Cuenta creada exitosamente!',
-      data: { id: newId, nombre: nombre.trim(), apellidos: apellidos.trim(), email: email.toLowerCase().trim() }
+      data: {
+        id: newId,
+        nombre: nombre.trim(),
+        apellidos: apellidos.trim(),
+        email: email.toLowerCase().trim(),
+        rol_id,
+        rol_nombre
+      }
     });
 
   } catch (err) {
@@ -168,7 +184,14 @@ app.post('/api/auth/login', async (req, res) => {
 
     const result = await db.request()
       .input('email', sql.NVarChar(150), email.toLowerCase().trim())
-      .query('SELECT id, nombre, apellidos, email, password, telefono, foto_url FROM Usuarios WHERE email = @email');
+      .query(`
+        SELECT u.id, u.nombre, u.apellidos, u.email, u.password,
+               u.telefono, u.foto_url, u.rol_id,
+               ISNULL(r.nombre, 'conductor') AS rol_nombre
+        FROM Usuarios u
+        LEFT JOIN Roles r ON u.rol_id = r.id
+        WHERE u.email = @email
+      `);
 
     if (result.recordset.length === 0) {
       return res.status(401).json({ status: 'error', message: 'Correo o contraseña incorrectos.' });
@@ -181,7 +204,7 @@ app.post('/api/auth/login', async (req, res) => {
       return res.status(401).json({ status: 'error', message: 'Correo o contraseña incorrectos.' });
     }
 
-    console.log(`✅ Login exitoso: ${user.email} (ID: ${user.id})`);
+    console.log(`✅ Login exitoso: ${user.email} (ID: ${user.id}) | Rol: ${user.rol_nombre}`);
 
     return res.json({
       status: 'ok',
@@ -192,7 +215,9 @@ app.post('/api/auth/login', async (req, res) => {
         apellidos: user.apellidos,
         email: user.email,
         telefono: user.telefono,
-        foto_url: user.foto_url
+        foto_url: user.foto_url,
+        rol_id: user.rol_id,
+        rol_nombre: user.rol_nombre
       }
     });
 
@@ -456,10 +481,10 @@ app.put('/api/perfil/privacidad', async (req, res) => {
 
     try {
       await db.request()
-        .input('priv_telefono',       sql.Bit, priv_telefono ? 1 : 0)
+        .input('priv_telefono', sql.Bit, priv_telefono ? 1 : 0)
         .input('priv_calificaciones', sql.Bit, priv_calificaciones ? 1 : 0)
-        .input('priv_email',          sql.Bit, priv_email ? 1 : 0)
-        .input('id',                  sql.Int, parseInt(usuario_id, 10))
+        .input('priv_email', sql.Bit, priv_email ? 1 : 0)
+        .input('id', sql.Int, parseInt(usuario_id, 10))
         .query(`
           UPDATE Usuarios
           SET priv_telefono = @priv_telefono,
@@ -517,13 +542,28 @@ app.post('/api/garajes', (req, res) => {
     try {
       const db = await getPool();
 
+      // ── Verificar que el usuario sea Anfitrión (rol_id = 1) ──
+      const rolCheck = await db.request()
+        .input('uid', sql.Int, parseInt(usuario_id, 10))
+        .query('SELECT rol_id FROM Usuarios WHERE id = @uid');
+
+      if (rolCheck.recordset.length === 0) {
+        if (req.files) req.files.forEach(f => { try { fs.unlinkSync(f.path); } catch (_) { } });
+        return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
+      }
+
+      if (rolCheck.recordset[0].rol_id !== 1) {
+        if (req.files) req.files.forEach(f => { try { fs.unlinkSync(f.path); } catch (_) { } });
+        return res.status(403).json({ status: 'error', message: 'Solo los anfitriones pueden publicar espacios de parqueo.' });
+      }
+
       // ── Paso 1: Insertar el garaje y obtener su ID ──
       const insertResult = await db.request()
-        .input('usuario_id',    sql.Int,            parseInt(usuario_id, 10))
-        .input('direccion',     sql.NVarChar(255),   String(direccion).trim())
-        .input('descripcion',   sql.NVarChar(500),   descripcion ? String(descripcion).trim() : null)
-        .input('precio_hora',   sql.Decimal(10, 2),  parseFloat(precio_hora))
-        .input('tipo_vehiculo', sql.VarChar(20),     tipo_vehiculo)
+        .input('usuario_id', sql.Int, parseInt(usuario_id, 10))
+        .input('direccion', sql.NVarChar(255), String(direccion).trim())
+        .input('descripcion', sql.NVarChar(500), descripcion ? String(descripcion).trim() : null)
+        .input('precio_hora', sql.Decimal(10, 2), parseFloat(precio_hora))
+        .input('tipo_vehiculo', sql.VarChar(20), tipo_vehiculo)
         .query(`
           INSERT INTO Garajes (usuario_id, direccion, descripcion, precio_hora, tipo_vehiculo)
           VALUES (@usuario_id, @direccion, @descripcion, @precio_hora, @tipo_vehiculo);
@@ -539,19 +579,13 @@ app.post('/api/garajes', (req, res) => {
         for (const file of req.files) {
           const foto_url = `/uploads/garajes/${file.filename}`;
           await db.request()
-            .input('garaje_id', sql.Int,           garajeId)
-            .input('foto_url',  sql.NVarChar(255), foto_url)
+            .input('garaje_id', sql.Int, garajeId)
+            .input('foto_url', sql.NVarChar(255), foto_url)
             .query('INSERT INTO FotosGaraje (garaje_id, foto_url) VALUES (@garaje_id, @foto_url)');
           fotosGuardadas.push(foto_url);
         }
         console.log(`   📷 ${fotosGuardadas.length} foto(s) guardada(s).`);
       }
-
-      // ── Paso 3: Ascender usuario a Anfitrión (rol_id = 1) ──
-      await db.request()
-        .input('uid', sql.Int, parseInt(usuario_id, 10))
-        .query('UPDATE Usuarios SET rol_id = 1 WHERE id = @uid');
-      console.log(`   🔑 Usuario ${usuario_id} ascendido a Anfitrión.`);
 
       return res.status(201).json({
         status: 'ok',
@@ -571,7 +605,7 @@ app.post('/api/garajes', (req, res) => {
       console.error('❌ Error al publicar garaje:', dbErr.message);
       // Limpiar archivos subidos si la BD falló
       if (req.files) {
-        req.files.forEach(f => { try { fs.unlinkSync(f.path); } catch (_) {} });
+        req.files.forEach(f => { try { fs.unlinkSync(f.path); } catch (_) { } });
       }
       return res.status(500).json({ status: 'error', message: 'Error interno al publicar el espacio.' });
     }
@@ -643,7 +677,7 @@ app.put('/api/garajes/:id/estado', async (req, res) => {
 
     // Verificar que el garaje pertenece al usuario
     const check = await db.request()
-      .input('id',         sql.Int, garaje_id)
+      .input('id', sql.Int, garaje_id)
       .input('usuario_id', sql.Int, parseInt(usuario_id, 10))
       .query('SELECT id, estado_activo FROM Garajes WHERE id = @id AND usuario_id = @usuario_id');
 
@@ -655,7 +689,7 @@ app.put('/api/garajes/:id/estado', async (req, res) => {
 
     await db.request()
       .input('nuevoEstado', sql.Bit, nuevoEstado)
-      .input('id',          sql.Int, garaje_id)
+      .input('id', sql.Int, garaje_id)
       .query('UPDATE Garajes SET estado_activo = @nuevoEstado WHERE id = @id');
 
     console.log(`   ✅ Garaje ${garaje_id}: estado_activo → ${nuevoEstado}`);
@@ -669,6 +703,125 @@ app.put('/api/garajes/:id/estado', async (req, res) => {
   } catch (err) {
     console.error('❌ Error al cambiar estado:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al cambiar el estado.' });
+  }
+});
+
+// ============================================================
+// EXPLORAR — Listado público de garajes activos (Rol Conductor)
+// GET /api/explorar
+// Query: precio_min, precio_max, tipo_vehiculo
+// ============================================================
+app.get('/api/explorar', async (req, res) => {
+  console.log('\n🔍 [GET /api/explorar]');
+  const { precio_min, precio_max, tipo_vehiculo } = req.query;
+
+  try {
+    const db = await getPool();
+    const request = db.request();
+
+    // Build dynamic WHERE clause
+    let conditions = ['g.estado_activo = 1'];
+
+    if (precio_min && !isNaN(precio_min)) {
+      request.input('precio_min', sql.Decimal(10, 2), parseFloat(precio_min));
+      conditions.push('g.precio_hora >= @precio_min');
+    }
+
+    if (precio_max && !isNaN(precio_max)) {
+      request.input('precio_max', sql.Decimal(10, 2), parseFloat(precio_max));
+      conditions.push('g.precio_hora <= @precio_max');
+    }
+
+    if (tipo_vehiculo && ['auto', 'moto', 'camioneta'].includes(tipo_vehiculo)) {
+      request.input('tipo_vehiculo', sql.VarChar(20), tipo_vehiculo);
+      conditions.push('g.tipo_vehiculo = @tipo_vehiculo');
+    }
+
+    const whereClause = conditions.join(' AND ');
+
+    const result = await request.query(`
+      SELECT
+        g.id,
+        g.direccion,
+        g.descripcion,
+        g.precio_hora,
+        g.tipo_vehiculo,
+        g.fecha_creacion,
+        fp.foto_url AS foto_portada
+      FROM Garajes g
+      OUTER APPLY (
+        SELECT TOP 1 foto_url
+        FROM FotosGaraje
+        WHERE garaje_id = g.id
+        ORDER BY id ASC
+      ) fp
+      WHERE ${whereClause}
+      ORDER BY g.fecha_creacion DESC
+    `);
+
+    console.log(`   ✅ ${result.recordset.length} garaje(s) activo(s) encontrado(s).`);
+    return res.json({ status: 'ok', data: result.recordset });
+
+  } catch (err) {
+    console.error('❌ Error en explorar:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al cargar los garajes.' });
+  }
+});
+
+// ============================================================
+// EXPLORAR — Detalle de un garaje con todas sus fotos
+// GET /api/explorar/:id
+// ============================================================
+app.get('/api/explorar/:id', async (req, res) => {
+  const garaje_id = parseInt(req.params.id, 10);
+  console.log(`\n🔍 [GET /api/explorar/${garaje_id}]`);
+
+  if (!garaje_id) {
+    return res.status(400).json({ status: 'error', message: 'ID de garaje inválido.' });
+  }
+
+  try {
+    const db = await getPool();
+
+    // Get garage data
+    const garajeResult = await db.request()
+      .input('id', sql.Int, garaje_id)
+      .query(`
+        SELECT
+          g.id,
+          g.direccion,
+          g.descripcion,
+          g.precio_hora,
+          g.tipo_vehiculo,
+          g.estado_activo,
+          g.fecha_creacion
+        FROM Garajes g
+        WHERE g.id = @id AND g.estado_activo = 1
+      `);
+
+    if (garajeResult.recordset.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Garaje no encontrado o no está disponible.' });
+    }
+
+    // Get all photos
+    const fotosResult = await db.request()
+      .input('garaje_id', sql.Int, garaje_id)
+      .query(`
+        SELECT id, foto_url
+        FROM FotosGaraje
+        WHERE garaje_id = @garaje_id
+        ORDER BY id ASC
+      `);
+
+    const garaje = garajeResult.recordset[0];
+    garaje.fotos = fotosResult.recordset;
+
+    console.log(`   ✅ Garaje ${garaje_id} cargado con ${garaje.fotos.length} foto(s).`);
+    return res.json({ status: 'ok', data: garaje });
+
+  } catch (err) {
+    console.error('❌ Error en detalle garaje:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al cargar el detalle del garaje.' });
   }
 });
 
@@ -695,6 +848,7 @@ async function startServer() {
       console.log(`🚗  Login:      http://localhost:${PORT}/login.html`);
       console.log(`🚗  Registro:   http://localhost:${PORT}/register.html`);
       console.log(`🚗  Garajes:    http://localhost:${PORT}/mis-garajes.html`);
+      console.log(`🚗  Explorar:   http://localhost:${PORT}/explorar.html`);
       console.log('🚗 ══════════════════════════════════════════════');
       console.log('');
     });
