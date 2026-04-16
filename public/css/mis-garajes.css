@@ -914,6 +914,152 @@ select.form-control-custom {
 }
 
 /* ============================
+   Reservas Table
+============================ */
+.reservas-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.88rem;
+}
+
+.reservas-table thead th {
+  background: var(--sidebar-hover);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--sidebar-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.reservas-table thead th:first-child { border-radius: 8px 0 0 0; }
+.reservas-table thead th:last-child  { border-radius: 0 8px 0 0; }
+
+.reservas-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--sidebar-border);
+  vertical-align: middle;
+  color: var(--text-primary);
+}
+
+.reservas-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.reservas-table tbody tr {
+  transition: background 0.15s;
+}
+
+.reservas-table tbody tr:hover {
+  background: var(--sidebar-hover);
+}
+
+/* Reserva Status Badges */
+.reserva-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.reserva-badge.pendiente {
+  background: var(--warning-soft, rgba(255, 193, 7, 0.12));
+  color: #e6a800;
+}
+
+[data-theme="dark"] .reserva-badge.pendiente {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+}
+
+.reserva-badge.confirmada {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.reserva-badge.rechazada {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.reserva-badge.finalizada {
+  background: rgba(108, 117, 125, 0.12);
+  color: #6c757d;
+}
+
+[data-theme="dark"] .reserva-badge.finalizada {
+  background: rgba(173, 181, 189, 0.12);
+  color: #adb5bd;
+}
+
+/* Reserva Action Buttons */
+.reserva-acciones {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-reserva {
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-reserva.confirmar {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.btn-reserva.confirmar:hover {
+  background: var(--success);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.25);
+}
+
+.btn-reserva.rechazar {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.btn-reserva.rechazar:hover {
+  background: var(--danger);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.25);
+}
+
+.btn-reserva:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.btn-reserva .spinner-border {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-width: 0.13em;
+}
+
+/* ============================
    Scrollbar custom
 ============================ */
 ::-webkit-scrollbar {

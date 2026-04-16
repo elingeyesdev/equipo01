@@ -26,9 +26,15 @@
       EstAirbnb
     </a>
     <div class="nav-user">
-      <!-- Nav Links -->
+      <!-- Nav Links (se muestran/ocultan según rol via JS) -->
+      <a href="/explorar.html" id="navLinkExplorar"
+         style="font-size:0.85rem;font-weight:600;color:var(--text-secondary);text-decoration:none;padding:6px 12px;border-radius:8px;transition:background 0.15s,color 0.15s;display:none;align-items:center;gap:6px;"
+         onmouseover="this.style.background='var(--sidebar-hover)';this.style.color='var(--accent)'"
+         onmouseout="this.style.background='transparent';this.style.color='var(--text-secondary)'">
+        <i class="fa-solid fa-compass"></i> Explorar
+      </a>
       <a href="/mis-garajes.html" id="navLinkGarajes"
-         style="font-size:0.85rem;font-weight:600;color:var(--text-secondary);text-decoration:none;padding:6px 12px;border-radius:8px;transition:background 0.15s,color 0.15s;display:flex;align-items:center;gap:6px;"
+         style="font-size:0.85rem;font-weight:600;color:var(--text-secondary);text-decoration:none;padding:6px 12px;border-radius:8px;transition:background 0.15s,color 0.15s;display:none;align-items:center;gap:6px;"
          onmouseover="this.style.background='var(--sidebar-hover)';this.style.color='var(--accent)'"
          onmouseout="this.style.background='transparent';this.style.color='var(--text-secondary)'">
         <i class="fa-solid fa-warehouse"></i> Mis Garajes
@@ -383,5 +389,7 @@
   <!-- Configuración Logic -->
   <script src="/js/configuracion.js"></script>
 
+  <!-- Badge navbar -->
+  <script src="/js/navbar-badge.js"></script>
 </body>
 </html>

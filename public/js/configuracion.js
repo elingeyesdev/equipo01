@@ -17,6 +17,16 @@ if (!session || !session.id) {
 
 const USUARIO_ID = session.id;
 
+// Ocultar "Mis Garajes" en navbar si el usuario es conductor
+if (session.rol_id !== 1) {
+  const navGarajes = document.getElementById('navLinkGarajes');
+  if (navGarajes) navGarajes.style.display = 'none';
+} else {
+  // Ocultar "Explorar" en navbar si el usuario es anfitrión
+  const navExplorar = document.getElementById('navLinkExplorar');
+  if (navExplorar) navExplorar.style.display = 'none';
+}
+
 // Mostrar nombre e iniciales en navbar
 document.getElementById('navUserName').textContent = session.nombre || '';
 const initials = ((session.nombre || '?')[0] + (session.apellidos || '?')[0]).toUpperCase();
@@ -175,25 +185,26 @@ async function cargarPerfil() {
 
       // ── Actualizar rol dinámicamente ──
       const rolBadge = document.getElementById('rolBadge');
-      if (rolBadge) {
-        const rolNombre = u.rol_nombre || 'conductor';
-        const esAnfitrion = rolNombre === 'anfitrion';
+      const rolNombre = u.rol_nombre || 'conductor';
+      const esAnfitrion = rolNombre === 'anfitrion';
 
+      if (rolBadge) {
         rolBadge.className = `role-badge ${esAnfitrion ? 'anfitrion' : 'conductor'}`;
         rolBadge.innerHTML = esAnfitrion
           ? '<i class="fa-solid fa-warehouse"></i> Anfitrión'
           : '<i class="fa-solid fa-car"></i> Conductor';
       }
 
-      // ── Actualizar enlace de Garajes en navbar según rol ──
+      // ── Mostrar/ocultar nav links según rol ──
+      // Explorar: solo conductores | Mis Garajes: solo anfitriones
+      const navLinkExplorar = document.getElementById('navLinkExplorar');
       const navLinkGarajes = document.getElementById('navLinkGarajes');
+
+      if (navLinkExplorar) {
+        navLinkExplorar.style.display = esAnfitrion ? 'none' : 'flex';
+      }
       if (navLinkGarajes) {
-        const rolNombre = u.rol_nombre || 'conductor';
-        if (rolNombre === 'anfitrion') {
-          navLinkGarajes.innerHTML = '<i class="fa-solid fa-warehouse"></i> Mis Garajes';
-        } else {
-          navLinkGarajes.innerHTML = '<i class="fa-solid fa-warehouse"></i> Conviértete en Anfitrión';
-        }
+        navLinkGarajes.style.display = esAnfitrion ? 'flex' : 'none';
       }
     } else {
       showToast('No se pudo cargar el perfil.', 'error');

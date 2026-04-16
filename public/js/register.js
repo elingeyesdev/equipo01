@@ -1,13 +1,32 @@
 // ============================================================
 // EstAirbnb — register.js
-// Lógica de la página de registro
+// Lógica de la página de registro (con selección de rol)
 // ============================================================
 
 const USUARIO_KEY = 'estairbnb_user';
 
-// Si ya está logueado, redirigir directo
-if (localStorage.getItem(USUARIO_KEY)) {
-  window.location.href = '/configuracion.html';
+// Si ya está logueado, redirigir según rol
+const existingUser = JSON.parse(localStorage.getItem(USUARIO_KEY) || 'null');
+if (existingUser) {
+  window.location.href = existingUser.rol_id === 1 ? '/mis-garajes.html' : '/explorar.html';
+}
+
+// ============================================================
+// Selección de Rol
+// ============================================================
+let rolSeleccionado = '';
+
+function seleccionarRol(rol) {
+  rolSeleccionado = rol;
+
+  // Update visual state
+  document.querySelectorAll('.role-option').forEach(el => {
+    el.classList.remove('selected');
+  });
+  document.querySelector(`[data-rol="${rol}"]`).classList.add('selected');
+
+  // Hide error
+  document.getElementById('errRol').classList.remove('show');
 }
 
 // ============================================================
@@ -86,6 +105,13 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) valid = false;
   setFieldError('inpPassword', 'errPassword', password.length < 6); if (password.length < 6) valid = false;
   setFieldError('inpConfirm',  'errConfirm',  password !== confirm);  if (password !== confirm)  valid = false;
+
+  // Validar rol
+  if (!rolSeleccionado) {
+    document.getElementById('errRol').classList.add('show');
+    valid = false;
+  }
+
   if (!valid) return;
 
   const btn = document.getElementById('btnRegister');
@@ -97,15 +123,17 @@ document.getElementById('registerForm').addEventListener('submit', async (e) => 
     const res  = await fetch('/api/auth/register', {
       method:  'POST',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ nombre, apellidos, email, password, telefono }),
+      body:    JSON.stringify({ nombre, apellidos, email, password, telefono, rol: rolSeleccionado }),
     });
     const data = await res.json();
 
     if (res.ok && data.status === 'ok') {
-      // Guardar sesión y redirigir
+      // Guardar sesión y redirigir según rol
       localStorage.setItem(USUARIO_KEY, JSON.stringify(data.data));
       showAlert('¡Cuenta creada! Redirigiendo...', 'success');
-      setTimeout(() => { window.location.href = '/configuracion.html'; }, 900);
+
+      const destino = data.data.rol_id === 1 ? '/mis-garajes.html' : '/explorar.html';
+      setTimeout(() => { window.location.href = destino; }, 900);
     } else {
       showAlert(data.message || 'Error al crear la cuenta.');
       btn.disabled = false;
