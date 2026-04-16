@@ -713,11 +713,20 @@ app.put('/api/garajes/:id/estado', async (req, res) => {
 // ============================================================
 app.get('/api/explorar', async (req, res) => {
   console.log('\n🔍 [GET /api/explorar]');
-  const { precio_min, precio_max, tipo_vehiculo, busqueda } = req.query;
+  let { precio_min, precio_max, tipo_vehiculo, busqueda, page, limit } = req.query;
+
+  // Parámetros de paginación por defecto
+  const currentPage = parseInt(page, 10) || 1;
+  const currentLimit = parseInt(limit, 10) || 10;
+  const offset = (currentPage - 1) * currentLimit;
 
   try {
     const db = await getPool();
     const request = db.request();
+
+    // Paginación a los parámetros de la consulta
+    request.input('offset', sql.Int, offset);
+    request.input('limit', sql.Int, currentLimit);
 
     // Build dynamic WHERE clause
     let conditions = ['g.estado_activo = 1'];
@@ -747,6 +756,7 @@ app.get('/api/explorar', async (req, res) => {
 
     const result = await request.query(`
       SELECT
+        COUNT(*) OVER() AS total_registros,
         g.id,
         g.direccion,
         g.descripcion,
@@ -763,10 +773,29 @@ app.get('/api/explorar', async (req, res) => {
       ) fp
       WHERE ${whereClause}
       ORDER BY g.fecha_creacion DESC
+      OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
     `);
 
-    console.log(`   ✅ ${result.recordset.length} garaje(s) activo(s) encontrado(s).`);
-    return res.json({ status: 'ok', data: result.recordset });
+    // Calcular metadatos de paginación
+    const garajes = result.recordset;
+    const totalRegistros = garajes.length > 0 ? garajes[0].total_registros : 0;
+    const totalPaginas = Math.ceil(totalRegistros / currentLimit);
+
+    // Limpiar total_registros del array final enviado al frontend (opcional pero limpio)
+    garajes.forEach(g => delete g.total_registros);
+
+    console.log(`   ✅ Explorar: página ${currentPage}/${totalPaginas} (${garajes.length} registros devueltos de ${totalRegistros} en total).`);
+    
+    return res.json({ 
+      status: 'ok', 
+      datos: garajes,
+      paginacion: {
+        totalRegistros,
+        totalPaginas,
+        paginaActual: currentPage,
+        limite: currentLimit
+      }
+    });
 
   } catch (err) {
     console.error('❌ Error en explorar:', err.message);
