@@ -22,12 +22,18 @@
     return;
   }
 
+  // ─── Paginación State ───
+  let paginaActual = 1;
+  const LIMIT_POR_PAGINA = 6;
+
   // ─── DOM References ───
   const catalogGrid      = document.getElementById('catalogGrid');
   const loadingCatalog   = document.getElementById('loadingCatalog');
   const emptyCatalog     = document.getElementById('emptyCatalog');
   const resultsCount     = document.getElementById('resultsCount');
   const totalResults     = document.getElementById('totalResults');
+  const paginationContainer = document.getElementById('paginationContainer');
+  const paginationList      = document.getElementById('paginationList');
 
   const filtroBusqueda   = document.getElementById('filtroBusqueda');
   const filtroPrecioMin  = document.getElementById('filtroPrecioMin');
@@ -88,6 +94,10 @@
     if (precioMax) params.set('precio_max', precioMax);
     if (tipoVehiculo) params.set('tipo_vehiculo', tipoVehiculo);
 
+    // Parametros de Paginación
+    params.set('page', paginaActual);
+    params.set('limit', LIMIT_POR_PAGINA);
+
     const queryString = params.toString();
     const url = '/api/explorar' + (queryString ? `?${queryString}` : '');
 
@@ -97,16 +107,18 @@
 
       loadingCatalog.style.display = 'none';
 
-      if (json.status !== 'ok' || !json.data || json.data.length === 0) {
+      if (json.status !== 'ok' || !json.datos || json.datos.length === 0) {
         emptyCatalog.style.display = 'block';
         resultsCount.style.display = 'none';
+        paginationContainer.style.display = 'none';
         return;
       }
 
-      const garajes = json.data;
+      const garajes = json.datos;
+      const paginacion = json.paginacion || { totalRegistros: garajes.length };
 
-      // Show results count
-      totalResults.textContent = garajes.length;
+      // Show total results count from pagination metadata
+      totalResults.textContent = paginacion.totalRegistros;
       resultsCount.style.display = 'flex';
 
       // Render cards
@@ -115,10 +127,14 @@
         catalogGrid.appendChild(card);
       });
 
+      // Render Pagination
+      renderPaginacion(paginacion);
+
     } catch (err) {
       console.error('Error al cargar garajes:', err);
       loadingCatalog.style.display = 'none';
       emptyCatalog.style.display = 'block';
+      paginationContainer.style.display = 'none';
     }
   }
 
@@ -176,8 +192,59 @@
     return card;
   }
 
+  // ─── Render Pagination ───
+  function renderPaginacion(paginacion) {
+    if (paginacion.totalPaginas <= 1) {
+      paginationContainer.style.display = 'none';
+      return;
+    }
+
+    paginationContainer.style.display = 'block';
+    let html = '';
+
+    // Botón Anterior
+    const prevDisabled = paginacion.paginaActual === 1 ? 'disabled' : '';
+    html += `
+      <li class="page-item ${prevDisabled}">
+        <a class="page-link" href="#" onclick="event.preventDefault(); cambiarPagina(${paginacion.paginaActual - 1})">
+          <i class="fa-solid fa-chevron-left"></i> Anterior
+        </a>
+      </li>
+    `;
+
+    // Botones de Páginas
+    for (let i = 1; i <= paginacion.totalPaginas; i++) {
+      const active = i === paginacion.paginaActual ? 'active' : '';
+      html += `
+        <li class="page-item ${active}">
+          <a class="page-link" href="#" onclick="event.preventDefault(); cambiarPagina(${i})">${i}</a>
+        </li>
+      `;
+    }
+
+    // Botón Siguiente
+    const nextDisabled = paginacion.paginaActual === paginacion.totalPaginas ? 'disabled' : '';
+    html += `
+      <li class="page-item ${nextDisabled}">
+        <a class="page-link" href="#" onclick="event.preventDefault(); cambiarPagina(${paginacion.paginaActual + 1})">
+          Siguiente <i class="fa-solid fa-chevron-right"></i>
+        </a>
+      </li>
+    `;
+
+    paginationList.innerHTML = html;
+  }
+
+  // Hacer que cambiarPagina sea global para que el onClick la encuentre
+  window.cambiarPagina = function(nuevaPagina) {
+    paginaActual = nuevaPagina;
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+    cargarGarajes();
+  };
+
   // ─── Event Listeners ───
   btnBuscar.addEventListener('click', () => {
+    paginaActual = 1; // Reset a primera página al buscar
     cargarGarajes();
   });
 
@@ -186,6 +253,7 @@
     filtroPrecioMin.value = '';
     filtroPrecioMax.value = '';
     filtroTipo.value = '';
+    paginaActual = 1; // Reset a primera página
     cargarGarajes();
   });
 
@@ -194,6 +262,7 @@
     input.addEventListener('keydown', (e) => {
       if (e.key === 'Enter') {
         e.preventDefault();
+        paginaActual = 1; // Reset a primera página al buscar
         cargarGarajes();
       }
     });

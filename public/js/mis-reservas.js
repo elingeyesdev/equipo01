@@ -25,6 +25,8 @@
   const btnNuevaReserva    = document.getElementById('btnNuevaReserva');
   const linkMisGarajes     = document.getElementById('linkMisGarajes');
   const linkExplorar       = document.getElementById('linkExplorar');
+  const btnThemeToggle     = document.getElementById('btnThemeToggle');
+  const themeIcon          = document.getElementById('themeIcon');
 
   // Configuración de Rol
   const esAnfitrion = (currentUser.rol_id === 1);
@@ -35,6 +37,28 @@
     linkExplorar.style.display = 'none';
     btnNuevaReserva.style.display = 'none'; // El anfitrión no busca garajes aquí
   }
+
+  // ─── Theme Toggle ───
+  function initTheme() {
+    const saved = localStorage.getItem('estairbnb_theme');
+    if (saved === 'dark') {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      themeIcon.classList.replace('fa-moon', 'fa-sun');
+    }
+  }
+
+  btnThemeToggle.addEventListener('click', () => {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    if (isDark) {
+      document.documentElement.removeAttribute('data-theme');
+      themeIcon.classList.replace('fa-sun', 'fa-moon');
+      localStorage.setItem('estairbnb_theme', 'light');
+    } else {
+      document.documentElement.setAttribute('data-theme', 'dark');
+      themeIcon.classList.replace('fa-moon', 'fa-sun');
+      localStorage.setItem('estairbnb_theme', 'dark');
+    }
+  });
 
   // Configurar idioma de moment
   moment.locale('es');
@@ -203,6 +227,7 @@
   }
 
   // ─── Iniciar ───
+  initTheme();
   cargarReservas();
 
 })();

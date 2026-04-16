@@ -11,145 +11,13 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link href="/css/explorar.css" rel="stylesheet"> <!-- Usar base de CSS existente o config CSS -->
   
-  <style>
-    :root {
-      --bg-color: #f8fafc;
-      --text-color: #0f172a;
-      --card-bg: #fff;
-      --sidebar-border: #e2e8f0;
-      --brand-color: #4f46e5;
-    }
-    html[data-theme="dark"] {
-      --bg-color: #0f172a;
-      --text-color: #f8fafc;
-      --card-bg: #1e293b;
-      --sidebar-border: #334155;
-      --brand-color: #818cf8;
-    }
-
-    body {
-      background-color: var(--bg-color);
-      color: var(--text-color);
-      font-family: 'Inter', sans-serif;
-    }
-    
-    .top-navbar {
-      height: 70px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 40px;
-      background: var(--card-bg);
-      border-bottom: 1px solid var(--sidebar-border);
-      position: sticky;
-      top: 0;
-      z-index: 1000;
-    }
-
-    .top-navbar .brand {
-      font-size: 1.25rem;
-      font-weight: 700;
-      color: var(--brand-color);
-      text-decoration: none;
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
-
-    .nav-links {
-      display: flex;
-      align-items: center;
-      gap: 20px;
-    }
-
-    .nav-link-custom {
-      color: var(--text-color);
-      text-decoration: none;
-      font-weight: 500;
-      font-size: 0.9rem;
-      transition: color 0.2s;
-    }
-
-    .nav-link-custom:hover {
-      color: var(--brand-color);
-    }
-    
-    .reservas-container {
-      max-width: 900px;
-      margin: 40px auto;
-      padding: 0 20px;
-    }
-    
-    .reserva-card {
-      background: var(--card-bg);
-      border: 1px solid var(--sidebar-border);
-      border-radius: 12px;
-      padding: 20px;
-      margin-bottom: 20px;
-      display: flex;
-      flex-direction: column;
-      gap: 15px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-      transition: transform 0.2s;
-    }
-
-    .reserva-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: flex-start;
-      border-bottom: 1px solid var(--sidebar-border);
-      padding-bottom: 15px;
-    }
-
-    .reserva-title {
-      font-weight: 600;
-      font-size: 1.1rem;
-      margin-bottom: 5px;
-    }
-    
-    .badge-estado {
-      font-size: 0.8rem;
-      font-weight: 600;
-      padding: 5px 12px;
-      border-radius: 20px;
-    }
-
-    .badge-pendiente { background-color: #fef08a; color: #854d0e; }
-    .badge-confirmada { background-color: #bbf7d0; color: #166534; }
-    .badge-rechazada { background-color: #fecdd3; color: #9f1239; }
-    .badge-finalizada { background-color: #e2e8f0; color: #334155; }
-    
-    .reserva-info {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: 15px;
-    }
-
-    .info-block {
-      display: flex;
-      flex-direction: column;
-      font-size: 0.9rem;
-    }
-
-    .info-block span {
-      color: gray;
-      font-size: 0.8rem;
-      font-weight: 600;
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
-    }
-
-    .btn-action {
-      font-weight: 600;
-      font-size: 0.9rem;
-      padding: 8px 16px;
-      border-radius: 8px;
-    }
-
-  </style>
+  <link href="/css/mis-reservas.css" rel="stylesheet">
 </head>
 <body>
 
+  <!-- ==============================
+       Top Navigation Bar
+  ============================== -->
   <nav class="top-navbar" id="topNavbar">
     <a href="/" class="brand">
       <i class="fa-solid fa-square-parking"></i>
@@ -162,9 +30,13 @@
       <a href="/mis-garajes.html" class="nav-link-custom" id="linkMisGarajes" style="display: none;">
         <i class="fa-solid fa-warehouse"></i> Mis Garajes
       </a>
-      <a href="/configuracion.html" class="nav-link-custom">
+      <a href="/configuracion.html" class="nav-link-custom" id="linkMiPerfil">
         <i class="fa-solid fa-gear"></i> Mi Perfil
       </a>
+      <span style="width:1px;height:20px;background:var(--sidebar-border); margin:0 10px;"></span>
+      <button id="btnThemeToggle" class="theme-toggle" title="Cambiar tema">
+        <i class="fa-solid fa-moon" id="themeIcon"></i>
+      </button>
     </div>
   </nav>
 
