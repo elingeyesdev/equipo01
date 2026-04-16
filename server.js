@@ -713,7 +713,7 @@ app.put('/api/garajes/:id/estado', async (req, res) => {
 // ============================================================
 app.get('/api/explorar', async (req, res) => {
   console.log('\n🔍 [GET /api/explorar]');
-  let { precio_min, precio_max, tipo_vehiculo, busqueda, page, limit } = req.query;
+  let { precio_min, precio_max, tipo_vehiculo, busqueda, page, limit, fecha_entrada, fecha_salida } = req.query;
 
   // Parámetros de paginación por defecto
   const currentPage = parseInt(page, 10) || 1;
@@ -731,7 +731,23 @@ app.get('/api/explorar', async (req, res) => {
     // Build dynamic WHERE clause
     let conditions = ['g.estado_activo = 1'];
 
-    // 1. Filtro de Búsqueda de Texto (Zona/Dirección)
+    // 1. Filtro de Disponibilidad por Fechas (Previene solapamiento)
+    if (fecha_entrada && fecha_salida) {
+      request.input('fecha_entrada', sql.DateTime, new Date(fecha_entrada));
+      request.input('fecha_salida', sql.DateTime, new Date(fecha_salida));
+      
+      conditions.push(`
+        NOT EXISTS (
+          SELECT 1 FROM Reservas r 
+          WHERE r.garaje_id = g.id 
+            AND r.estado IN ('pendiente', 'confirmada')
+            AND r.fecha_inicio < @fecha_salida 
+            AND r.fecha_fin > @fecha_entrada
+        )
+      `);
+    }
+
+    // 2. Filtro de Búsqueda de Texto (Zona/Dirección)
     if (busqueda && typeof busqueda === 'string' && busqueda.trim().length > 0) {
       request.input('busqueda', sql.NVarChar(255), '%' + busqueda.trim() + '%');
       conditions.push('g.direccion LIKE @busqueda');
