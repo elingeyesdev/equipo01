@@ -36,6 +36,8 @@
   const paginationList      = document.getElementById('paginationList');
 
   const filtroBusqueda   = document.getElementById('filtroBusqueda');
+  const filtroEntrada    = document.getElementById('filtroEntrada');
+  const filtroSalida     = document.getElementById('filtroSalida');
   const filtroPrecioMin  = document.getElementById('filtroPrecioMin');
   const filtroPrecioMax  = document.getElementById('filtroPrecioMax');
   const filtroTipo       = document.getElementById('filtroTipoVehiculo');
@@ -85,9 +87,32 @@
     // Build query string
     const params = new URLSearchParams();
     const busqueda = filtroBusqueda.value.trim();
+    const fEntrada = filtroEntrada.value;
+    const fSalida  = filtroSalida.value;
     const precioMin = filtroPrecioMin.value.trim();
     const precioMax = filtroPrecioMax.value.trim();
     const tipoVehiculo = filtroTipo.value;
+
+    // Validación Fechas
+    if (fEntrada || fSalida) {
+      if (!fEntrada || !fSalida) {
+        alert('Debe establecer tanto la fecha de entrada como la de salida.');
+        loadingCatalog.style.display = 'none';
+        return;
+      }
+      
+      const inDate = new Date(fEntrada);
+      const outDate = new Date(fSalida);
+      
+      if (outDate <= inDate) {
+        alert('La fecha de salida debe ser posterior a la fecha de llegada.');
+        loadingCatalog.style.display = 'none';
+        return;
+      }
+
+      params.set('fecha_entrada', fEntrada);
+      params.set('fecha_salida', fSalida);
+    }
 
     if (busqueda) params.set('busqueda', busqueda);
     if (precioMin) params.set('precio_min', precioMin);
@@ -250,6 +275,8 @@
 
   btnLimpiar.addEventListener('click', () => {
     filtroBusqueda.value = '';
+    filtroEntrada.value = '';
+    filtroSalida.value = '';
     filtroPrecioMin.value = '';
     filtroPrecioMax.value = '';
     filtroTipo.value = '';
@@ -269,6 +296,13 @@
   });
 
   // ─── Init ───
+  // Prevenir seleccionar fechas pasadas en frontend
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  const nowStr = now.toISOString().slice(0, 16);
+  if (filtroEntrada) filtroEntrada.min = nowStr;
+  if (filtroSalida) filtroSalida.min = nowStr;
+
   initTheme();
   cargarGarajes();
 
