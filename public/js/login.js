@@ -1,13 +1,14 @@
 // ============================================================
 // EstAirbnb — login.js
-// Lógica de la página de inicio de sesión
+// Lógica de la página de inicio de sesión (con redirección por rol)
 // ============================================================
 
 const USUARIO_KEY = 'estairbnb_user';
 
-// Si ya está logueado, redirigir directo
-if (localStorage.getItem(USUARIO_KEY)) {
-  window.location.href = '/configuracion.html';
+// Si ya está logueado, redirigir según rol
+const existingUser = JSON.parse(localStorage.getItem(USUARIO_KEY) || 'null');
+if (existingUser) {
+  window.location.href = existingUser.rol_id === 1 ? '/mis-garajes.html' : '/explorar.html';
 }
 
 // ============================================================
@@ -78,10 +79,13 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
     const data = await res.json();
 
     if (res.ok && data.status === 'ok') {
-      // Guardar sesión en localStorage
+      // Guardar sesión en localStorage (incluye rol_id y rol_nombre)
       localStorage.setItem(USUARIO_KEY, JSON.stringify(data.data));
       showAlert('¡Bienvenido! Redirigiendo...', 'success');
-      setTimeout(() => { window.location.href = '/configuracion.html'; }, 800);
+
+      // Redirigir según rol
+      const destino = data.data.rol_id === 1 ? '/mis-garajes.html' : '/explorar.html';
+      setTimeout(() => { window.location.href = destino; }, 800);
     } else {
       showAlert(data.message || 'Error al iniciar sesión.');
       btn.disabled = false;

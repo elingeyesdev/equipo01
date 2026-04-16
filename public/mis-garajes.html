@@ -102,7 +102,7 @@
           <!-- Precio + Tipo (side by side) -->
           <div class="form-row">
             <div class="form-group">
-              <label for="inpPrecio" class="form-label-custom">Precio por hora (RD$)</label>
+              <label for="inpPrecio" class="form-label-custom">Precio por hora (Bs.)</label>
               <input type="number" class="form-control-custom" id="inpPrecio"
                      placeholder="Ej: 75.00" min="1" step="0.01" required>
             </div>
@@ -202,6 +202,39 @@
       </div>
     </section>
 
+    <!-- ========================
+         Sección 3: Reservas Recibidas
+    ======================== -->
+    <section class="settings-card" id="sectionReservas">
+      <div class="card-header-custom">
+        <h2><i class="fa-solid fa-calendar-check"></i> Reservas Recibidas</h2>
+        <span id="contadorReservas" style="font-size:0.82rem;font-weight:600;color:var(--text-secondary);"></span>
+      </div>
+      <div class="card-body-custom">
+
+        <!-- Loading -->
+        <div id="loadingReservas" style="text-align:center;padding:30px 0;">
+          <div class="spinner-border" role="status" style="width:2rem;height:2rem;">
+            <span class="visually-hidden">Cargando...</span>
+          </div>
+          <p class="mt-2" style="font-size:0.9rem;color:var(--text-secondary);">Cargando reservas...</p>
+        </div>
+
+        <!-- Tabla de reservas -->
+        <div id="reservasTableWrapper" style="display:none;overflow-x:auto;"></div>
+
+        <!-- Empty State -->
+        <div id="emptyReservas" style="display:none;text-align:center;padding:40px 20px;">
+          <div style="font-size:2.5rem;color:var(--text-secondary);opacity:0.4;margin-bottom:12px;">
+            <i class="fa-solid fa-calendar-xmark"></i>
+          </div>
+          <h3 style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">Sin reservas aún</h3>
+          <p style="font-size:0.85rem;color:var(--text-secondary);">Cuando un conductor reserve uno de tus espacios, aparecerá aquí.</p>
+        </div>
+
+      </div>
+    </section>
+
   </div>
 
   <!-- Bootstrap 5 JS Bundle -->
@@ -209,5 +242,7 @@
   <!-- Mis Garajes Logic -->
   <script src="/js/mis-garajes.js"></script>
 
+  <!-- Badge navbar -->
+  <script src="/js/navbar-badge.js"></script>
 </body>
 </html>

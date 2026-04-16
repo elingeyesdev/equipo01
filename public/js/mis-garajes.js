@@ -13,6 +13,11 @@ if (!currentUser || !currentUser.id) {
   window.location.href = '/login.html';
 }
 
+// Solo anfitriones (rol_id = 1) pueden acceder a esta página
+if (currentUser && currentUser.rol_id !== 1) {
+  window.location.href = '/configuracion.html';
+}
+
 // ============================================================
 // DOM Elements
 // ============================================================
@@ -339,7 +344,7 @@ function crearTarjetaGaraje(garaje) {
       <div class="garaje-card-descripcion">${garaje.descripcion ? escapeHTML(garaje.descripcion) : '<em style="opacity:0.5;">Sin descripción</em>'}</div>
       <div class="garaje-card-meta">
         <div class="garaje-card-precio">
-          RD$${Number(garaje.precio_hora).toFixed(2)} <span>/hora</span>
+          Bs. ${Number(garaje.precio_hora).toFixed(2)} <span>/hora</span>
         </div>
         <div class="garaje-card-tipo">
           ${tipoIconos[garaje.tipo_vehiculo] || ''} ${garaje.tipo_vehiculo}
@@ -394,6 +399,139 @@ async function toggleEstado(garajeId, btnElement) {
 }
 
 // ============================================================
+// Cargar Reservas Recibidas — GET /api/reservas/mis-reservas (rol anfitrión)
+// ============================================================
+async function cargarReservasRecibidas() {
+  const loadingEl = document.getElementById('loadingReservas');
+  const tableWrapper = document.getElementById('reservasTableWrapper');
+  const emptyEl = document.getElementById('emptyReservas');
+  const contadorEl = document.getElementById('contadorReservas');
+
+  loadingEl.style.display = 'block';
+  tableWrapper.style.display = 'none';
+  tableWrapper.innerHTML = '';
+  emptyEl.style.display = 'none';
+
+  try {
+    const res = await fetch(`/api/reservas/mis-reservas?usuario_id=${currentUser.id}&rol_id=1`);
+    const data = await res.json();
+
+    loadingEl.style.display = 'none';
+
+    if (res.ok && data.status === 'ok') {
+      const reservas = data.data;
+
+      if (reservas.length === 0) {
+        emptyEl.style.display = 'block';
+        contadorEl.textContent = '';
+        return;
+      }
+
+      const pendientes = reservas.filter(r => r.estado === 'pendiente').length;
+      contadorEl.textContent = pendientes > 0
+        ? `${pendientes} pendiente${pendientes !== 1 ? 's' : ''}`
+        : `${reservas.length} reserva${reservas.length !== 1 ? 's' : ''}`;
+
+      // Construir tabla
+      const table = document.createElement('table');
+      table.className = 'reservas-table';
+      table.innerHTML = `
+        <thead>
+          <tr>
+            <th>Conductor</th>
+            <th>Garaje</th>
+            <th>Entrada</th>
+            <th>Salida</th>
+            <th>Total</th>
+            <th>Estado</th>
+            <th>Acciones</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${reservas.map(r => {
+            const fechaInicio = new Date(r.fecha_inicio).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' });
+            const fechaFin = new Date(r.fecha_fin).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' });
+
+            const estadoBadge = {
+              pendiente:  '<span class="reserva-badge pendiente"><i class="fa-solid fa-clock"></i> Pendiente</span>',
+              confirmada: '<span class="reserva-badge confirmada"><i class="fa-solid fa-circle-check"></i> Confirmada</span>',
+              rechazada:  '<span class="reserva-badge rechazada"><i class="fa-solid fa-circle-xmark"></i> Rechazada</span>',
+              finalizada: '<span class="reserva-badge finalizada"><i class="fa-solid fa-flag-checkered"></i> Finalizada</span>',
+            };
+
+            const acciones = r.estado === 'pendiente'
+              ? `<div class="reserva-acciones">
+                   <button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)" title="Confirmar">
+                     <i class="fa-solid fa-check"></i> Confirmar
+                   </button>
+                   <button class="btn-reserva rechazar" onclick="cambiarEstadoReserva(${r.id}, 'rechazada', this)" title="Rechazar">
+                     <i class="fa-solid fa-xmark"></i> Rechazar
+                   </button>
+                 </div>`
+              : '<span style="font-size:0.78rem;color:var(--text-secondary);">—</span>';
+
+            return `
+              <tr>
+                <td>
+                  <div style="font-weight:600;font-size:0.85rem;">${escapeHTML(r.conductor_nombre || 'N/A')}</div>
+                  <div style="font-size:0.75rem;color:var(--text-secondary);">${r.conductor_telefono || ''}</div>
+                </td>
+                <td style="font-size:0.85rem;">${escapeHTML(r.garaje_direccion)}</td>
+                <td style="font-size:0.82rem;">${fechaInicio}</td>
+                <td style="font-size:0.82rem;">${fechaFin}</td>
+                <td style="font-weight:700;font-size:0.85rem;">Bs. ${Number(r.precio_total).toFixed(2)}</td>
+                <td>${estadoBadge[r.estado] || r.estado}</td>
+                <td>${acciones}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      `;
+
+      tableWrapper.appendChild(table);
+      tableWrapper.style.display = 'block';
+    }
+  } catch (err) {
+    document.getElementById('loadingReservas').style.display = 'none';
+    console.error('Error al cargar reservas:', err);
+    showToast('Error al cargar las reservas recibidas.', 'error');
+  }
+}
+
+// ============================================================
+// Cambiar estado de reserva — PUT /api/reservas/:id/estado
+// ============================================================
+async function cambiarEstadoReserva(reservaId, nuevoEstado, btnElement) {
+  btnElement.disabled = true;
+  const origHTML = btnElement.innerHTML;
+  btnElement.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
+
+  try {
+    const res = await fetch(`/api/reservas/${reservaId}/estado`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ estado: nuevoEstado }),
+    });
+    const data = await res.json();
+
+    if (res.ok && data.status === 'ok') {
+      const label = nuevoEstado === 'confirmada' ? 'confirmada' : 'rechazada';
+      showToast(`¡Reserva ${label} exitosamente!`);
+      await cargarReservasRecibidas();
+    } else {
+      showToast(data.message || 'Error al cambiar el estado.', 'error');
+      btnElement.disabled = false;
+      btnElement.innerHTML = origHTML;
+    }
+  } catch (err) {
+    console.error('Error al cambiar estado reserva:', err);
+    showToast('No se pudo conectar con el servidor.', 'error');
+    btnElement.disabled = false;
+    btnElement.innerHTML = origHTML;
+  }
+}
+
+// ============================================================
 // Utilidad: Escape HTML
 // ============================================================
 function escapeHTML(str) {
@@ -410,4 +548,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initFileUpload();
   cargarMisGarajes();
+  cargarReservasRecibidas();
 });
