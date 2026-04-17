@@ -902,10 +902,10 @@ app.post('/api/reservas', async (req, res) => {
     }
     const precio_hora = garajeResult.recordset[0].precio_hora;
 
-    // 2. Validación de Double-Booking
+    // 2. Validación de Double-Booking (Con Buffer de 30 minutos)
     // Buscamos si existe alguna reserva para el mismo garaje que se solape en fechas
-    // Solapamiento: nueva_inicio < reserva_fin AND nueva_fin > reserva_inicio
-    // Solo consideramos reservas 'pendiente' y 'confirmada'
+    // Solapamiento: Se agrega DATEADD para forzar 30 mins de limpieza o maniobra.
+    // nueva_inicio < (reserva_fin + 30m) AND nueva_fin > (reserva_inicio - 30m)
     const solapamientoResult = await db.request()
       .input('garaje_id', sql.Int, parseInt(garaje_id, 10))
       .input('nueva_inicio', sql.DateTime, new Date(fecha_inicio))
@@ -915,11 +915,12 @@ app.post('/api/reservas', async (req, res) => {
         FROM Reservas 
         WHERE garaje_id = @garaje_id 
           AND estado IN ('pendiente', 'confirmada')
-          AND (@nueva_inicio < fecha_fin AND @nueva_fin > fecha_inicio)
+          AND (@nueva_inicio < DATEADD(MINUTE, 30, fecha_fin) 
+               AND @nueva_fin > DATEADD(MINUTE, -30, fecha_inicio))
       `);
 
     if (solapamientoResult.recordset.length > 0) {
-      return res.status(400).json({ status: 'error', message: 'Las fechas seleccionadas no están disponibles, ya existe una reserva en este periodo de tiempo.' });
+      return res.status(400).json({ status: 'error', message: 'El espacio no está disponible. Debes dejar un margen de 30 minutos entre reservas por seguridad.' });
     }
 
     // 3. Calcular Diferencia de Horas y Precio Total
