@@ -231,6 +231,22 @@ ELSE
 GO
 
 -- ============================================================
+-- 10. Columna tarifa_servicio en Reservas
+--     (Calcula la comisión de EstAirbnb)
+-- ============================================================
+IF NOT EXISTS (
+    SELECT 1 FROM sys.columns
+    WHERE object_id = OBJECT_ID(N'[dbo].[Reservas]') AND name = 'tarifa_servicio'
+)
+BEGIN
+    ALTER TABLE [dbo].[Reservas] ADD tarifa_servicio DECIMAL(10,2) NOT NULL DEFAULT 0;
+    PRINT '✅ Columna tarifa_servicio agregada a Reservas.';
+END
+ELSE
+    PRINT 'ℹ️  Columna tarifa_servicio ya existe.';
+GO
+
+-- ============================================================
 -- RESUMEN FINAL
 -- ============================================================
 PRINT '';

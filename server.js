@@ -943,19 +943,25 @@ app.post('/api/reservas', async (req, res) => {
       .input('fecha_inicio', sql.DateTime, new Date(fecha_inicio))
       .input('fecha_fin', sql.DateTime, new Date(fecha_fin))
       .input('precio_total', sql.Decimal(10, 2), precio_total)
+      .input('tarifa_servicio', sql.Decimal(10, 2), tarifa_servicio)
       .query(`
-        INSERT INTO Reservas (garaje_id, usuario_id, fecha_inicio, fecha_fin, precio_total, estado)
+        INSERT INTO Reservas (garaje_id, usuario_id, fecha_inicio, fecha_fin, precio_total, tarifa_servicio, estado)
         OUTPUT INSERTED.id
-        VALUES (@garaje_id, @usuario_id, @fecha_inicio, @fecha_fin, @precio_total, 'pendiente')
+        VALUES (@garaje_id, @usuario_id, @fecha_inicio, @fecha_fin, @precio_total, @tarifa_servicio, 'pendiente')
       `);
 
     const nuevaReservaId = reservaResult.recordset[0].id;
-    console.log(`✅ Reserva ${nuevaReservaId} creada. Total a pagar: Bs. ${precio_total}`);
+    console.log(`✅ Reserva ${nuevaReservaId} creada. Base: Bs. ${subtotal} | Comisión: Bs. ${tarifa_servicio} | Total: Bs. ${precio_total}`);
 
     return res.status(201).json({
       status: 'ok',
       message: '¡Reserva solicitada de forma exitosa!',
-      data: { id: nuevaReservaId, precio_total }
+      data: {
+        id: nuevaReservaId,
+        subtotal: subtotal,
+        tarifa_servicio: tarifa_servicio,
+        precio_total: precio_total
+      }
     });
 
   } catch (err) {
