@@ -46,6 +46,17 @@
   const btnReserva       = document.getElementById('btnReserva');
   const reservaAlert     = document.getElementById('reservaAlert');
 
+  // Modal elements
+  const modalCheckout       = document.getElementById('modalCheckout');
+  const modalEntrada        = document.getElementById('modalEntrada');
+  const modalSalida         = document.getElementById('modalSalida');
+  const modalHoras          = document.getElementById('modalHoras');
+  const modalSubtotal       = document.getElementById('modalSubtotal');
+  const modalTarifa         = document.getElementById('modalTarifa');
+  const modalTotal          = document.getElementById('modalTotal');
+  const checkAcepto         = document.getElementById('checkAcepto');
+  const btnConfirmarReserva = document.getElementById('btnConfirmarReserva');
+
   let garajeCargado = null; // Guardar toda la data de garaje
 
   const btnThemeToggle   = document.getElementById('btnThemeToggle');
@@ -242,27 +253,78 @@
       const res = await fetch(`/api/reservas/verificar-existente?usuario_id=${currentUser.id}&garaje_id=${garajeCargado.id}`);
       const json = await res.json();
       if (res.ok && json.status === 'ok' && json.existe) {
-        // Ocultar formulario de reservas e inyectar el aviso
-        document.querySelector('.reserva-card').innerHTML = `
-          <div class="text-center p-3 animate-fade-in">
-            <h5 class="text-success mb-3" style="font-weight: 700;"><i class="fa-solid fa-circle-check fa-lg text-success mb-2"></i><br>¡Ya tienes una reserva para este lugar!</h5>
-            <p class="text-muted" style="font-size:0.9rem;">Revisa tu panel de gestión de reservas para conocer más detalles y el estado actual de tu solicitud.</p>
-            <a href="/mis-reservas.html" class="btn btn-primary w-100 mt-2" style="font-weight: 600;"><i class="fa-solid fa-calendar-days"></i> Ir a mis reservas</a>
-          </div>
-        `;
+        mostrarUIReservaExistente();
       }
     } catch (err) {
       console.error('Error al verificar reservas previas', err);
     }
   }
 
-  // ─── Solicitar Reserva ───
-  btnReserva.addEventListener('click', async () => {
+  function mostrarUIReservaExistente() {
+    // Ocultar formulario de reservas e inyectar el aviso
+    const reservaCard = document.querySelector('.reserva-card');
+    if(reservaCard) {
+      reservaCard.innerHTML = `
+        <div class="text-center p-3 animate-fade-in">
+          <h5 class="text-success mb-3" style="font-weight: 700;"><i class="fa-solid fa-circle-check fa-lg text-success mb-2"></i><br>¡Ya tienes una reserva para este lugar!</h5>
+          <p class="text-muted" style="font-size:0.9rem;">Revisa tu panel de gestión de reservas para conocer más detalles y el estado actual de tu solicitud.</p>
+          <a href="/mis-reservas.html" class="btn btn-primary w-100 mt-2" style="font-weight: 600;"><i class="fa-solid fa-calendar-days"></i> Ir a mis reservas</a>
+        </div>
+      `;
+    }
+  }
+
+  // ─── Interceptar Botón para abrir el Checkout ───
+  btnReserva.addEventListener('click', () => {
     if (!garajeCargado || !fechaEntrada.value || !fechaSalida.value) return;
 
-    btnReserva.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Solicitando...';
-    btnReserva.disabled = true;
-    reservaAlert.style.display = 'none';
+    const start = new Date(fechaEntrada.value);
+    const end = new Date(fechaSalida.value);
+
+    if (end <= start) {
+      alert('Las fechas seleccionadas son inválidas.');
+      return;
+    }
+
+    const difMs = end.getTime() - start.getTime();
+    const difHoras = Math.ceil(difMs / (1000 * 60 * 60));
+    
+    // Cálculo de Costos Oficiales
+    const subtotal = difHoras * parseFloat(garajeCargado.precio_hora);
+    const tarifa_servicio = subtotal * 0.10; // 10%
+    const total = subtotal + tarifa_servicio;
+
+    // Pintar Modal
+    // Usamos split('T') para mostrarlo más amigable o simplemente toLocaleString
+    modalEntrada.textContent = start.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+    modalSalida.textContent = end.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+    
+    modalHoras.textContent = difHoras;
+    modalSubtotal.textContent = `Bs. ${subtotal.toFixed(2)}`;
+    modalTarifa.textContent = `Bs. ${tarifa_servicio.toFixed(2)}`;
+    modalTotal.textContent = `Bs. ${total.toFixed(2)}`;
+
+    // Resetear Controles del Modal
+    checkAcepto.checked = false;
+    btnConfirmarReserva.disabled = true;
+
+    // Abrir Modal
+    const modalIns = new bootstrap.Modal(modalCheckout);
+    modalIns.show();
+  });
+
+  // ─── Checkbox Aceptación ───
+  checkAcepto.addEventListener('change', (e) => {
+    btnConfirmarReserva.disabled = !e.target.checked;
+  });
+
+  // ─── Confirmar y Llamar a la API ───
+  btnConfirmarReserva.addEventListener('click', async () => {
+    if (!garajeCargado || !fechaEntrada.value || !fechaSalida.value) return;
+
+    const originalText = btnConfirmarReserva.innerHTML;
+    btnConfirmarReserva.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirmando...';
+    btnConfirmarReserva.disabled = true;
 
     try {
       const response = await fetch('/api/reservas', {
@@ -279,22 +341,24 @@
       const json = await response.json();
 
       if (response.ok && json.status === 'ok') {
-        // Éxito, redirigir a mis-reservas
-        window.location.href = '/mis-reservas.html';
+        const modalIns = bootstrap.Modal.getInstance(modalCheckout);
+        modalIns.hide();
+        
+        // Simular éxito y cambio de UI como el verificarReservaExistente
+        mostrarUIReservaExistente();
+        alert('Reserva solicitada exitosamente. El anfitrión será notificado.');
       } else {
         // Error como double-booking
-        reservaAlert.innerHTML = `<i class="fa-solid fa-circle-exclamation"></i> ${json.message}`;
-        reservaAlert.style.display = 'block';
-        btnReserva.innerHTML = '<i class="fa-solid fa-calendar-check"></i> Solicitar Reserva';
-        btnReserva.disabled = false;
+        alert(json.message || 'Error al procesar la reserva.');
+        btnConfirmarReserva.innerHTML = originalText;
+        btnConfirmarReserva.disabled = false;
       }
 
     } catch (err) {
       console.error(err);
-      reservaAlert.innerHTML = '<i class="fa-solid fa-circle-exclamation"></i> Error de conexión.';
-      reservaAlert.style.display = 'block';
-      btnReserva.innerHTML = '<i class="fa-solid fa-calendar-check"></i> Solicitar Reserva';
-      btnReserva.disabled = false;
+      alert('Error de red al procesar tu solicitud.');
+      btnConfirmarReserva.innerHTML = originalText;
+      btnConfirmarReserva.disabled = false;
     }
   });
 
