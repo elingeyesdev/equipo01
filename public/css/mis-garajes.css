@@ -1078,3 +1078,233 @@ select.form-control-custom {
 ::-webkit-scrollbar-thumb:hover {
   background: #a0a0a0;
 }
+
+/* ============================
+   Visual Espacio Builder
+============================ */
+
+/* Quantity Selector */
+.cantidad-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 16px 0;
+  margin-bottom: 16px;
+}
+
+.cantidad-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--sidebar-border);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 1.4rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.cantidad-btn:hover:not(:disabled) {
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.cantidad-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.cantidad-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.cantidad-btn.mas {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.cantidad-btn.mas:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.cantidad-btn.menos {
+  background: var(--danger-soft, rgba(220,53,69,0.08));
+  color: var(--danger);
+  border-color: rgba(220,53,69,0.2);
+}
+
+.cantidad-btn.menos:hover:not(:disabled) {
+  background: rgba(220,53,69,0.15);
+}
+
+.cantidad-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.cantidad-numero {
+  font-size: 3rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.cantidad-texto {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Legend */
+.tipo-leyenda {
+  text-align: center;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--sidebar-hover);
+  border-radius: 10px;
+}
+
+.leyenda-hint {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.leyenda-hint i {
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+.leyenda-tipos {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.leyenda-tipo {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.leyenda-tipo i {
+  font-size: 1rem;
+}
+
+/* Builder Grid */
+.mapa-builder-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.builder-slot {
+  aspect-ratio: 1;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  border: 2.5px solid var(--slot-color, #3b82f6);
+  background: color-mix(in srgb, var(--slot-color, #3b82f6) 8%, transparent);
+  transition: all 0.25s ease;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.builder-slot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, color-mix(in srgb, var(--slot-color) 12%, transparent), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.builder-slot:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--slot-color, #3b82f6) 25%, transparent);
+}
+
+.builder-slot:hover::after {
+  opacity: 1;
+}
+
+.builder-slot:active {
+  transform: scale(0.93);
+}
+
+.builder-slot-icon {
+  font-size: 1.6rem;
+  color: var(--slot-color, #3b82f6);
+  position: relative;
+  z-index: 1;
+}
+
+.builder-slot-name {
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: var(--text-primary);
+  letter-spacing: 1px;
+  position: relative;
+  z-index: 1;
+}
+
+.builder-slot-type {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--slot-color, #3b82f6);
+  position: relative;
+  z-index: 1;
+}
+
+/* Animation */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .mapa-builder-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .cantidad-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+  }
+  
+  .cantidad-numero {
+    font-size: 2.4rem;
+  }
+}

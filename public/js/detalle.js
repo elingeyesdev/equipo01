@@ -1,6 +1,7 @@
 // ============================================================
 // EstAirbnb — detalle.js
 // Lógica para la Vista de Detalle de un Garaje
+// Adaptado a la nueva UI Tailwind + Material Symbols
 // ============================================================
 
 (function () {
@@ -24,18 +25,14 @@
 
   // ─── DOM References ───
   const loadingDetalle   = document.getElementById('loadingDetalle');
-  const errorDetalle     = document.getElementById('errorDetalle');
   const detalleContent   = document.getElementById('detalleContent');
   const carouselSection  = document.getElementById('carouselSection');
-  const breadcrumbTitle  = document.getElementById('breadcrumbTitle');
 
   const garajeTitulo     = document.getElementById('garajeTitulo');
   const garajeDireccion  = document.getElementById('garajeDireccion');
   const garajePrecio     = document.getElementById('garajePrecio');
   const garajeTipo       = document.getElementById('garajeTipo');
-  const tipoIcon         = document.getElementById('tipoIcon');
   const garajeDescripcion = document.getElementById('garajeDescripcion');
-  const descripcionContainer = document.getElementById('descripcionContainer');
   
   // Reserva elements
   const fechaEntrada     = document.getElementById('fechaEntrada');
@@ -57,7 +54,13 @@
   const checkAcepto         = document.getElementById('checkAcepto');
   const btnConfirmarReserva = document.getElementById('btnConfirmarReserva');
 
-  let garajeCargado = null; // Guardar toda la data de garaje
+  // Mapa 2D elements
+  const mapaParqueo              = document.getElementById('mapa-parqueo');
+  const espacioSeleccionadoInfo  = document.getElementById('espacioSeleccionadoInfo');
+  const espacioSeleccionadoLabel = document.getElementById('espacioSeleccionadoLabel');
+
+  let garajeCargado = null;
+  let espacioSeleccionadoId = null; // ← Variable global del espacio elegido
 
   const btnThemeToggle   = document.getElementById('btnThemeToggle');
   const themeIcon        = document.getElementById('themeIcon');
@@ -69,27 +72,29 @@
     camioneta: { label: '🚙 Camioneta / SUV', icon: 'fa-truck-pickup' }
   };
 
-  // ─── Theme Toggle ───
+  // ─── Theme Toggle (Material Symbols + Tailwind dark class) ───
   function initTheme() {
     const saved = localStorage.getItem('estairbnb_theme');
     if (saved === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      themeIcon.classList.replace('fa-moon', 'fa-sun');
+      document.documentElement.classList.add('dark');
+      if (themeIcon) themeIcon.textContent = 'light_mode';
     }
   }
 
-  btnThemeToggle.addEventListener('click', () => {
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    if (isDark) {
-      document.documentElement.removeAttribute('data-theme');
-      themeIcon.classList.replace('fa-sun', 'fa-moon');
-      localStorage.setItem('estairbnb_theme', 'light');
-    } else {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      themeIcon.classList.replace('fa-moon', 'fa-sun');
-      localStorage.setItem('estairbnb_theme', 'dark');
-    }
-  });
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      if (isDark) {
+        document.documentElement.classList.remove('dark');
+        if (themeIcon) themeIcon.textContent = 'dark_mode';
+        localStorage.setItem('estairbnb_theme', 'light');
+      } else {
+        document.documentElement.classList.add('dark');
+        if (themeIcon) themeIcon.textContent = 'light_mode';
+        localStorage.setItem('estairbnb_theme', 'dark');
+      }
+    });
+  }
 
   // ─── Get ID from URL ───
   function getGarajeId() {
@@ -97,77 +102,145 @@
     return parseInt(params.get('id'), 10);
   }
 
-  // ─── Build Bootstrap 5 Carousel ───
+  // ─── Build Image Gallery (Bento Grid) ───
   function renderCarousel(fotos) {
+    if (!carouselSection) return;
+
     if (!fotos || fotos.length === 0) {
       carouselSection.innerHTML = `
-        <div class="carousel-placeholder">
-          <i class="fa-solid fa-image"></i>
-          <span>Este espacio no tiene fotos</span>
+        <div class="col-span-full flex items-center justify-center bg-surface-container-low rounded-xl text-on-surface-variant">
+          <div class="text-center py-16">
+            <span class="material-symbols-outlined text-5xl mb-2 block opacity-30">image</span>
+            <span class="text-sm font-medium">Este espacio no tiene fotos</span>
+          </div>
         </div>`;
       return;
     }
 
-    const indicators = fotos.map((_, i) => `
-      <button type="button" data-bs-target="#garajeCarousel" data-bs-slide-to="${i}"
-              class="${i === 0 ? 'active' : ''}" aria-label="Foto ${i + 1}"
-              ${i === 0 ? 'aria-current="true"' : ''}></button>
-    `).join('');
-
-    const items = fotos.map((foto, i) => `
-      <div class="carousel-item ${i === 0 ? 'active' : ''}">
-        <img src="${foto.foto_url}" alt="Foto ${i + 1} del parqueo" loading="lazy">
-      </div>
-    `).join('');
-
-    const showControls = fotos.length > 1;
-
-    carouselSection.innerHTML = `
-      <div id="garajeCarousel" class="carousel slide" data-bs-ride="carousel" data-bs-interval="5000">
-        ${showControls ? `<div class="carousel-indicators">${indicators}</div>` : ''}
-        <div class="carousel-inner">
-          ${items}
+    // Bento grid: first image large, rest fill
+    const items = fotos.map((foto, i) => {
+      const gridClass = i === 0 ? 'md:col-span-2 md:row-span-2' : '';
+      return `
+        <div class="${gridClass} rounded-xl overflow-hidden bg-surface-container-low">
+          <img src="${foto.foto_url}" alt="Foto ${i + 1} del parqueo" 
+               class="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy">
         </div>
-        ${showControls ? `
-        <button class="carousel-control-prev" type="button" data-bs-target="#garajeCarousel" data-bs-slide="prev">
-          <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-          <span class="visually-hidden">Anterior</span>
-        </button>
-        <button class="carousel-control-next" type="button" data-bs-target="#garajeCarousel" data-bs-slide="next">
-          <span class="carousel-control-next-icon" aria-hidden="true"></span>
-          <span class="visually-hidden">Siguiente</span>
-        </button>
-        ` : ''}
-      </div>
-    `;
+      `;
+    }).join('');
+
+    carouselSection.innerHTML = items;
   }
 
   // ─── Render Garaje Info ───
   function renderInfo(garaje) {
-    // Title and address
-    garajeTitulo.textContent = garaje.direccion;
-    garajeDireccion.textContent = garaje.direccion;
-    breadcrumbTitle.textContent = garaje.direccion;
+    if (garajeTitulo) garajeTitulo.textContent = garaje.direccion;
+    if (garajeDireccion) garajeDireccion.textContent = garaje.direccion;
 
     // Update page title
     document.title = `${garaje.direccion} · EstAirbnb`;
 
     // Price
-    const precio = parseFloat(garaje.precio_hora).toFixed(2);
-    garajePrecio.innerHTML = `Bs. ${precio} <small>/ hora</small>`;
+    if (garajePrecio) {
+      const precio = parseFloat(garaje.precio_hora).toFixed(2);
+      garajePrecio.textContent = `Bs. ${precio}`;
+    }
 
     // Vehicle type
-    const config = TIPO_CONFIG[garaje.tipo_vehiculo] || { label: garaje.tipo_vehiculo, icon: 'fa-car' };
-    garajeTipo.textContent = config.label;
-    tipoIcon.className = `fa-solid ${config.icon}`;
+    if (garajeTipo) {
+      const config = TIPO_CONFIG[garaje.tipo_vehiculo] || { label: garaje.tipo_vehiculo };
+      garajeTipo.textContent = config.label;
+    }
 
     // Description
-    if (garaje.descripcion && garaje.descripcion.trim()) {
-      garajeDescripcion.textContent = garaje.descripcion;
-      descripcionContainer.style.display = 'flex';
-    } else {
-      descripcionContainer.style.display = 'none';
+    if (garajeDescripcion) {
+      if (garaje.descripcion && garaje.descripcion.trim()) {
+        garajeDescripcion.innerHTML = `<p>${garaje.descripcion}</p>`;
+      } else {
+        garajeDescripcion.innerHTML = '<p class="opacity-50">Sin descripción disponible.</p>';
+      }
     }
+  }
+
+  // ─── Render Mapa 2D de Espacios ───
+  async function cargarEspacios(garajeId) {
+    if (!mapaParqueo) return;
+    try {
+      const res = await fetch(`/api/garajes/${garajeId}/espacios`);
+      const json = await res.json();
+
+      if (json.status !== 'ok' || !json.data) {
+        mapaParqueo.innerHTML = '<p class="text-on-surface-variant text-sm">No se pudieron cargar los espacios.</p>';
+        return;
+      }
+
+      renderMapa(json.data);
+    } catch (err) {
+      console.error('Error al cargar espacios:', err);
+      mapaParqueo.innerHTML = '<p class="text-error text-sm">Error de conexión al cargar espacios.</p>';
+    }
+  }
+
+  function renderMapa(espacios) {
+    if (!mapaParqueo) return;
+    mapaParqueo.innerHTML = '';
+
+    // Use the inline styles from the HTML (.mapa-grid / .espacio-btn classes)
+    const maxCol = Math.max(...espacios.map(e => e.columna || 1), 1);
+    const cols = Math.min(maxCol, 5);
+    mapaParqueo.className = 'mapa-grid';
+    mapaParqueo.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+    espacios.forEach(esp => {
+      const slot = document.createElement('div');
+      // Use the CSS classes defined in the HTML <style> block
+      let stateClass = 'espacio-btn';
+      if (esp.estado === 'ocupado') stateClass += ' ocupado';
+
+      slot.className = stateClass;
+      slot.dataset.id = esp.id;
+      slot.dataset.numero = esp.numero_espacio;
+      slot.dataset.estado = esp.estado;
+
+      const iconMap = { auto: 'fa-car', moto: 'fa-motorcycle', camioneta: 'fa-truck-pickup' };
+      const iconClass = iconMap[esp.tipo_vehiculo] || 'fa-car';
+
+      slot.innerHTML = `
+        <i class="fa-solid ${iconClass}" style="font-size:1.1rem;margin-bottom:2px;"></i>
+        <div>${esp.numero_espacio}</div>
+      `;
+
+      if (esp.estado === 'libre') {
+        slot.addEventListener('click', () => seleccionarEspacio(slot, esp));
+      }
+
+      mapaParqueo.appendChild(slot);
+    });
+  }
+
+  function seleccionarEspacio(slotEl, espacio) {
+    // Deseleccionar anterior
+    const prev = mapaParqueo.querySelector('.espacio-btn.seleccionado');
+    if (prev) {
+      prev.classList.remove('seleccionado');
+    }
+
+    // Marcar nuevo
+    slotEl.classList.add('seleccionado');
+
+    // Guardar selección
+    espacioSeleccionadoId = espacio.id;
+
+    // Actualizar UI info
+    if (espacioSeleccionadoLabel) {
+      espacioSeleccionadoLabel.textContent = espacio.numero_espacio;
+    }
+    if (espacioSeleccionadoInfo) {
+      // Use Tailwind hidden class
+      espacioSeleccionadoInfo.classList.remove('hidden');
+    }
+
+    // Re-evaluar si el botón de reserva puede habilitarse
+    evaluarBotonReserva();
   }
 
   // ─── Fetch Garaje Detail ───
@@ -183,7 +256,7 @@
       const response = await fetch(`/api/explorar/${id}`);
       const json = await response.json();
 
-      loadingDetalle.style.display = 'none';
+      if (loadingDetalle) loadingDetalle.style.display = 'none';
 
       if (json.status !== 'ok' || !json.data) {
         showError();
@@ -191,14 +264,17 @@
       }
 
       const garaje = json.data;
-      garajeCargado = garaje; // Almacenar en la variable global
+      garajeCargado = garaje;
 
       // Render sections
       renderCarousel(garaje.fotos);
       renderInfo(garaje);
 
       // Show content
-      detalleContent.style.display = 'grid';
+      if (detalleContent) detalleContent.style.display = '';
+
+      // Cargar Mapa 2D de Espacios
+      await cargarEspacios(garaje.id);
 
       // Verificar si ya tiene una reserva aquí
       await verificarReservaExistente();
@@ -210,17 +286,27 @@
   }
 
   function showError() {
-    loadingDetalle.style.display = 'none';
-    errorDetalle.style.display = 'block';
-    detalleContent.style.display = 'none';
+    if (loadingDetalle) loadingDetalle.style.display = 'none';
+    if (detalleContent) {
+      detalleContent.style.display = '';
+      detalleContent.innerHTML = `
+        <div class="text-center py-20">
+          <span class="material-symbols-outlined text-5xl text-error mb-4 block">error</span>
+          <h2 class="text-2xl font-bold text-primary mb-2">Garaje no encontrado</h2>
+          <p class="text-on-surface-variant mb-6">El espacio que buscas no existe o no está disponible.</p>
+          <a href="/explorar.html" class="bg-secondary text-white px-6 py-3 rounded-md font-medium hover:bg-[#005049] transition-colors">Volver a explorar</a>
+        </div>
+      `;
+    }
   }
 
   // ─── Lógica de Precios en Vivo ───
   function calcularPrecio() {
-    reservaAlert.style.display = 'none';
-    if (!fechaEntrada.value || !fechaSalida.value || !garajeCargado) {
-      resumenPrecio.style.setProperty('display', 'none', 'important');
-      btnReserva.disabled = true;
+    if (reservaAlert) reservaAlert.classList.add('hidden');
+    
+    if (!fechaEntrada || !fechaSalida || !fechaEntrada.value || !fechaSalida.value || !garajeCargado) {
+      if (resumenPrecio) resumenPrecio.classList.add('hidden');
+      evaluarBotonReserva();
       return;
     }
 
@@ -228,8 +314,8 @@
     const end = new Date(fechaSalida.value).getTime();
 
     if (end <= start) {
-      resumenPrecio.style.setProperty('display', 'none', 'important');
-      btnReserva.disabled = true;
+      if (resumenPrecio) resumenPrecio.classList.add('hidden');
+      evaluarBotonReserva();
       return;
     }
 
@@ -237,18 +323,28 @@
     const difHoras = Math.ceil(difMs / (1000 * 60 * 60));
     const total = difHoras * parseFloat(garajeCargado.precio_hora);
 
-    textoHoras.textContent = `${difHoras} hora${difHoras > 1 ? 's' : ''} x Bs. ${parseFloat(garajeCargado.precio_hora).toFixed(2)}`;
-    textoTotal.textContent = `Bs. ${total.toFixed(2)}`;
+    if (textoHoras) textoHoras.textContent = `${difHoras} hora${difHoras > 1 ? 's' : ''} x Bs. ${parseFloat(garajeCargado.precio_hora).toFixed(2)}`;
+    if (textoTotal) textoTotal.textContent = `Bs. ${total.toFixed(2)}`;
     
-    resumenPrecio.style.setProperty('display', 'flex', 'important');
-    btnReserva.disabled = false;
+    if (resumenPrecio) resumenPrecio.classList.remove('hidden');
+    evaluarBotonReserva();
   }
 
-  fechaEntrada.addEventListener('change', calcularPrecio);
-  fechaSalida.addEventListener('change', calcularPrecio);
+  // ─── Evaluar condiciones del botón de reserva ───
+  function evaluarBotonReserva() {
+    if (!btnReserva) return;
+    const tieneFechas = fechaEntrada && fechaSalida && fechaEntrada.value && fechaSalida.value;
+    const fechasValidas = tieneFechas && new Date(fechaSalida.value) > new Date(fechaEntrada.value);
+    const tieneEspacio = espacioSeleccionadoId !== null;
+    btnReserva.disabled = !(fechasValidas && tieneEspacio);
+  }
+
+  if (fechaEntrada) fechaEntrada.addEventListener('change', calcularPrecio);
+  if (fechaSalida) fechaSalida.addEventListener('change', calcularPrecio);
 
   // ─── Verificar si ya tiene reserva ───
   async function verificarReservaExistente() {
+    if (!garajeCargado) return;
     try {
       const res = await fetch(`/api/reservas/verificar-existente?usuario_id=${currentUser.id}&garaje_id=${garajeCargado.id}`);
       const json = await res.json();
@@ -261,106 +357,114 @@
   }
 
   function mostrarUIReservaExistente() {
-    // Ocultar formulario de reservas e inyectar el aviso
-    const reservaCard = document.querySelector('.reserva-card');
-    if(reservaCard) {
-      reservaCard.innerHTML = `
-        <div class="text-center p-3 animate-fade-in">
-          <h5 class="text-success mb-3" style="font-weight: 700;"><i class="fa-solid fa-circle-check fa-lg text-success mb-2"></i><br>¡Ya tienes una reserva para este lugar!</h5>
-          <p class="text-muted" style="font-size:0.9rem;">Revisa tu panel de gestión de reservas para conocer más detalles y el estado actual de tu solicitud.</p>
-          <a href="/mis-reservas.html" class="btn btn-primary w-100 mt-2" style="font-weight: 600;"><i class="fa-solid fa-calendar-days"></i> Ir a mis reservas</a>
+    // Find the booking card (right column)
+    const bookingCard = btnReserva ? btnReserva.closest('.sticky') : null;
+    if (bookingCard) {
+      bookingCard.innerHTML = `
+        <div class="text-center p-6">
+          <span class="material-symbols-outlined text-4xl text-secondary mb-3 block">check_circle</span>
+          <h5 class="text-lg font-bold text-primary mb-2">¡Ya tienes una reserva aquí!</h5>
+          <p class="text-sm text-on-surface-variant mb-4">Revisa tu panel de reservas para más detalles.</p>
+          <a href="/mis-reservas.html" class="block bg-secondary text-white py-3 rounded-md font-medium hover:bg-[#005049] transition-colors text-center">
+            <i class="fa-solid fa-calendar-days"></i> Ir a mis reservas
+          </a>
         </div>
       `;
     }
   }
 
   // ─── Interceptar Botón para abrir el Checkout ───
-  btnReserva.addEventListener('click', () => {
-    if (!garajeCargado || !fechaEntrada.value || !fechaSalida.value) return;
+  if (btnReserva) {
+    btnReserva.addEventListener('click', () => {
+      if (!garajeCargado || !fechaEntrada.value || !fechaSalida.value || !espacioSeleccionadoId) return;
 
-    const start = new Date(fechaEntrada.value);
-    const end = new Date(fechaSalida.value);
+      const start = new Date(fechaEntrada.value);
+      const end = new Date(fechaSalida.value);
 
-    if (end <= start) {
-      alert('Las fechas seleccionadas son inválidas.');
-      return;
-    }
+      if (end <= start) {
+        alert('Las fechas seleccionadas son inválidas.');
+        return;
+      }
 
-    const difMs = end.getTime() - start.getTime();
-    const difHoras = Math.ceil(difMs / (1000 * 60 * 60));
-    
-    // Cálculo de Costos Oficiales
-    const subtotal = difHoras * parseFloat(garajeCargado.precio_hora);
-    const tarifa_servicio = subtotal * 0.10; // 10%
-    const total = subtotal + tarifa_servicio;
+      const difMs = end.getTime() - start.getTime();
+      const difHoras = Math.ceil(difMs / (1000 * 60 * 60));
+      
+      // Cálculo de Costos Oficiales
+      const subtotal = difHoras * parseFloat(garajeCargado.precio_hora);
+      const tarifa_servicio = subtotal * 0.10; // 10%
+      const total = subtotal + tarifa_servicio;
 
-    // Pintar Modal
-    // Usamos split('T') para mostrarlo más amigable o simplemente toLocaleString
-    modalEntrada.textContent = start.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
-    modalSalida.textContent = end.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
-    
-    modalHoras.textContent = difHoras;
-    modalSubtotal.textContent = `Bs. ${subtotal.toFixed(2)}`;
-    modalTarifa.textContent = `Bs. ${tarifa_servicio.toFixed(2)}`;
-    modalTotal.textContent = `Bs. ${total.toFixed(2)}`;
+      // Pintar Modal
+      if (modalEntrada) modalEntrada.textContent = start.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+      if (modalSalida) modalSalida.textContent = end.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+      
+      if (modalHoras) modalHoras.textContent = difHoras;
+      if (modalSubtotal) modalSubtotal.textContent = `Bs. ${subtotal.toFixed(2)}`;
+      if (modalTarifa) modalTarifa.textContent = `Bs. ${tarifa_servicio.toFixed(2)}`;
+      if (modalTotal) modalTotal.textContent = `Bs. ${total.toFixed(2)}`;
 
-    // Resetear Controles del Modal
-    checkAcepto.checked = false;
-    btnConfirmarReserva.disabled = true;
+      // Resetear Controles del Modal
+      if (checkAcepto) checkAcepto.checked = false;
+      if (btnConfirmarReserva) btnConfirmarReserva.disabled = true;
 
-    // Abrir Modal
-    const modalIns = new bootstrap.Modal(modalCheckout);
-    modalIns.show();
-  });
+      // Abrir Modal
+      if (modalCheckout) {
+        const modalIns = new bootstrap.Modal(modalCheckout);
+        modalIns.show();
+      }
+    });
+  }
 
   // ─── Checkbox Aceptación ───
-  checkAcepto.addEventListener('change', (e) => {
-    btnConfirmarReserva.disabled = !e.target.checked;
-  });
+  if (checkAcepto) {
+    checkAcepto.addEventListener('change', (e) => {
+      if (btnConfirmarReserva) btnConfirmarReserva.disabled = !e.target.checked;
+    });
+  }
 
   // ─── Confirmar y Llamar a la API ───
-  btnConfirmarReserva.addEventListener('click', async () => {
-    if (!garajeCargado || !fechaEntrada.value || !fechaSalida.value) return;
+  if (btnConfirmarReserva) {
+    btnConfirmarReserva.addEventListener('click', async () => {
+      if (!garajeCargado || !fechaEntrada.value || !fechaSalida.value || !espacioSeleccionadoId) return;
 
-    const originalText = btnConfirmarReserva.innerHTML;
-    btnConfirmarReserva.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirmando...';
-    btnConfirmarReserva.disabled = true;
+      const originalText = btnConfirmarReserva.innerHTML;
+      btnConfirmarReserva.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirmando...';
+      btnConfirmarReserva.disabled = true;
 
-    try {
-      const response = await fetch('/api/reservas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          garaje_id: garajeCargado.id,
-          usuario_id: currentUser.id,
-          fecha_inicio: fechaEntrada.value,
-          fecha_fin: fechaSalida.value
-        })
-      });
+      try {
+        const response = await fetch('/api/reservas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            espacio_id: espacioSeleccionadoId,
+            conductor_id: currentUser.id,
+            fecha_inicio: fechaEntrada.value,
+            fecha_fin: fechaSalida.value
+          })
+        });
 
-      const json = await response.json();
+        const json = await response.json();
 
-      if (response.ok && json.status === 'ok') {
-        const modalIns = bootstrap.Modal.getInstance(modalCheckout);
-        modalIns.hide();
-        
-        // Simular éxito y cambio de UI como el verificarReservaExistente
-        mostrarUIReservaExistente();
-        alert('Reserva solicitada exitosamente. El anfitrión será notificado.');
-      } else {
-        // Error como double-booking
-        alert(json.message || 'Error al procesar la reserva.');
+        if (response.ok && json.status === 'ok') {
+          const modalIns = bootstrap.Modal.getInstance(modalCheckout);
+          if (modalIns) modalIns.hide();
+          
+          mostrarUIReservaExistente();
+          alert('Reserva solicitada exitosamente. El anfitrión será notificado.');
+        } else {
+          alert(json.message || 'Error al procesar la reserva.');
+          btnConfirmarReserva.innerHTML = originalText;
+          btnConfirmarReserva.disabled = false;
+        }
+
+      } catch (err) {
+        console.error(err);
+        alert('Error de red al procesar tu solicitud.');
         btnConfirmarReserva.innerHTML = originalText;
         btnConfirmarReserva.disabled = false;
       }
-
-    } catch (err) {
-      console.error(err);
-      alert('Error de red al procesar tu solicitud.');
-      btnConfirmarReserva.innerHTML = originalText;
-      btnConfirmarReserva.disabled = false;
-    }
-  });
+    });
+  }
 
   // ─── Init ───
   initTheme();

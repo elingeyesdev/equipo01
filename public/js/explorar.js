@@ -58,23 +58,25 @@
   function initTheme() {
     const saved = localStorage.getItem('estairbnb_theme');
     if (saved === 'dark') {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      themeIcon.classList.replace('fa-moon', 'fa-sun');
+      document.documentElement.classList.add('dark');
+      if (themeIcon) themeIcon.textContent = 'light_mode';
     }
   }
 
-  btnThemeToggle.addEventListener('click', () => {
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    if (isDark) {
-      document.documentElement.removeAttribute('data-theme');
-      themeIcon.classList.replace('fa-sun', 'fa-moon');
-      localStorage.setItem('estairbnb_theme', 'light');
-    } else {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      themeIcon.classList.replace('fa-moon', 'fa-sun');
-      localStorage.setItem('estairbnb_theme', 'dark');
-    }
-  });
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      if (isDark) {
+        document.documentElement.classList.remove('dark');
+        if (themeIcon) themeIcon.textContent = 'dark_mode';
+        localStorage.setItem('estairbnb_theme', 'light');
+      } else {
+        document.documentElement.classList.add('dark');
+        if (themeIcon) themeIcon.textContent = 'light_mode';
+        localStorage.setItem('estairbnb_theme', 'dark');
+      }
+    });
+  }
 
   // ─── Fetch & Render ───
   async function cargarGarajes() {

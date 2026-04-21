@@ -528,16 +528,29 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   // Dark Mode Toggle
-  const THEME_KEY = 'estairbnb_theme';
-  const savedTheme = localStorage.getItem(THEME_KEY) || 'light';
-  applyTheme(savedTheme);
+  const themeIcon = document.getElementById('themeIcon');
+  const savedTheme = localStorage.getItem('estairbnb_theme');
+  
+  if (savedTheme === 'dark') {
+    document.documentElement.classList.add('dark');
+    if (themeIcon) themeIcon.textContent = 'light_mode';
+  }
 
-  document.getElementById('btnThemeToggle').addEventListener('click', () => {
-    const current = document.documentElement.getAttribute('data-theme') || 'light';
-    const next = current === 'dark' ? 'light' : 'dark';
-    applyTheme(next);
-    localStorage.setItem(THEME_KEY, next);
-  });
+  const btnThemeToggle = document.getElementById('btnThemeToggle');
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      if (isDark) {
+        document.documentElement.classList.remove('dark');
+        if (themeIcon) themeIcon.textContent = 'dark_mode';
+        localStorage.setItem('estairbnb_theme', 'light');
+      } else {
+        document.documentElement.classList.add('dark');
+        if (themeIcon) themeIcon.textContent = 'light_mode';
+        localStorage.setItem('estairbnb_theme', 'dark');
+      }
+    });
+  }
 
   // Cargar privacidad
   cargarPrivacidad();

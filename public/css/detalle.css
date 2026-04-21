@@ -633,3 +633,160 @@ body {
 ::-webkit-scrollbar-thumb:hover {
   background: #a0a0a0;
 }
+
+/* ============================
+   Mapa 2D de Parqueo
+============================ */
+.mapa-parqueo-card {
+  border-radius: 14px !important;
+  box-shadow: var(--card-shadow);
+  transition: box-shadow var(--transition-smooth), background 0.35s;
+}
+
+.mapa-leyenda {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.leyenda-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+}
+
+.leyenda-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 4px;
+  display: inline-block;
+}
+
+.leyenda-dot.libre {
+  background: #22c55e;
+}
+
+.leyenda-dot.ocupado {
+  background: #ef4444;
+}
+
+.leyenda-dot.seleccionado {
+  background: #3b82f6;
+}
+
+.mapa-entrada {
+  text-align: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: var(--text-secondary);
+  padding: 6px 0;
+  border-bottom: 2px dashed var(--sidebar-border);
+}
+
+.mapa-entrada i {
+  margin-right: 4px;
+}
+
+.mapa-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  padding: 16px 0;
+}
+
+.espacio-slot {
+  position: relative;
+  aspect-ratio: 1.6 / 1;
+  border-radius: 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  border: 2px solid transparent;
+  transition: all 0.25s ease;
+  user-select: none;
+}
+
+.espacio-slot .slot-icon {
+  font-size: 1.3rem;
+  margin-bottom: 2px;
+}
+
+.espacio-slot .slot-label {
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 1px;
+}
+
+/* Libre */
+.espacio-slot.libre {
+  background: rgba(34, 197, 94, 0.12);
+  color: #16a34a;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.espacio-slot.libre:hover {
+  background: rgba(34, 197, 94, 0.22);
+  border-color: #22c55e;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(34, 197, 94, 0.25);
+}
+
+/* Ocupado */
+.espacio-slot.ocupado {
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.2);
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+/* Seleccionado */
+.espacio-slot.seleccionado {
+  background: rgba(59, 130, 246, 0.15);
+  color: #2563eb;
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.25);
+  transform: scale(1.04);
+}
+
+/* Dark-mode overrides */
+[data-theme="dark"] .espacio-slot.libre {
+  background: rgba(34, 197, 94, 0.08);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.2);
+}
+
+[data-theme="dark"] .espacio-slot.libre:hover {
+  background: rgba(34, 197, 94, 0.18);
+  border-color: #4ade80;
+}
+
+[data-theme="dark"] .espacio-slot.ocupado {
+  background: rgba(239, 68, 68, 0.08);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.15);
+}
+
+[data-theme="dark"] .espacio-slot.seleccionado {
+  background: rgba(59, 130, 246, 0.12);
+  color: #60a5fa;
+  border-color: #60a5fa;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+}
+
+/* Row separator between fila 1 and fila 2 */
+.mapa-grid .fila-separator {
+  grid-column: 1 / -1;
+  height: 0;
+  border-top: 1px dashed var(--sidebar-border);
+  margin: 4px 0;
+}

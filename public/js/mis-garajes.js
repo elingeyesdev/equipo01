@@ -25,7 +25,6 @@ const formGaraje        = document.getElementById('formGaraje');
 const inpDireccion      = document.getElementById('inpDireccion');
 const inpDescripcion    = document.getElementById('inpDescripcion');
 const inpPrecio         = document.getElementById('inpPrecio');
-const selTipo           = document.getElementById('selTipo');
 const inpFotos          = document.getElementById('inpFotos');
 const uploadZone        = document.getElementById('uploadZone');
 const photoPreviewGrid  = document.getElementById('photoPreviewGrid');
@@ -35,6 +34,23 @@ const loadingGarajes    = document.getElementById('loadingGarajes');
 const emptyState        = document.getElementById('emptyState');
 const statsBar          = document.getElementById('statsBar');
 const contadorGarajes   = document.getElementById('contadorGarajes');
+
+// Visual builder elements
+const btnMenos        = document.getElementById('btnMenos');
+const btnMas          = document.getElementById('btnMas');
+const cantidadNumero  = document.getElementById('cantidadNumero');
+const mapaBuilder     = document.getElementById('mapaBuilder');
+const tipoLeyenda     = document.getElementById('tipoLeyenda');
+
+let espaciosConfigurados = []; // Array de { numero_espacio, tipo_vehiculo, fila, columna }
+
+// Vehicle type cycle
+const TIPOS = ['auto', 'moto', 'camioneta'];
+const TIPO_CONFIG = {
+  auto:      { icon: 'fa-car',          emoji: '🚗', label: 'Auto',    color: '#3b82f6' },
+  moto:      { icon: 'fa-motorcycle',   emoji: '🏍️', label: 'Moto',    color: '#f59e0b' },
+  camioneta: { icon: 'fa-truck-pickup', emoji: '🚙', label: 'SUV',     color: '#8b5cf6' }
+};
 
 // ============================================================
 // Navbar — User info & avatar
@@ -61,24 +77,28 @@ function initNavbar() {
 // Dark Mode Toggle
 // ============================================================
 function initTheme() {
+  const themeIcon = document.getElementById('themeIcon');
   const saved = localStorage.getItem('estairbnb_theme');
   if (saved === 'dark') {
-    document.documentElement.setAttribute('data-theme', 'dark');
-    document.getElementById('themeIcon').className = 'fa-solid fa-sun';
+    document.documentElement.classList.add('dark');
+    if (themeIcon) themeIcon.textContent = 'light_mode';
   }
 
-  document.getElementById('btnThemeToggle').addEventListener('click', () => {
-    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
-    if (isDark) {
-      document.documentElement.removeAttribute('data-theme');
-      document.getElementById('themeIcon').className = 'fa-solid fa-moon';
-      localStorage.setItem('estairbnb_theme', 'light');
-    } else {
-      document.documentElement.setAttribute('data-theme', 'dark');
-      document.getElementById('themeIcon').className = 'fa-solid fa-sun';
-      localStorage.setItem('estairbnb_theme', 'dark');
-    }
-  });
+  const btnThemeToggle = document.getElementById('btnThemeToggle');
+  if (btnThemeToggle) {
+    btnThemeToggle.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      if (isDark) {
+        document.documentElement.classList.remove('dark');
+        if (themeIcon) themeIcon.textContent = 'dark_mode';
+        localStorage.setItem('estairbnb_theme', 'light');
+      } else {
+        document.documentElement.classList.add('dark');
+        if (themeIcon) themeIcon.textContent = 'light_mode';
+        localStorage.setItem('estairbnb_theme', 'dark');
+      }
+    });
+  }
 }
 
 // ============================================================
@@ -183,6 +203,82 @@ function renderPreviews() {
 }
 
 // ============================================================
+// Visual Espacio Builder — +/- & tap-to-cycle
+// ============================================================
+function initEspacioBuilder() {
+  btnMas.addEventListener('click', () => {
+    if (espaciosConfigurados.length >= 10) {
+      showToast('Máximo 10 espacios por garaje.', 'error');
+      return;
+    }
+    addEspacioVisual();
+  });
+
+  btnMenos.addEventListener('click', () => {
+    if (espaciosConfigurados.length <= 0) return;
+    espaciosConfigurados.pop();
+    renderMapaBuilder();
+  });
+}
+
+function addEspacioVisual() {
+  const idx = espaciosConfigurados.length;
+  const letras = 'ABCDEFGHIJ';
+  const fila = Math.floor(idx / 5) + 1;
+  const columna = (idx % 5) + 1;
+  const letra = letras[fila - 1] || 'X';
+
+  espaciosConfigurados.push({
+    numero_espacio: `${letra}${columna}`,
+    tipo_vehiculo: 'auto',
+    fila,
+    columna
+  });
+
+  renderMapaBuilder();
+}
+
+function cycleType(index) {
+  const esp = espaciosConfigurados[index];
+  const currentIdx = TIPOS.indexOf(esp.tipo_vehiculo);
+  esp.tipo_vehiculo = TIPOS[(currentIdx + 1) % TIPOS.length];
+  renderMapaBuilder();
+}
+
+function renderMapaBuilder() {
+  mapaBuilder.innerHTML = '';
+  cantidadNumero.textContent = espaciosConfigurados.length;
+
+  // Show/hide legend
+  tipoLeyenda.style.display = espaciosConfigurados.length > 0 ? 'block' : 'none';
+
+  // Update +/- button states
+  btnMenos.disabled = espaciosConfigurados.length <= 0;
+  btnMas.disabled = espaciosConfigurados.length >= 10;
+
+  espaciosConfigurados.forEach((esp, idx) => {
+    const conf = TIPO_CONFIG[esp.tipo_vehiculo];
+    const card = document.createElement('div');
+    card.className = 'builder-slot';
+    card.style.setProperty('--slot-color', conf.color);
+    card.title = `Toca para cambiar tipo (ahora: ${conf.label})`;
+    card.innerHTML = `
+      <div class="builder-slot-icon">
+        <i class="fa-solid ${conf.icon}"></i>
+      </div>
+      <div class="builder-slot-name">${esp.numero_espacio}</div>
+      <div class="builder-slot-type">${conf.label}</div>
+    `;
+    card.addEventListener('click', () => cycleType(idx));
+
+    // Entrance animation
+    card.style.animation = `fadeInScale 0.25s ease ${idx * 0.04}s both`;
+
+    mapaBuilder.appendChild(card);
+  });
+}
+
+// ============================================================
 // Publicar Garaje — POST /api/garajes
 // ============================================================
 formGaraje.addEventListener('submit', async (e) => {
@@ -191,7 +287,6 @@ formGaraje.addEventListener('submit', async (e) => {
   const direccion     = inpDireccion.value.trim();
   const descripcion   = inpDescripcion.value.trim();
   const precio_hora   = inpPrecio.value;
-  const tipo_vehiculo = selTipo.value;
 
   // Validaciones del lado del cliente
   if (!direccion || direccion.length < 5) {
@@ -204,9 +299,8 @@ formGaraje.addEventListener('submit', async (e) => {
     inpPrecio.focus();
     return;
   }
-  if (!tipo_vehiculo) {
-    showToast('Selecciona un tipo de vehículo.', 'error');
-    selTipo.focus();
+  if (espaciosConfigurados.length === 0) {
+    showToast('Debes agregar al menos un espacio de parqueo.', 'error');
     return;
   }
 
@@ -216,7 +310,7 @@ formGaraje.addEventListener('submit', async (e) => {
   formData.append('direccion', direccion);
   formData.append('descripcion', descripcion);
   formData.append('precio_hora', precio_hora);
-  formData.append('tipo_vehiculo', tipo_vehiculo);
+  formData.append('espacios', JSON.stringify(espaciosConfigurados));
 
   // Adjuntar archivos
   selectedFiles.forEach(file => {
@@ -237,11 +331,14 @@ formGaraje.addEventListener('submit', async (e) => {
 
     if (res.ok && data.status === 'ok') {
       showToast(data.message || '¡Espacio publicado exitosamente!');
+      closeModalFormulario();
 
       // Limpiar formulario
       formGaraje.reset();
       selectedFiles = [];
       photoPreviewGrid.innerHTML = '';
+      espaciosConfigurados = [];
+      renderMapaBuilder();
 
       // Recargar lista de garajes
       await cargarMisGarajes();
@@ -310,54 +407,74 @@ async function cargarMisGarajes() {
 }
 
 // ============================================================
-// Crear Tarjeta de Garaje (DOM)
+// Crear Tarjeta de Garaje (DOM) con diseño Tailwind
 // ============================================================
 function crearTarjetaGaraje(garaje) {
   const card = document.createElement('div');
-  card.className = 'garaje-card';
+  card.className = 'bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0px_24px_48px_rgba(0,37,66,0.06)] border border-outline-variant/10 flex flex-col group transition-transform duration-300 hover:-translate-y-1';
   card.id = `garaje-${garaje.id}`;
 
   const activo = garaje.estado_activo;
   const tipoIconos = {
-    auto: '<i class="fa-solid fa-car"></i>',
-    moto: '<i class="fa-solid fa-motorcycle"></i>',
-    camioneta: '<i class="fa-solid fa-truck-pickup"></i>',
+    auto: 'directions_car',
+    moto: 'two_wheeler',
+    camioneta: 'local_shipping',
   };
+  const iconText = tipoIconos[garaje.tipo_vehiculo] || 'directions_car';
 
   const fotoHTML = garaje.foto_principal
-    ? `<img src="${garaje.foto_principal}" class="garaje-card-img" alt="Foto del parqueo" loading="lazy">`
-    : `<div class="garaje-card-img-placeholder">
-         <i class="fa-solid fa-image"></i>
-         <span>Sin foto</span>
+    ? `<img src="${garaje.foto_principal}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Foto del parqueo" loading="lazy">`
+    : `<div class="w-full h-full flex flex-col items-center justify-center bg-surface-container-highest text-on-surface-variant opacity-70">
+         <span class="material-symbols-outlined text-4xl mb-2">image</span>
+         <span class="font-label text-xs uppercase tracking-widest">Sin foto</span>
        </div>`;
 
   card.innerHTML = `
-    <div class="garaje-card-img-wrapper">
+    <div class="relative aspect-video w-full overflow-hidden">
       ${fotoHTML}
-      <div class="garaje-card-badge ${activo ? 'active' : 'inactive'}">
-        <i class="fa-solid fa-circle"></i>
-        ${activo ? 'Activo' : 'Inactivo'}
+      <div class="absolute top-4 right-4 bg-surface-container-lowest/90 backdrop-blur-md px-3 py-1 rounded-full flex items-center gap-1.5 shadow-sm">
+        <div class="w-2 h-2 rounded-full ${activo ? 'bg-[#006a62]' : 'bg-outline-variant'}"></div>
+        <span class="font-label text-[10px] uppercase font-bold ${activo ? 'text-secondary' : 'text-on-surface-variant'} tracking-wider">${activo ? 'Activo' : 'Inactivo'}</span>
       </div>
     </div>
-    <div class="garaje-card-body">
-      <div class="garaje-card-direccion">${escapeHTML(garaje.direccion)}</div>
-      <div class="garaje-card-descripcion">${garaje.descripcion ? escapeHTML(garaje.descripcion) : '<em style="opacity:0.5;">Sin descripción</em>'}</div>
-      <div class="garaje-card-meta">
-        <div class="garaje-card-precio">
-          Bs. ${Number(garaje.precio_hora).toFixed(2)} <span>/hora</span>
+    <div class="p-6 flex flex-col flex-grow">
+      <div class="flex justify-between items-start mb-4 gap-2">
+        <div class="flex-1 min-w-0">
+          <h3 class="font-headline font-bold text-lg text-primary mb-1 truncate">${escapeHTML(garaje.direccion)}</h3>
+          <p class="text-on-surface-variant text-sm font-body truncate flex items-center gap-1">
+            <span class="material-symbols-outlined text-base">location_on</span>
+            ${escapeHTML(garaje.direccion.split(',')[0])}
+          </p>
         </div>
-        <div class="garaje-card-tipo">
-          ${tipoIconos[garaje.tipo_vehiculo] || ''} ${garaje.tipo_vehiculo}
+        <div class="text-right flex-shrink-0">
+          <span class="block font-headline font-bold text-lg text-primary">Bs. ${Number(garaje.precio_hora).toFixed(2)}</span>
+          <span class="text-[10px] text-on-surface-variant uppercase tracking-wider font-label">/ hora</span>
         </div>
       </div>
-    </div>
-    <div class="garaje-card-footer">
-      <button class="btn-toggle-estado ${activo ? 'desactivar' : 'activar'}"
-              onclick="toggleEstado(${garaje.id}, this)"
-              id="btnEstado-${garaje.id}">
-        <i class="fa-solid ${activo ? 'fa-eye-slash' : 'fa-eye'}"></i>
-        ${activo ? 'Desactivar' : 'Activar'}
-      </button>
+      
+      <div class="flex items-center gap-4 mb-6 text-sm text-on-surface-variant font-body bg-surface-container-low p-3 rounded-lg">
+        <div class="flex items-center gap-2">
+          <span class="material-symbols-outlined text-secondary">${iconText}</span>
+          <span class="capitalize font-medium">${garaje.tipo_vehiculo}</span>
+        </div>
+        ${garaje.descripcion ? `
+        <div class="w-px h-4 bg-outline-variant/30"></div>
+        <div class="flex items-center gap-2 flex-1 min-w-0">
+          <span class="truncate text-xs opacity-80">${escapeHTML(garaje.descripcion)}</span>
+        </div>
+        ` : ''}
+      </div>
+      
+      <div class="mt-auto pt-4 border-t border-outline-variant/10 flex flex-col gap-2">
+        <button class="w-full text-center text-primary font-label uppercase text-xs tracking-wider font-bold py-2.5 hover:bg-surface-container-low rounded-md transition-colors flex items-center justify-center gap-2" onclick="window.location.href='/detalle-garaje.html?id=${garaje.id}'">
+            <span class="material-symbols-outlined text-sm">visibility</span> Administrar Espacios
+        </button>
+        <button class="w-full text-center font-label uppercase text-xs tracking-wider font-bold py-2 hover:bg-surface-container-low rounded-md transition-colors flex items-center justify-center gap-2 ${activo ? 'text-error hover:bg-error-container/20' : 'text-secondary'}" 
+                onclick="toggleEstado(${garaje.id}, this)" id="btnEstado-${garaje.id}">
+            <span class="material-symbols-outlined text-sm">${activo ? 'visibility_off' : 'visibility'}</span> 
+            ${activo ? 'Desactivar Listado' : 'Activar Listado'}
+        </button>
+      </div>
     </div>
   `;
 
@@ -440,6 +557,7 @@ async function cargarReservasRecibidas() {
           <tr>
             <th>Conductor</th>
             <th>Garaje</th>
+            <th>Espacio</th>
             <th>Entrada</th>
             <th>Salida</th>
             <th>Total</th>
@@ -477,6 +595,7 @@ async function cargarReservasRecibidas() {
                   <div style="font-size:0.75rem;color:var(--text-secondary);">${r.conductor_telefono || ''}</div>
                 </td>
                 <td style="font-size:0.85rem;">${escapeHTML(r.garaje_direccion)}</td>
+                <td style="font-size:0.85rem;font-weight:600;">${escapeHTML(r.numero_espacio || '—')}</td>
                 <td style="font-size:0.82rem;">${fechaInicio}</td>
                 <td style="font-size:0.82rem;">${fechaFin}</td>
                 <td style="font-weight:700;font-size:0.85rem;">Bs. ${Number(r.precio_total).toFixed(2)}</td>
@@ -532,12 +651,33 @@ async function cambiarEstadoReserva(reservaId, nuevoEstado, btnElement) {
 }
 
 // ============================================================
-// Utilidad: Escape HTML
+// Utilitarios Adicionales
 // ============================================================
 function escapeHTML(str) {
   const div = document.createElement('div');
   div.textContent = str;
   return div.innerHTML;
+}
+
+// ============================================================
+// Modal Formulario Handlers
+// ============================================================
+function openModalFormulario() {
+  const modal = document.getElementById('modalFormularioWrapper');
+  if (modal) {
+    modal.classList.remove('hidden');
+    modal.classList.add('flex');
+    document.body.style.overflow = 'hidden';
+  }
+}
+
+function closeModalFormulario() {
+  const modal = document.getElementById('modalFormularioWrapper');
+  if (modal) {
+    modal.classList.remove('flex');
+    modal.classList.add('hidden');
+    document.body.style.overflow = '';
+  }
 }
 
 // ============================================================
@@ -547,6 +687,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initNavbar();
   initTheme();
   initFileUpload();
+  initEspacioBuilder();
+  renderMapaBuilder(); // render initial state (0 spaces)
   cargarMisGarajes();
   cargarReservasRecibidas();
 });
