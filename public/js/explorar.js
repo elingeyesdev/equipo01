@@ -27,25 +27,25 @@
   const LIMIT_POR_PAGINA = 6;
 
   // ─── DOM References ───
-  const catalogGrid      = document.getElementById('catalogGrid');
-  const loadingCatalog   = document.getElementById('loadingCatalog');
-  const emptyCatalog     = document.getElementById('emptyCatalog');
-  const resultsCount     = document.getElementById('resultsCount');
-  const totalResults     = document.getElementById('totalResults');
+  const catalogGrid = document.getElementById('catalogGrid');
+  const loadingCatalog = document.getElementById('loadingCatalog');
+  const emptyCatalog = document.getElementById('emptyCatalog');
+  const resultsCount = document.getElementById('resultsCount');
+  const totalResults = document.getElementById('totalResults');
   const paginationContainer = document.getElementById('paginationContainer');
-  const paginationList      = document.getElementById('paginationList');
+  const paginationList = document.getElementById('paginationList');
 
-  const filtroBusqueda   = document.getElementById('filtroBusqueda');
-  const filtroEntrada    = document.getElementById('filtroEntrada');
-  const filtroSalida     = document.getElementById('filtroSalida');
-  const filtroPrecioMin  = document.getElementById('filtroPrecioMin');
-  const filtroPrecioMax  = document.getElementById('filtroPrecioMax');
-  const filtroTipo       = document.getElementById('filtroTipoVehiculo');
-  const btnBuscar        = document.getElementById('btnBuscar');
-  const btnLimpiar       = document.getElementById('btnLimpiar');
+  const filtroBusqueda = document.getElementById('filtroBusqueda');
+  const filtroEntrada = document.getElementById('filtroEntrada');
+  const filtroSalida = document.getElementById('filtroSalida');
+  const filtroPrecioMin = document.getElementById('filtroPrecioMin');
+  const filtroPrecioMax = document.getElementById('filtroPrecioMax');
+  const filtroTipo = document.getElementById('filtroTipoVehiculo');
+  const btnBuscar = document.getElementById('btnBuscar');
+  const btnLimpiar = document.getElementById('btnLimpiar');
 
-  const btnThemeToggle   = document.getElementById('btnThemeToggle');
-  const themeIcon        = document.getElementById('themeIcon');
+  const btnThemeToggle = document.getElementById('btnThemeToggle');
+  const themeIcon = document.getElementById('themeIcon');
 
   // ─── Vehicle type labels ───
   const TIPO_LABELS = {
@@ -90,7 +90,7 @@
     const params = new URLSearchParams();
     const busqueda = filtroBusqueda.value.trim();
     const fEntrada = filtroEntrada.value;
-    const fSalida  = filtroSalida.value;
+    const fSalida = filtroSalida.value;
     const precioMin = filtroPrecioMin.value.trim();
     const precioMax = filtroPrecioMax.value.trim();
     const tipoVehiculo = filtroTipo.value;
@@ -102,10 +102,10 @@
         loadingCatalog.style.display = 'none';
         return;
       }
-      
+
       const inDate = new Date(fEntrada);
       const outDate = new Date(fSalida);
-      
+
       if (outDate <= inDate) {
         alert('La fecha de salida debe ser posterior a la fecha de llegada.');
         loadingCatalog.style.display = 'none';
@@ -167,54 +167,88 @@
 
   // ─── Create Garage Card ───
   function crearTarjeta(garaje, index) {
+    console.log("renderizando tarjeta", garaje.id);
+
     const card = document.createElement('a');
     card.href = `detalle-garaje.html?id=${garaje.id}`;
     card.className = 'explore-card';
     card.style.animationDelay = `${0.05 * (index % 9)}s`;
 
-    // Image section
     let imagenHTML;
     if (garaje.foto_portada) {
-      imagenHTML = `<img src="${garaje.foto_portada}" alt="Foto de ${garaje.direccion}" class="explore-card-img" loading="lazy">`;
+      imagenHTML = `<img src="${garaje.foto_portada}" 
+      style="width:100%; height:200px; object-fit:cover; display:block;" 
+      alt="Foto de ${garaje.direccion}">`;
     } else {
       imagenHTML = `
-        <div class="explore-card-img-placeholder">
-          <i class="fa-solid fa-image"></i>
-          <span>Sin foto</span>
-        </div>`;
+      <div style="height:200px; display:flex; align-items:center; justify-content:center; background:#eee;">
+        <span>Sin foto</span>
+      </div>`;
     }
 
-    // Vehicle type label
     const tipoLabel = TIPO_LABELS[garaje.tipo_vehiculo] || garaje.tipo_vehiculo;
-
-    // Price formatting
     const precio = parseFloat(garaje.precio_hora).toFixed(2);
-
-    // Description preview
-    const descripcion = garaje.descripcion
-      ? garaje.descripcion
-      : 'Espacio de parqueo disponible.';
+    const descripcion = garaje.descripcion || 'Espacio de parqueo disponible.';
 
     card.innerHTML = `
-      <div class="explore-card-img-wrapper">
-        ${imagenHTML}
-        <span class="explore-card-tag">
-          <i class="fa-solid fa-car"></i> ${tipoLabel}
-        </span>
-      </div>
-      <div class="explore-card-body">
-        <div class="explore-card-direccion">${garaje.direccion}</div>
-        <div class="explore-card-descripcion">${descripcion}</div>
-        <div class="explore-card-footer">
-          <span class="explore-card-precio">
-            Bs. ${precio} <small>/ hora</small>
-          </span>
-          <span class="explore-card-action">
-            Ver detalles <i class="fa-solid fa-arrow-right"></i>
-          </span>
-        </div>
-      </div>
-    `;
+  <div style="
+    position:relative;
+    width:100%;
+    height:200px;
+    overflow:hidden;
+    border-radius:10px;
+  ">
+
+    ${garaje.foto_portada
+        ? `<img src="${garaje.foto_portada}" 
+              style="width:100%; height:100%; object-fit:cover;">`
+        : `<div style="
+              width:100%;
+              height:100%;
+              display:flex;
+              align-items:center;
+              justify-content:center;
+              background:#ddd;">
+              Sin foto
+           </div>`
+      }
+
+    <!-- ❤️ FAVORITO -->
+<button 
+  class="btn-favorito"
+  data-id="${garaje.id}"
+  style="
+    position:absolute;
+    top:10px;
+    right:10px;
+    width:40px;
+    height:40px;
+    border:none;
+    border-radius:50%;
+    background:white;
+    color:#ff4757;
+    font-size:18px;
+    cursor:pointer;
+    z-index:9999;
+  ">
+  <i class="fa-regular fa-heart"></i>
+</button>
+
+  </div>
+
+  <div class="explore-card-body">
+    <div class="explore-card-direccion">${garaje.direccion}</div>
+    <div class="explore-card-descripcion">${descripcion}</div>
+    <div class="explore-card-footer">
+      <span class="explore-card-precio">
+        Bs. ${precio} <small>/ hora</small>
+      </span>
+      <span class="explore-card-action">
+        Ver detalles →
+      </span>
+    </div>
+  </div>
+`;
 
     return card;
   }
@@ -263,7 +297,7 @@
   }
 
   // Hacer que cambiarPagina sea global para que el onClick la encuentre
-  window.cambiarPagina = function(nuevaPagina) {
+  window.cambiarPagina = function (nuevaPagina) {
     paginaActual = nuevaPagina;
     window.scrollTo({ top: 0, behavior: 'smooth' });
     cargarGarajes();
