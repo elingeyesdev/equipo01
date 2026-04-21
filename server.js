@@ -122,7 +122,7 @@ app.post('/api/auth/register', async (req, res) => {
     // Verificar si el email ya existe
     const existing = await db.request()
       .input('email', sql.VarChar(150), email.toLowerCase().trim())
-      .query('SELECT id FROM Usuarios WHERE email = @email');
+      .query('SELECT id FROM Credenciales WHERE email = @email');
 
     if (existing.recordset.length > 0) {
       return res.status(409).json({ status: 'error', message: 'Ya existe una cuenta con ese correo.' });
@@ -131,21 +131,38 @@ app.post('/api/auth/register', async (req, res) => {
     // Hashear contraseña
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Insertar usuario con el rol elegido
+    // Insertar Credenciales
     const result = await db.request()
-      .input('nombre', sql.NVarChar(100), nombre.trim())
-      .input('apellidos', sql.NVarChar(100), apellidos.trim())
       .input('email', sql.NVarChar(150), email.toLowerCase().trim())
       .input('password', sql.NVarChar(255), hashedPassword)
-      .input('telefono', sql.NVarChar(20), telefono ? telefono.trim() : null)
-      .input('rol_id', sql.Int, rol_id)
+      .input('rol', sql.VarChar(50), rol) // 'anfitrion' o 'conductor'
       .query(`
-        INSERT INTO Usuarios (nombre, apellidos, email, password, telefono, rol_id)
+        INSERT INTO Credenciales (email, password_hash, rol)
         OUTPUT INSERTED.id
-        VALUES (@nombre, @apellidos, @email, @password, @telefono, @rol_id)
+        VALUES (@email, @password, @rol)
       `);
 
     const newId = result.recordset[0].id;
+
+    // Insertar Perfil (Subtabla)
+    const reqProfile = db.request()
+        .input('id', sql.Int, newId)
+        .input('nombre', sql.VarChar(255), nombre.trim())
+        .input('apellidos', sql.VarChar(255), apellidos.trim())
+        .input('telefono', sql.VarChar(20), telefono ? telefono.trim() : null);
+
+    if (rol === 'conductor') {
+      await reqProfile.query(`
+        INSERT INTO UsuarioConductor (id, nombre, apellidos, telefono)
+        VALUES (@id, @nombre, @apellidos, @telefono)
+      `);
+    } else {
+      await reqProfile.query(`
+        INSERT INTO UsuarioAnfitrion (id, nombre, apellidos, telefono)
+        VALUES (@id, @nombre, @apellidos, @telefono)
+      `);
+    }
+
     console.log(`✅ Usuario registrado con ID: ${newId} | Rol: ${rol_nombre}`);
 
     return res.status(201).json({
@@ -185,12 +202,14 @@ app.post('/api/auth/login', async (req, res) => {
     const result = await db.request()
       .input('email', sql.NVarChar(150), email.toLowerCase().trim())
       .query(`
-        SELECT u.id, u.nombre, u.apellidos, u.email, u.password,
-               u.telefono, u.foto_url, u.rol_id,
-               ISNULL(r.nombre, 'conductor') AS rol_nombre
-        FROM Usuarios u
-        LEFT JOIN Roles r ON u.rol_id = r.id
-        WHERE u.email = @email
+        SELECT c.id, c.email, c.password_hash AS password, c.rol AS rol_nombre,
+               ISNULL(a.nombre, u.nombre) AS nombre,
+               ISNULL(a.apellidos, u.apellidos) AS apellidos,
+               ISNULL(a.telefono, u.telefono) AS telefono
+        FROM Credenciales c
+        LEFT JOIN UsuarioAnfitrion a ON c.id = a.id AND c.rol = 'anfitrion'
+        LEFT JOIN UsuarioConductor u ON c.id = u.id AND c.rol = 'conductor'
+        WHERE c.email = @email
       `);
 
     if (result.recordset.length === 0) {
@@ -206,17 +225,20 @@ app.post('/api/auth/login', async (req, res) => {
 
     console.log(`✅ Login exitoso: ${user.email} (ID: ${user.id}) | Rol: ${user.rol_nombre}`);
 
+    // Shim para que UI funcione
+    const mapped_rol_id = user.rol_nombre === 'anfitrion' ? 1 : 2;
+
     return res.json({
       status: 'ok',
       message: '¡Bienvenido!',
       data: {
         id: user.id,
-        nombre: user.nombre,
-        apellidos: user.apellidos,
+        nombre: user.nombre || '',
+        apellidos: user.apellidos || '',
         email: user.email,
-        telefono: user.telefono,
-        foto_url: user.foto_url,
-        rol_id: user.rol_id,
+        telefono: user.telefono || '',
+        foto_url: null, // Ya no existe directamente en la DB actual
+        rol_id: mapped_rol_id,
         rol_nombre: user.rol_nombre
       }
     });
@@ -245,19 +267,26 @@ app.get('/api/perfil/general', async (req, res) => {
     const result = await db.request()
       .input('usuario_id', sql.Int, usuario_id)
       .query(`
-        SELECT u.id, u.nombre, u.apellidos, u.telefono, u.email, u.foto_url,
-               u.rol_id, ISNULL(r.nombre, 'conductor') AS rol_nombre
-        FROM Usuarios u
-        LEFT JOIN Roles r ON u.rol_id = r.id
-        WHERE u.id = @usuario_id
+        SELECT c.id, c.email, c.rol AS rol_nombre,
+               ISNULL(a.nombre, u.nombre) AS nombre,
+               ISNULL(a.apellidos, u.apellidos) AS apellidos,
+               ISNULL(a.telefono, u.telefono) AS telefono
+        FROM Credenciales c
+        LEFT JOIN UsuarioAnfitrion a ON c.id = a.id AND c.rol = 'anfitrion'
+        LEFT JOIN UsuarioConductor u ON c.id = u.id AND c.rol = 'conductor'
+        WHERE c.id = @usuario_id
       `);
 
     if (result.recordset.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
     }
 
-    console.log('✅ Perfil cargado:', result.recordset[0]);
-    return res.json({ status: 'ok', data: result.recordset[0] });
+    const row = result.recordset[0];
+    row.rol_id = row.rol_nombre === 'anfitrion' ? 1 : 2;
+    row.foto_url = null;
+
+    console.log('✅ Perfil cargado:', row);
+    return res.json({ status: 'ok', data: row });
 
   } catch (err) {
     console.error('❌ Error al cargar perfil:', err.message);
@@ -283,13 +312,23 @@ app.put('/api/perfil/general', async (req, res) => {
   try {
     const db = await getPool();
 
+    // Determinar en qué tabla de perfil actualizar
+    const cred = await db.request()
+      .input('id', sql.Int, parseInt(usuario_id, 10))
+      .query('SELECT rol FROM Credenciales WHERE id = @id');
+
+    if (cred.recordset.length === 0)
+      return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
+
+    const tabla = cred.recordset[0].rol === 'anfitrion' ? 'UsuarioAnfitrion' : 'UsuarioConductor';
+
     const result = await db.request()
       .input('nombre', sql.NVarChar(100), String(nombre).trim())
       .input('apellidos', sql.NVarChar(100), String(apellidos).trim())
       .input('telefono', sql.NVarChar(20), telefono ? String(telefono).trim() : null)
       .input('usuario_id', sql.Int, parseInt(usuario_id, 10))
       .query(`
-        UPDATE Usuarios
+        UPDATE ${tabla}
         SET nombre = @nombre, apellidos = @apellidos, telefono = @telefono
         WHERE id = @usuario_id
       `);
@@ -386,16 +425,16 @@ app.put('/api/perfil/seguridad/password', async (req, res) => {
   try {
     const db = await getPool();
 
-    // Obtener hash actual del usuario
+    // Obtener hash actual del usuario desde Credenciales
     const result = await db.request()
       .input('id', sql.Int, parseInt(usuario_id, 10))
-      .query('SELECT password FROM Usuarios WHERE id = @id');
+      .query('SELECT password_hash FROM Credenciales WHERE id = @id');
 
     if (result.recordset.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
     }
 
-    const hashActual = result.recordset[0].password;
+    const hashActual = result.recordset[0].password_hash;
 
     // Comparar contraseña actual con el hash
     const coincide = await bcrypt.compare(passwordActual, hashActual);
@@ -407,11 +446,11 @@ app.put('/api/perfil/seguridad/password', async (req, res) => {
     // Hashear la nueva contraseña
     const nuevoHash = await bcrypt.hash(passwordNueva, 10);
 
-    // Actualizar en la BD
+    // Actualizar en Credenciales
     await db.request()
       .input('password', sql.NVarChar(255), nuevoHash)
       .input('id', sql.Int, parseInt(usuario_id, 10))
-      .query('UPDATE Usuarios SET password = @password WHERE id = @id');
+      .query('UPDATE Credenciales SET password_hash = @password WHERE id = @id');
 
     console.log('✅ Contraseña actualizada para usuario:', usuario_id);
 
@@ -525,7 +564,13 @@ app.post('/api/garajes', (req, res) => {
       return res.status(400).json({ status: 'error', message: msg });
     }
 
-    const { usuario_id, direccion, descripcion, precio_hora, tipo_vehiculo } = req.body;
+    const { usuario_id, direccion, descripcion, precio_hora } = req.body;
+    let espacios = [];
+    try {
+      espacios = JSON.parse(req.body.espacios || '[]');
+    } catch(_) {
+      espacios = [];
+    }
 
     // Validaciones
     if (!usuario_id)
@@ -534,44 +579,63 @@ app.post('/api/garajes', (req, res) => {
       return res.status(400).json({ status: 'error', message: 'La dirección es obligatoria (mín. 5 caracteres).' });
     if (!precio_hora || isNaN(precio_hora) || Number(precio_hora) <= 0)
       return res.status(400).json({ status: 'error', message: 'El precio por hora debe ser un número positivo.' });
-    if (!tipo_vehiculo || !['auto', 'moto', 'camioneta'].includes(tipo_vehiculo))
-      return res.status(400).json({ status: 'error', message: 'Tipo de vehículo inválido (auto, moto o camioneta).' });
+    if (!espacios || espacios.length === 0)
+      return res.status(400).json({ status: 'error', message: 'Debes configurar al menos 1 espacio de parqueo.' });
+    if (espacios.length > 10)
+      return res.status(400).json({ status: 'error', message: 'Máximo 10 espacios por garaje.' });
 
-    console.log(`\n🏠 [POST /api/garajes] Usuario: ${usuario_id} | Dir: ${direccion}`);
+    // Determinar tipo_vehiculo principal (el más frecuente entre los espacios)
+    const tipos = espacios.map(e => e.tipo_vehiculo).filter(Boolean);
+    const tipoPrincipal = tipos.length > 0 ? tipos[0] : 'auto';
+
+    console.log(`\n🏠 [POST /api/garajes] Usuario: ${usuario_id} | Dir: ${direccion} | Espacios: ${espacios.length}`);
 
     try {
       const db = await getPool();
 
-      // ── Verificar que el usuario sea Anfitrión (rol_id = 1) ──
+      // ── Verificar que el usuario sea Anfitrión (rol = anfitrion) ──
       const rolCheck = await db.request()
         .input('uid', sql.Int, parseInt(usuario_id, 10))
-        .query('SELECT rol_id FROM Usuarios WHERE id = @uid');
+        .query('SELECT rol FROM Credenciales WHERE id = @uid');
 
       if (rolCheck.recordset.length === 0) {
         if (req.files) req.files.forEach(f => { try { fs.unlinkSync(f.path); } catch (_) { } });
         return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
       }
 
-      if (rolCheck.recordset[0].rol_id !== 1) {
+      if (rolCheck.recordset[0].rol !== 'anfitrion') {
         if (req.files) req.files.forEach(f => { try { fs.unlinkSync(f.path); } catch (_) { } });
         return res.status(403).json({ status: 'error', message: 'Solo los anfitriones pueden publicar espacios de parqueo.' });
       }
 
-      // ── Paso 1: Insertar el garaje y obtener su ID ──
+      // ── Paso 1: Insertar el garaje ──
       const insertResult = await db.request()
-        .input('usuario_id', sql.Int, parseInt(usuario_id, 10))
+        .input('anfitrion_id', sql.Int, parseInt(usuario_id, 10))
         .input('direccion', sql.NVarChar(255), String(direccion).trim())
         .input('descripcion', sql.NVarChar(500), descripcion ? String(descripcion).trim() : null)
         .input('precio_hora', sql.Decimal(10, 2), parseFloat(precio_hora))
-        .input('tipo_vehiculo', sql.VarChar(20), tipo_vehiculo)
+        .input('tipo_vehiculo', sql.VarChar(20), tipoPrincipal)
         .query(`
-          INSERT INTO Garajes (usuario_id, direccion, descripcion, precio_hora, tipo_vehiculo)
-          VALUES (@usuario_id, @direccion, @descripcion, @precio_hora, @tipo_vehiculo);
+          INSERT INTO Garajes (anfitrion_id, direccion, descripcion, precio_hora, tipo_vehiculo)
+          VALUES (@anfitrion_id, @direccion, @descripcion, @precio_hora, @tipo_vehiculo);
           SELECT SCOPE_IDENTITY() AS nuevoId;
         `);
 
       const garajeId = insertResult.recordset[0].nuevoId;
       console.log(`   ✅ Garaje creado con ID: ${garajeId}`);
+
+      // ── Paso 1B: Insertar Espacios definidos por el anfitrión ──
+      for (const esp of espacios) {
+        const tipoValido = ['auto', 'moto', 'camioneta'].includes(esp.tipo_vehiculo) ? esp.tipo_vehiculo : 'auto';
+        await db.request()
+          .input('garaje_id', sql.Int, garajeId)
+          .input('num', sql.VarChar(10), String(esp.numero_espacio || '').substring(0, 10))
+          .input('fila', sql.Int, parseInt(esp.fila, 10) || 1)
+          .input('col', sql.Int, parseInt(esp.columna, 10) || 1)
+          .input('tipo', sql.VarChar(20), tipoValido)
+          .query("INSERT INTO Espacios (garaje_id, numero_espacio, estado, fila, columna, tipo_vehiculo) VALUES (@garaje_id, @num, 'libre', @fila, @col, @tipo)");
+      }
+      console.log(`   🅿️ ${espacios.length} Espacio(s) insertados.`);
 
       // ── Paso 2: Guardar fotos en FotosGaraje ──
       const fotosGuardadas = [];
@@ -595,7 +659,7 @@ app.post('/api/garajes', (req, res) => {
           direccion: String(direccion).trim(),
           descripcion: descripcion ? String(descripcion).trim() : null,
           precio_hora: parseFloat(precio_hora),
-          tipo_vehiculo,
+          tipo_vehiculo: tipoPrincipal,
           estado_activo: true,
           fotos: fotosGuardadas
         }
@@ -646,7 +710,7 @@ app.get('/api/garajes/mis-espacios', async (req, res) => {
           WHERE garaje_id = g.id
           ORDER BY id ASC
         ) fp
-        WHERE g.usuario_id = @usuario_id
+        WHERE g.anfitrion_id = @usuario_id
         ORDER BY g.fecha_creacion DESC
       `);
 
@@ -679,7 +743,7 @@ app.put('/api/garajes/:id/estado', async (req, res) => {
     const check = await db.request()
       .input('id', sql.Int, garaje_id)
       .input('usuario_id', sql.Int, parseInt(usuario_id, 10))
-      .query('SELECT id, estado_activo FROM Garajes WHERE id = @id AND usuario_id = @usuario_id');
+      .query('SELECT id, estado_activo FROM Garajes WHERE id = @id AND anfitrion_id = @usuario_id');
 
     if (check.recordset.length === 0)
       return res.status(404).json({ status: 'error', message: 'Garaje no encontrado o no te pertenece.' });
@@ -735,11 +799,12 @@ app.get('/api/explorar', async (req, res) => {
     if (fecha_entrada && fecha_salida) {
       request.input('fecha_entrada', sql.DateTime, new Date(fecha_entrada));
       request.input('fecha_salida', sql.DateTime, new Date(fecha_salida));
-      
+
       conditions.push(`
         NOT EXISTS (
-          SELECT 1 FROM Reservas r 
-          WHERE r.garaje_id = g.id 
+          SELECT 1 FROM Espacios e2
+          JOIN Reservas r ON r.espacio_id = e2.id
+          WHERE e2.garaje_id = g.id 
             AND r.estado IN ('pendiente', 'confirmada')
             AND r.fecha_inicio < @fecha_salida 
             AND r.fecha_fin > @fecha_entrada
@@ -801,9 +866,9 @@ app.get('/api/explorar', async (req, res) => {
     garajes.forEach(g => delete g.total_registros);
 
     console.log(`   ✅ Explorar: página ${currentPage}/${totalPaginas} (${garajes.length} registros devueltos de ${totalRegistros} en total).`);
-    
-    return res.json({ 
-      status: 'ok', 
+
+    return res.json({
+      status: 'ok',
       datos: garajes,
       paginacion: {
         totalRegistros,
@@ -877,43 +942,81 @@ app.get('/api/explorar/:id', async (req, res) => {
 });
 
 // ============================================================
-// RESERVAS — Crear Reserva (Doble Booking Validation)
-// POST /api/reservas
-// Body: { garaje_id, usuario_id, fecha_inicio, fecha_fin }
+// GARAJES — Listar Espacios de un Garaje
+// GET /api/garajes/:id/espacios
 // ============================================================
-app.post('/api/reservas', async (req, res) => {
-  console.log('\n📅 [POST /api/reservas]');
-  const { garaje_id, usuario_id, fecha_inicio, fecha_fin } = req.body;
+app.get('/api/garajes/:id/espacios', async (req, res) => {
+  const garaje_id = parseInt(req.params.id, 10);
+  console.log(`\n🅿️ [GET /api/garajes/${garaje_id}/espacios]`);
 
-  if (!garaje_id || !usuario_id || !fecha_inicio || !fecha_fin) {
-    return res.status(400).json({ status: 'error', message: 'Faltan datos requeridos (garaje_id, usuario_id, fecha_inicio, fecha_fin).' });
+  if (!garaje_id) {
+    return res.status(400).json({ status: 'error', message: 'ID de garaje inválido.' });
   }
 
   try {
     const db = await getPool();
 
-    // 1. Validar si el garaje existe y obtener el precio_hora
+    const result = await db.request()
+      .input('garaje_id', sql.Int, garaje_id)
+      .query(`
+        SELECT e.id, e.numero_espacio, e.estado, e.fila, e.columna, e.tipo_vehiculo
+        FROM Espacios e
+        WHERE e.garaje_id = @garaje_id
+        ORDER BY e.fila ASC, e.columna ASC
+      `);
+
+    console.log(`   ✅ ${result.recordset.length} espacio(s) encontrados para garaje ${garaje_id}.`);
+    return res.json({ status: 'ok', data: result.recordset });
+
+  } catch (err) {
+    console.error('❌ Error al listar espacios:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al cargar los espacios.' });
+  }
+});
+
+// ============================================================
+// RESERVAS — Crear Reserva (Doble Booking Validation)
+// POST /api/reservas
+// Body: { espacio_id, conductor_id, fecha_inicio, fecha_fin }
+// ============================================================
+app.post('/api/reservas', async (req, res) => {
+  console.log('\n📅 [POST /api/reservas]');
+  const { espacio_id, conductor_id, fecha_inicio, fecha_fin } = req.body;
+
+  if (!espacio_id || !conductor_id || !fecha_inicio || !fecha_fin) {
+    return res.status(400).json({ status: 'error', message: 'Faltan datos requeridos (espacio_id, conductor_id, fecha_inicio, fecha_fin).' });
+  }
+
+  try {
+    const db = await getPool();
+
+    // 1. Validar si el espacio existe y recuperar su precio_hora (a través del Garaje padre)
     const garajeResult = await db.request()
-      .input('garaje_id', sql.Int, parseInt(garaje_id, 10))
-      .query('SELECT precio_hora FROM Garajes WHERE id = @garaje_id');
+      .input('espacio_id', sql.Int, parseInt(espacio_id, 10))
+      .query(`
+        SELECT g.precio_hora 
+        FROM Espacios e 
+        INNER JOIN Garajes g ON e.garaje_id = g.id 
+        WHERE e.id = @espacio_id
+      `);
 
     if (garajeResult.recordset.length === 0) {
-      return res.status(404).json({ status: 'error', message: 'Garaje no encontrado.' });
+      return res.status(404).json({ status: 'error', message: 'Espacio no encontrado.' });
     }
     const precio_hora = garajeResult.recordset[0].precio_hora;
 
     // 2. Validación de Double-Booking (Con Buffer de 30 minutos)
-    // Buscamos si existe alguna reserva para el mismo garaje que se solape en fechas
+    // Buscamos si existe alguna reserva para el mismo **espacio** que se solape en fechas
     // Solapamiento: Se agrega DATEADD para forzar 30 mins de limpieza o maniobra.
     // nueva_inicio < (reserva_fin + 30m) AND nueva_fin > (reserva_inicio - 30m)
     const solapamientoResult = await db.request()
-      .input('garaje_id', sql.Int, parseInt(garaje_id, 10))
+      .input('espacio_id', sql.Int, parseInt(espacio_id, 10))
       .input('nueva_inicio', sql.DateTime, new Date(fecha_inicio))
       .input('nueva_fin', sql.DateTime, new Date(fecha_fin))
       .query(`
         SELECT id 
         FROM Reservas 
-        WHERE garaje_id = @garaje_id 
+        WHERE espacio_id = @espacio_id 
           AND estado IN ('pendiente', 'confirmada')
           AND (@nueva_inicio < DATEADD(MINUTE, 30, fecha_fin) 
                AND @nueva_fin > DATEADD(MINUTE, -30, fecha_inicio))
@@ -939,16 +1042,16 @@ app.post('/api/reservas', async (req, res) => {
 
     // 4. Insertar la nueva Reserva
     const reservaResult = await db.request()
-      .input('garaje_id', sql.Int, parseInt(garaje_id, 10))
-      .input('usuario_id', sql.Int, parseInt(usuario_id, 10))
+      .input('espacio_id', sql.Int, parseInt(espacio_id, 10))
+      .input('conductor_id', sql.Int, parseInt(conductor_id, 10))
       .input('fecha_inicio', sql.DateTime, new Date(fecha_inicio))
       .input('fecha_fin', sql.DateTime, new Date(fecha_fin))
       .input('precio_total', sql.Decimal(10, 2), precio_total)
       .input('tarifa_servicio', sql.Decimal(10, 2), tarifa_servicio)
       .query(`
-        INSERT INTO Reservas (garaje_id, usuario_id, fecha_inicio, fecha_fin, precio_total, tarifa_servicio, estado)
+        INSERT INTO Reservas (espacio_id, conductor_id, fecha_inicio, fecha_fin, precio_total, tarifa_servicio, estado)
         OUTPUT INSERTED.id
-        VALUES (@garaje_id, @usuario_id, @fecha_inicio, @fecha_fin, @precio_total, @tarifa_servicio, 'pendiente')
+        VALUES (@espacio_id, @conductor_id, @fecha_inicio, @fecha_fin, @precio_total, @tarifa_servicio, 'pendiente')
       `);
 
     const nuevaReservaId = reservaResult.recordset[0].id;
@@ -989,27 +1092,31 @@ app.get('/api/reservas/mis-reservas', async (req, res) => {
     let query = '';
 
     if (parseInt(rol_id, 10) === 2) {
-      // Como CONDUCTOR: ver las reservas que yo he hecho en garajes
+      // Como CONDUCTOR: ver las reservas que yo he hecho
       query = `
         SELECT 
           r.id, r.fecha_inicio, r.fecha_fin, r.estado, r.precio_total,
-          g.direccion as garaje_direccion, g.tipo_vehiculo
+          g.direccion as garaje_direccion, g.tipo_vehiculo,
+          e.numero_espacio
         FROM Reservas r
-        JOIN Garajes g ON r.garaje_id = g.id
-        WHERE r.usuario_id = @usuario_id
+        JOIN Espacios e ON r.espacio_id = e.id
+        JOIN Garajes g ON e.garaje_id = g.id
+        WHERE r.conductor_id = @usuario_id
         ORDER BY r.fecha_inicio DESC
       `;
     } else if (parseInt(rol_id, 10) === 1) {
-      // Como ANFITRIÓN: ver las reservas que recayeron en mis garajes, mostrando quién reserva.
+      // Como ANFITRIÓN: ver las reservas que recayeron en mis garajes
       query = `
         SELECT 
           r.id, r.fecha_inicio, r.fecha_fin, r.estado, r.precio_total,
           g.direccion as garaje_direccion,
-          u.nombre + ' ' + u.apellidos as conductor_nombre, u.telefono as conductor_telefono
+          e.numero_espacio,
+          uc.nombre + ' ' + uc.apellidos as conductor_nombre, uc.telefono as conductor_telefono
         FROM Reservas r
-        JOIN Garajes g ON r.garaje_id = g.id
-        JOIN Usuarios u ON r.usuario_id = u.id
-        WHERE g.usuario_id = @usuario_id
+        JOIN Espacios e ON r.espacio_id = e.id
+        JOIN Garajes g ON e.garaje_id = g.id
+        LEFT JOIN UsuarioConductor uc ON r.conductor_id = uc.id
+        WHERE g.anfitrion_id = @usuario_id
         ORDER BY r.fecha_inicio DESC
       `;
     } else {
@@ -1089,11 +1196,12 @@ app.get('/api/reservas/verificar-existente', async (req, res) => {
       .input('usuario_id', sql.Int, parseInt(usuario_id, 10))
       .input('garaje_id', sql.Int, parseInt(garaje_id, 10))
       .query(`
-        SELECT id 
-        FROM Reservas 
-        WHERE usuario_id = @usuario_id 
-          AND garaje_id = @garaje_id 
-          AND estado IN ('pendiente', 'confirmada')
+        SELECT r.id 
+        FROM Reservas r
+        JOIN Espacios e ON r.espacio_id = e.id
+        WHERE r.conductor_id = @usuario_id 
+          AND e.garaje_id = @garaje_id 
+          AND r.estado IN ('pendiente', 'confirmada')
       `);
 
     return res.json({ status: 'ok', existe: result.recordset.length > 0 });
@@ -1118,8 +1226,9 @@ app.get('/api/reservas/pendientes-count', async (req, res) => {
       .query(`
         SELECT COUNT(r.id) AS cuenta
         FROM Reservas r
-        JOIN Garajes g ON r.garaje_id = g.id
-        WHERE g.usuario_id = @usuario_id AND r.estado = 'pendiente'
+        JOIN Espacios e ON r.espacio_id = e.id
+        JOIN Garajes g ON e.garaje_id = g.id
+        WHERE g.anfitrion_id = @usuario_id AND r.estado = 'pendiente'
       `);
 
     return res.json({ status: 'ok', count: result.recordset[0].cuenta || 0 });
@@ -1149,9 +1258,6 @@ async function startServer() {
       console.log('🚗 ══════════════════════════════════════════════');
       console.log(`🚗  EstAirbnb :: puerto ${PORT}`);
       console.log(`🚗  Login:      http://localhost:${PORT}/login.html`);
-      console.log(`🚗  Registro:   http://localhost:${PORT}/register.html`);
-      console.log(`🚗  Garajes:    http://localhost:${PORT}/mis-garajes.html`);
-      console.log(`🚗  Explorar:   http://localhost:${PORT}/explorar.html`);
       console.log('🚗 ══════════════════════════════════════════════');
       console.log('');
     });

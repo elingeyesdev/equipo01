@@ -10,45 +10,81 @@
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <!-- Font Awesome 6 -->
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-  <!-- Google Fonts — Inter -->
+  <!-- Google Fonts — Inter & Material Symbols -->
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <!-- Mis Garajes Styles -->
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+  
+  <!-- Tailwind CSS & Configuration -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="/css/dark-theme.css" rel="stylesheet">
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary": "#ffffff", "on-error": "#ffffff", "on-tertiary-fixed-variant": "#004f51", "surface-variant": "#e0e3e5",
+            "on-primary-container": "#87a5ca", "surface-container": "#eceef0", "outline-variant": "#c3c6ce", "on-tertiary-fixed": "#002021",
+            "surface": "#f7f9fb", "on-error-container": "#93000a", "tertiary": "#002829", "on-primary-fixed-variant": "#2a4968",
+            "secondary-fixed": "#57fae9", "on-background": "#191c1e", "on-tertiary-container": "#00b4b8", "on-surface-variant": "#43474d",
+            "surface-container-high": "#e6e8ea", "surface-container-lowest": "#ffffff", "on-surface": "#191c1e", "surface-container-highest": "#e0e3e5",
+            "inverse-surface": "#2d3133", "surface-bright": "#f7f9fb", "outline": "#73777e", "primary-fixed-dim": "#abc9ef",
+            "inverse-primary": "#abc9ef", "secondary-fixed-dim": "#2addcd", "inverse-on-surface": "#eff1f3", "on-secondary-fixed": "#00201d",
+            "on-primary": "#ffffff", "error-container": "#ffdad6", "background": "#f7f9fb", "tertiary-container": "#004041",
+            "primary-fixed": "#d1e4ff", "tertiary-fixed": "#52f9fc", "primary": "#002542", "on-primary-fixed": "#001d35",
+            "surface-dim": "#d8dadc", "secondary-container": "#57fae9", "secondary": "#006a62", "on-secondary-container": "#007168",
+            "surface-tint": "#436182", "surface-container-low": "#f2f4f6", "primary-container": "#1b3b5a", "on-secondary-fixed-variant": "#005049",
+            "tertiary-fixed-dim": "#1edce0", "error": "#ba1a1a", "on-secondary": "#ffffff"
+          },
+          "borderRadius": { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+          "fontFamily": { "headline": ["Inter"], "body": ["Inter"], "label": ["Inter"] }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    /* Estilos preservados para Formularios Legados y Modales */
+    .form-group { margin-bottom: 1.5rem; }
+    .toast-container { z-index: 9999; }
+  </style>
+
+  <!-- Mis Garajes Backend Styles -->
   <link href="/css/mis-garajes.css" rel="stylesheet">
 </head>
-<body>
+<body class="bg-background text-on-background min-h-screen">
 
   <!-- ==============================
        Top Navigation Bar
   ============================== -->
-  <nav class="top-navbar" id="topNavbar">
-    <a href="/" class="brand">
-      <i class="fa-solid fa-square-parking"></i>
-      EstAirbnb
-    </a>
-    <div class="nav-user">
-      <!-- Nav Links -->
-      <a href="/configuracion.html" id="navLinkPerfil"
-         style="font-size:0.85rem;font-weight:600;color:var(--text-secondary);text-decoration:none;padding:6px 12px;border-radius:8px;transition:background 0.15s,color 0.15s;display:flex;align-items:center;gap:6px;"
-         onmouseover="this.style.background='var(--sidebar-hover)';this.style.color='var(--accent)'"
-         onmouseout="this.style.background='transparent';this.style.color='var(--text-secondary)'">
-        <i class="fa-solid fa-gear"></i> Mi Perfil
-      </a>
-      <span style="width:1px;height:20px;background:var(--sidebar-border);"></span>
-      <span id="navUserName" style="font-size:0.875rem;font-weight:600;color:var(--text-secondary);"></span>
-      <!-- Dark mode toggle -->
-      <button id="btnThemeToggle" class="theme-toggle" title="Cambiar tema">
-        <i class="fa-solid fa-moon" id="themeIcon"></i>
-      </button>
-      <!-- Avatar -->
-      <div class="user-avatar" id="userAvatar" title="Mi perfil">
-        <span id="navInitials">?</span>
+  <nav class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm transition-colors" id="topNavbar">
+    <div class="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
+      <div class="flex items-center gap-8">
+        <a class="flex items-center gap-2 text-xl font-black tracking-tighter text-[#002542] dark:text-slate-100 hover:opacity-80 transition-opacity" href="/">
+          <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">local_parking</span>
+          EstAirbnb
+        </a>
+        <div class="hidden md:flex gap-6">
+          <a class="font-['Inter'] font-medium tracking-tight text-[#002542] border-b-2 border-[#006a62] pb-1 px-3 py-2 rounded-md dark:text-slate-100 dark:border-teal-400" href="/mis-garajes.html" id="navLinkGarajes">Mis Garajes</a>
+          <a class="font-['Inter'] font-medium tracking-tight text-slate-500 hover:text-slate-800 transition-colors px-3 py-2 rounded-md dark:text-slate-400 dark:hover:text-slate-200" href="/configuracion.html" id="navLinkPerfil">Mi Perfil</a>
+        </div>
       </div>
-      <!-- Logout -->
-      <button id="btnLogout" title="Cerrar sesión"
-        style="border:none;background:transparent;color:var(--text-secondary);font-size:1rem;cursor:pointer;padding:6px;border-radius:8px;transition:background 0.15s;">
-        <i class="fa-solid fa-right-from-bracket"></i>
-      </button>
+      <div class="flex items-center gap-4">
+        <span id="navUserName" class="hidden md:inline-block font-semibold text-sm text-surface-variant"></span>
+        <button class="text-slate-500 hover:bg-slate-100/50 p-2 rounded-full transition-colors flex items-center justify-center" id="btnThemeToggle" title="Cambiar tema">
+          <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+        </button>
+        <button class="text-error hover:bg-error-container/50 p-2 rounded-full transition-colors font-bold flex items-center justify-center" id="btnLogout" title="Cerrar sesión">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+        <div class="w-10 h-10 rounded-full bg-secondary text-white flex items-center justify-center font-bold text-lg shadow-sm border border-transparent hover:border-outline cursor-pointer overflow-hidden transition-all" id="userAvatar" title="Mi perfil" onclick="window.location.href='/configuracion.html'">
+          <span id="navInitials">?</span>
+        </div>
+      </div>
     </div>
+    <div class="bg-gradient-to-b from-slate-200/50 to-transparent h-[1px] w-full absolute bottom-0 dark:from-slate-700/50"></div>
   </nav>
 
   <!-- ==============================
@@ -66,22 +102,32 @@
   <!-- ==============================
        Page Content
   ============================== -->
-  <div class="page-layout">
-
-    <!-- Page Header -->
-    <div class="page-header">
-      <h1><i class="fa-solid fa-warehouse"></i> Mis Espacios de Parqueo</h1>
-      <p>Publica y gestiona tus espacios de estacionamiento disponibles para conductores.</p>
+  <main class="max-w-7xl mx-auto px-6 py-12" id="mainContentWrapper">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+      <div>
+        <h1 class="text-3xl md:text-4xl font-headline font-bold text-primary tracking-tight mb-2">Tus Espacios de Parqueo</h1>
+        <p class="text-on-surface-variant font-body text-lg">Publica y gestiona tus estacionamientos disponibles.</p>
+      </div>
+      <button onclick="openModalFormulario()" class="bg-gradient-to-br from-primary to-primary-container text-on-primary hover:from-primary hover:to-secondary transition-all duration-300 rounded-md px-6 py-3 font-label text-sm uppercase tracking-wider font-semibold shadow-[0px_12px_24px_rgba(0,37,66,0.1)] flex items-center justify-center gap-2 group whitespace-nowrap">
+        <span class="material-symbols-outlined text-lg transition-transform group-hover:rotate-90 duration-300">add</span>
+        Publicar nuevo espacio
+      </button>
     </div>
 
     <!-- ========================
-         Sección 1: Formulario
+         Modal Formulario (Oculto por defecto)
     ======================== -->
-    <section class="settings-card" id="sectionFormulario">
-      <div class="card-header-custom">
-        <h2><i class="fa-solid fa-circle-plus"></i> Publicar Nuevo Espacio</h2>
-      </div>
-      <div class="card-body-custom">
+    <div id="modalFormularioWrapper" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 transition-opacity">
+      <div class="bg-surface-container-lowest w-full max-w-4xl rounded-2xl shadow-2xl relative flex flex-col max-h-[90vh] overflow-hidden">
+        <!-- Header modal -->
+        <div class="px-6 py-4 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-lowest z-10">
+          <h2 class="text-xl font-headline font-bold text-primary flex items-center gap-2"><span class="material-symbols-outlined cursor-pointer">add_circle</span> Publicar Nuevo Espacio</h2>
+          <button onclick="closeModalFormulario()" type="button" class="w-8 h-8 flex flex-col items-center justify-center rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="p-6 overflow-y-auto w-full">
+          <section id="sectionFormulario" class="mb-0">
+            <div class="card-body-custom pt-0 border-0 shadow-none">
 
         <form id="formGaraje" autocomplete="off">
 
@@ -99,22 +145,50 @@
                       placeholder="Describe tu espacio: techado, seguridad, horarios disponibles..." maxlength="500" rows="3"></textarea>
           </div>
 
-          <!-- Precio + Tipo (side by side) -->
-          <div class="form-row">
-            <div class="form-group">
-              <label for="inpPrecio" class="form-label-custom">Precio por hora (Bs.)</label>
-              <input type="number" class="form-control-custom" id="inpPrecio"
-                     placeholder="Ej: 75.00" min="1" step="0.01" required>
+          <!-- Precio -->
+          <div class="form-group">
+            <label for="inpPrecio" class="form-label-custom">Precio por hora (Bs.)</label>
+            <input type="number" class="form-control-custom" id="inpPrecio"
+                   placeholder="Ej: 75.00" min="1" step="0.01" required>
+          </div>
+
+          <hr class="form-divider">
+
+          <!-- Configurador Visual de Espacios -->
+          <div class="form-group" id="espacioBuilderSection">
+            <label class="form-label-custom">
+              <i class="fa-solid fa-grip"></i> ¿Cuántos espacios tiene tu parqueo?
+            </label>
+            <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:16px;">
+              Usa los botones para elegir la cantidad y toca cada espacio para cambiar el tipo de vehículo.
+            </p>
+
+            <!-- Selector de Cantidad -->
+            <div class="cantidad-selector">
+              <button type="button" class="cantidad-btn menos" id="btnMenos" title="Quitar espacio">
+                <i class="fa-solid fa-minus"></i>
+              </button>
+              <div class="cantidad-display">
+                <span class="cantidad-numero" id="cantidadNumero">0</span>
+                <span class="cantidad-texto">espacios</span>
+              </div>
+              <button type="button" class="cantidad-btn mas" id="btnMas" title="Agregar espacio">
+                <i class="fa-solid fa-plus"></i>
+              </button>
             </div>
-            <div class="form-group">
-              <label for="selTipo" class="form-label-custom">Tipo de vehículo</label>
-              <select class="form-control-custom" id="selTipo" required>
-                <option value="" disabled selected>Selecciona un tipo</option>
-                <option value="auto">🚗 Auto</option>
-                <option value="moto">🏍️ Moto</option>
-                <option value="camioneta">🚙 Camioneta / SUV</option>
-              </select>
+
+            <!-- Leyenda -->
+            <div class="tipo-leyenda" id="tipoLeyenda" style="display:none;">
+              <span class="leyenda-hint"><i class="fa-solid fa-hand-pointer"></i> Toca un espacio para cambiar su tipo:</span>
+              <div class="leyenda-tipos">
+                <span class="leyenda-tipo"><i class="fa-solid fa-car"></i> Auto</span>
+                <span class="leyenda-tipo"><i class="fa-solid fa-motorcycle"></i> Moto</span>
+                <span class="leyenda-tipo"><i class="fa-solid fa-truck-pickup"></i> SUV</span>
+              </div>
             </div>
+
+            <!-- Mapa Visual de Espacios -->
+            <div id="mapaBuilder" class="mapa-builder-grid"></div>
           </div>
 
           <hr class="form-divider">
@@ -145,6 +219,9 @@
 
       </div>
     </section>
+        </div>
+      </div>
+    </div>
 
     <!-- ========================
          Sección 2: Mis Parqueos
@@ -182,21 +259,21 @@
         </div>
 
         <!-- Loading -->
-        <div class="loading-garajes" id="loadingGarajes">
-          <div class="spinner-border" role="status" style="width:2rem;height:2rem;">
-            <span class="visually-hidden">Cargando...</span>
-          </div>
-          <p class="mt-2" style="font-size:0.9rem;color:var(--text-secondary);">Cargando tus espacios...</p>
+        <div class="flex flex-col items-center justify-center py-12" id="loadingGarajes">
+          <div class="spinner-border text-secondary" role="status"></div>
+          <p class="mt-4 text-on-surface-variant">Cargando tus espacios...</p>
         </div>
 
-        <!-- Grid de tarjetas -->
-        <div class="garajes-grid" id="garajesGrid"></div>
+        <!-- Grid de tarjetas (Tailwind CSS Layout) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="garajesGrid"></div>
 
         <!-- Empty State -->
-        <div class="empty-state" id="emptyState" style="display:none;">
-          <div class="empty-icon"><i class="fa-solid fa-warehouse"></i></div>
-          <h3>No tienes parqueos publicados</h3>
-          <p>Usa el formulario de arriba para publicar tu primer espacio de estacionamiento.</p>
+        <div id="emptyState" style="display:none;" class="bg-surface-container-low rounded-xl border-2 border-dashed border-outline-variant/30 flex flex-col items-center justify-center p-12 text-center mt-6">
+          <div class="w-16 h-16 rounded-full bg-surface-container-highest flex items-center justify-center mb-4 text-primary">
+            <span class="material-symbols-outlined text-4xl opacity-50">warehouse</span>
+          </div>
+          <h3 class="font-headline font-bold text-xl text-primary mb-2">No tienes parqueos publicados</h3>
+          <p class="text-on-surface-variant font-body max-w-md">Usa el formulario superior para publicar tu primer espacio de estacionamiento comercial o residencial.</p>
         </div>
 
       </div>
@@ -235,7 +312,7 @@
       </div>
     </section>
 
-  </div>
+  </main>
 
   <!-- Bootstrap 5 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
