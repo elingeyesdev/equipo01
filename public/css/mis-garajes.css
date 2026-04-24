@@ -1,0 +1,1420 @@
+/* ============================================================
+   EstAirbnb — mis-garajes.css
+   Estilos para la página de Gestión de Garajes (Anfitrión)
+   ============================================================ */
+
+/* ============================
+   Variables & Global (Light)
+============================ */
+:root {
+  --sidebar-width: 320px;
+  --sidebar-bg: #ffffff;
+  --sidebar-hover: #f0f2f5;
+  --sidebar-active: #e7f3ff;
+  --sidebar-active-text: #1877f2;
+  --sidebar-border: #e4e6eb;
+  --body-bg: #f0f2f5;
+  --text-primary: #1c1e21;
+  --text-secondary: #65676b;
+  --accent: #1877f2;
+  --accent-hover: #166fe5;
+  --card-bg: #ffffff;
+  --card-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  --card-shadow-hover: 0 4px 12px rgba(0, 0, 0, 0.12);
+  --input-bg: #fafbfc;
+  --input-bg-focus: #ffffff;
+  --navbar-bg: #ffffff;
+  --success: #28a745;
+  --success-soft: rgba(40, 167, 69, 0.12);
+  --danger: #dc3545;
+  --danger-soft: rgba(220, 53, 69, 0.12);
+  --warning-soft: rgba(255, 193, 7, 0.10);
+  --transition-fast: 0.2s ease;
+  --transition-smooth: 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ============================
+   Dark Mode Variables
+============================ */
+[data-theme="dark"] {
+  --sidebar-bg: #1a1a2e;
+  --sidebar-hover: #16213e;
+  --sidebar-active: #0f3460;
+  --sidebar-active-text: #64b5f6;
+  --sidebar-border: #2a2a4a;
+  --body-bg: #0f0f1a;
+  --text-primary: #e4e6f0;
+  --text-secondary: #8b8fa3;
+  --accent: #5b9bf5;
+  --accent-hover: #4a8de8;
+  --card-bg: #1a1a2e;
+  --card-shadow: 0 2px 8px rgba(0, 0, 0, 0.35);
+  --card-shadow-hover: 0 6px 20px rgba(0, 0, 0, 0.45);
+  --input-bg: #16213e;
+  --input-bg-focus: #1a2744;
+  --navbar-bg: #1a1a2e;
+  --success: #4caf50;
+  --success-soft: rgba(76, 175, 80, 0.15);
+  --danger: #ef5350;
+  --danger-soft: rgba(239, 83, 80, 0.15);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+body {
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  background-color: var(--body-bg);
+  color: var(--text-primary);
+  min-height: 100vh;
+  transition: background-color 0.35s ease, color 0.35s ease;
+}
+
+/* ============================
+   Top Navbar
+============================ */
+.top-navbar {
+  background: var(--navbar-bg);
+  border-bottom: 1px solid var(--sidebar-border);
+  height: 56px;
+  display: flex;
+  align-items: center;
+  padding: 0 16px;
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.06);
+  transition: background 0.35s ease, border-color 0.35s ease;
+}
+
+.top-navbar .brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: var(--accent);
+  font-weight: 700;
+  font-size: 1.25rem;
+}
+
+.top-navbar .brand i {
+  font-size: 1.5rem;
+}
+
+.top-navbar .nav-user {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+/* ============================
+   User Avatar (Navbar)
+============================ */
+.nav-user .user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #42a5f5);
+  background-size: cover;
+  background-position: center;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.nav-user .user-avatar:hover {
+  transform: scale(1.1);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.3);
+}
+
+/* ============================
+   Dark Mode Toggle Button
+============================ */
+.theme-toggle {
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-size: 1.15rem;
+  cursor: pointer;
+  padding: 6px;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, color 0.2s, transform 0.3s;
+}
+
+.theme-toggle:hover {
+  background: var(--sidebar-hover);
+  color: var(--accent);
+  transform: rotate(20deg);
+}
+
+.theme-toggle i {
+  transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.theme-toggle:active i {
+  transform: rotate(360deg);
+}
+
+/* ============================
+   Page Layout
+============================ */
+.page-layout {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 24px 16px;
+  min-height: calc(100vh - 56px);
+}
+
+/* ============================
+   Page Header
+============================ */
+.page-header {
+  margin-bottom: 28px;
+  animation: fadeInUp 0.4s ease;
+}
+
+.page-header h1 {
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: var(--text-primary);
+  margin: 0 0 6px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.page-header h1 i {
+  color: var(--accent);
+  font-size: 1.5rem;
+}
+
+.page-header p {
+  color: var(--text-secondary);
+  font-size: 0.95rem;
+  margin: 0;
+}
+
+/* ============================
+   Settings Card (Shared style)
+============================ */
+.settings-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  transition: box-shadow var(--transition-smooth), background 0.35s ease;
+  animation: fadeInUp 0.4s ease;
+  margin-bottom: 24px;
+}
+
+.settings-card:hover {
+  box-shadow: var(--card-shadow-hover);
+}
+
+.card-header-custom {
+  padding: 20px 24px;
+  border-bottom: 1px solid var(--sidebar-border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.card-header-custom h2 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.card-header-custom h2 i {
+  color: var(--accent);
+}
+
+.card-body-custom {
+  padding: 24px;
+}
+
+/* ============================
+   Form Styles
+============================ */
+.form-label-custom {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.form-control-custom {
+  width: 100%;
+  padding: 10px 14px;
+  border: 1.5px solid var(--sidebar-border);
+  border-radius: 10px;
+  font-family: inherit;
+  font-size: 0.938rem;
+  background: var(--input-bg);
+  color: var(--text-primary);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast), background 0.35s;
+  outline: none;
+}
+
+.form-control-custom:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(24, 119, 242, 0.15);
+  background: var(--input-bg-focus);
+}
+
+.form-control-custom::placeholder {
+  color: var(--text-secondary);
+  opacity: 0.7;
+}
+
+textarea.form-control-custom {
+  resize: vertical;
+  min-height: 80px;
+}
+
+select.form-control-custom {
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2365676b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 14px center;
+  padding-right: 40px;
+}
+
+.form-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.form-group {
+  margin-bottom: 18px;
+}
+
+.form-divider {
+  border: none;
+  border-top: 1px solid var(--sidebar-border);
+  margin: 8px 0 20px;
+}
+
+/* ============================
+   File Input (Drag & Drop Style)
+============================ */
+.file-upload-zone {
+  border: 2px dashed var(--sidebar-border);
+  border-radius: 12px;
+  padding: 28px 20px;
+  text-align: center;
+  cursor: pointer;
+  transition: border-color var(--transition-fast), background var(--transition-fast);
+  position: relative;
+  background: var(--input-bg);
+}
+
+.file-upload-zone:hover,
+.file-upload-zone.dragging {
+  border-color: var(--accent);
+  background: rgba(24, 119, 242, 0.04);
+}
+
+[data-theme="dark"] .file-upload-zone:hover,
+[data-theme="dark"] .file-upload-zone.dragging {
+  background: rgba(91, 155, 245, 0.06);
+}
+
+.file-upload-zone .upload-icon {
+  font-size: 2rem;
+  color: var(--accent);
+  margin-bottom: 8px;
+  opacity: 0.7;
+}
+
+.file-upload-zone .upload-text {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+}
+
+.file-upload-zone .upload-hint {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 4px;
+  opacity: 0.7;
+}
+
+.file-upload-zone input[type="file"] {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+/* ============================
+   Photo Preview Grid
+============================ */
+.photo-preview-grid {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+
+.photo-preview-item {
+  width: 80px;
+  height: 80px;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  animation: fadeInScale 0.3s ease;
+}
+
+.photo-preview-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.photo-preview-item .remove-photo {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(220, 53, 69, 0.9);
+  color: #fff;
+  border: none;
+  font-size: 0.65rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.photo-preview-item:hover .remove-photo {
+  opacity: 1;
+}
+
+/* ============================
+   Submit / Save Button
+============================ */
+.btn-save {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 28px;
+  font-size: 0.938rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: background var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.btn-save:hover {
+  background: var(--accent-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(24, 119, 242, 0.3);
+}
+
+.btn-save:active {
+  transform: translateY(0);
+  box-shadow: none;
+}
+
+.btn-save:disabled {
+  opacity: 0.65;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn-save .spinner-border {
+  width: 1rem;
+  height: 1rem;
+  border-width: 0.15em;
+}
+
+/* ============================
+   Garage Cards Grid
+============================ */
+.garajes-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+}
+
+.garaje-card {
+  background: var(--card-bg);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: var(--card-shadow);
+  transition: transform var(--transition-smooth), box-shadow var(--transition-smooth), background 0.35s;
+  animation: fadeInUp 0.45s ease both;
+  display: flex;
+  flex-direction: column;
+}
+
+.garaje-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--card-shadow-hover);
+}
+
+/* Stagger animation for cards */
+.garaje-card:nth-child(1) { animation-delay: 0.05s; }
+.garaje-card:nth-child(2) { animation-delay: 0.10s; }
+.garaje-card:nth-child(3) { animation-delay: 0.15s; }
+.garaje-card:nth-child(4) { animation-delay: 0.20s; }
+.garaje-card:nth-child(5) { animation-delay: 0.25s; }
+.garaje-card:nth-child(6) { animation-delay: 0.30s; }
+
+.garaje-card-img {
+  width: 100%;
+  height: 180px;
+  object-fit: cover;
+  display: block;
+  background: var(--sidebar-hover);
+  transition: transform 0.4s ease;
+}
+
+.garaje-card:hover .garaje-card-img {
+  transform: scale(1.03);
+}
+
+.garaje-card-img-wrapper {
+  overflow: hidden;
+  position: relative;
+  height: 180px;
+  background: var(--sidebar-hover);
+}
+
+.garaje-card-img-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  color: var(--text-secondary);
+  opacity: 0.5;
+}
+
+.garaje-card-img-placeholder i {
+  font-size: 2.2rem;
+}
+
+.garaje-card-img-placeholder span {
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+/* Badge posicionado sobre la imagen */
+.garaje-card-badge {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.garaje-card-badge.active {
+  background: rgba(40, 167, 69, 0.85);
+  color: #fff;
+}
+
+.garaje-card-badge.inactive {
+  background: rgba(220, 53, 69, 0.85);
+  color: #fff;
+}
+
+.garaje-card-badge i {
+  font-size: 0.6rem;
+}
+
+/* Card body */
+.garaje-card-body {
+  padding: 16px 18px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.garaje-card-direccion {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 4px;
+  line-height: 1.3;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.garaje-card-descripcion {
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+  margin-bottom: 12px;
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  flex: 1;
+}
+
+.garaje-card-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.garaje-card-precio {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--accent);
+}
+
+.garaje-card-precio span {
+  font-size: 0.78rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.garaje-card-tipo {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--sidebar-hover);
+  color: var(--text-secondary);
+  text-transform: capitalize;
+}
+
+/* Card footer */
+.garaje-card-footer {
+  padding: 0 18px 16px;
+}
+
+.btn-toggle-estado {
+  width: 100%;
+  padding: 9px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all var(--transition-fast);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.btn-toggle-estado.desactivar {
+  background: var(--danger-soft);
+  color: var(--danger);
+  border-color: transparent;
+}
+
+.btn-toggle-estado.desactivar:hover {
+  background: var(--danger);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(220, 53, 69, 0.25);
+}
+
+.btn-toggle-estado.activar {
+  background: var(--success-soft);
+  color: var(--success);
+  border-color: transparent;
+}
+
+.btn-toggle-estado.activar:hover {
+  background: var(--success);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 3px 10px rgba(40, 167, 69, 0.25);
+}
+
+.btn-toggle-estado:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+/* ============================
+   Empty State
+============================ */
+.empty-state {
+  text-align: center;
+  padding: 60px 20px;
+  animation: fadeInUp 0.5s ease;
+}
+
+.empty-state .empty-icon {
+  font-size: 3.5rem;
+  color: var(--accent);
+  opacity: 0.3;
+  margin-bottom: 16px;
+}
+
+.empty-state h3 {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 6px;
+}
+
+.empty-state p {
+  font-size: 0.9rem;
+  color: var(--text-secondary);
+  max-width: 360px;
+  margin: 0 auto;
+}
+
+/* ============================
+   Toast Notifications
+============================ */
+.toast-container {
+  z-index: 9999;
+}
+
+.toast.toast-success {
+  background: #d4edda;
+  border-left: 4px solid #28a745;
+  color: #155724;
+}
+
+.toast.toast-error {
+  background: #f8d7da;
+  border-left: 4px solid #dc3545;
+  color: #721c24;
+}
+
+[data-theme="dark"] .toast.toast-success {
+  background: #1a3a2a;
+  border-left-color: #4caf50;
+  color: #a5d6a7;
+}
+
+[data-theme="dark"] .toast.toast-error {
+  background: #3a1a1a;
+  border-left-color: #ef5350;
+  color: #ef9a9a;
+}
+
+.toast .toast-body {
+  font-family: inherit;
+  font-size: 0.9rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ============================
+   Loading Spinner (cards)
+============================ */
+.loading-garajes {
+  text-align: center;
+  padding: 40px 0;
+}
+
+.loading-garajes .spinner-border {
+  color: var(--accent);
+}
+
+/* ============================
+   Stats bar
+============================ */
+.stats-bar {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 20px;
+  animation: fadeInUp 0.4s ease;
+}
+
+.stat-item {
+  background: var(--card-bg);
+  border-radius: 10px;
+  padding: 14px 20px;
+  flex: 1;
+  box-shadow: var(--card-shadow);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  transition: box-shadow var(--transition-smooth), background 0.35s;
+}
+
+.stat-item:hover {
+  box-shadow: var(--card-shadow-hover);
+}
+
+.stat-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+}
+
+.stat-icon.total {
+  background: rgba(24, 119, 242, 0.1);
+  color: var(--accent);
+}
+
+.stat-icon.activos {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.stat-icon.inactivos {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.stat-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.stat-number {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: var(--text-primary);
+  line-height: 1;
+}
+
+.stat-label {
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  font-weight: 500;
+  margin-top: 2px;
+}
+
+/* ============================
+   Animations
+============================ */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.85);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+/* ============================
+   Responsive
+============================ */
+@media (max-width: 992px) {
+  .garajes-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .stats-bar {
+    flex-wrap: wrap;
+  }
+
+  .stat-item {
+    min-width: calc(50% - 8px);
+  }
+}
+
+@media (max-width: 576px) {
+  .garajes-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .page-layout {
+    padding: 12px;
+  }
+
+  .page-header h1 {
+    font-size: 1.35rem;
+  }
+
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+
+  .stats-bar {
+    flex-direction: column;
+  }
+
+  .stat-item {
+    min-width: 100%;
+  }
+}
+
+/* ============================
+   Reservas Table
+============================ */
+.reservas-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  font-size: 0.88rem;
+}
+
+.reservas-table thead th {
+  background: var(--sidebar-hover);
+  color: var(--text-secondary);
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 10px 14px;
+  border-bottom: 2px solid var(--sidebar-border);
+  text-align: left;
+  white-space: nowrap;
+}
+
+.reservas-table thead th:first-child { border-radius: 8px 0 0 0; }
+.reservas-table thead th:last-child  { border-radius: 0 8px 0 0; }
+
+.reservas-table tbody td {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--sidebar-border);
+  vertical-align: middle;
+  color: var(--text-primary);
+}
+
+.reservas-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.reservas-table tbody tr {
+  transition: background 0.15s;
+}
+
+.reservas-table tbody tr:hover {
+  background: var(--sidebar-hover);
+}
+
+/* Reserva Status Badges */
+.reserva-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.reserva-badge.pendiente {
+  background: var(--warning-soft, rgba(255, 193, 7, 0.12));
+  color: #e6a800;
+}
+
+[data-theme="dark"] .reserva-badge.pendiente {
+  background: rgba(255, 193, 7, 0.15);
+  color: #ffc107;
+}
+
+.reserva-badge.confirmada {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.reserva-badge.rechazada {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.reserva-badge.finalizada {
+  background: rgba(108, 117, 125, 0.12);
+  color: #6c757d;
+}
+
+[data-theme="dark"] .reserva-badge.finalizada {
+  background: rgba(173, 181, 189, 0.12);
+  color: #adb5bd;
+}
+
+/* Reserva Action Buttons */
+.reserva-acciones {
+  display: flex;
+  gap: 6px;
+}
+
+.btn-reserva {
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn-reserva.confirmar {
+  background: var(--success-soft);
+  color: var(--success);
+}
+
+.btn-reserva.confirmar:hover {
+  background: var(--success);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(40, 167, 69, 0.25);
+}
+
+.btn-reserva.rechazar {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.btn-reserva.rechazar:hover {
+  background: var(--danger);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(220, 53, 69, 0.25);
+}
+
+.btn-reserva:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.btn-reserva .spinner-border {
+  width: 0.85rem;
+  height: 0.85rem;
+  border-width: 0.13em;
+}
+
+/* ============================
+   Scrollbar custom
+============================ */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #c4c4c4;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #a0a0a0;
+}
+
+/* ============================
+   Visual Espacio Builder
+============================ */
+
+/* Quantity Selector */
+.cantidad-selector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 20px;
+  padding: 16px 0;
+  margin-bottom: 16px;
+}
+
+.cantidad-btn {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  border: 2px solid var(--sidebar-border);
+  background: var(--card-bg);
+  color: var(--text-primary);
+  font-size: 1.4rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+}
+
+.cantidad-btn:hover:not(:disabled) {
+  transform: scale(1.1);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.12);
+}
+
+.cantidad-btn:active:not(:disabled) {
+  transform: scale(0.95);
+}
+
+.cantidad-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.cantidad-btn.mas {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.cantidad-btn.mas:hover:not(:disabled) {
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.cantidad-btn.menos {
+  background: var(--danger-soft, rgba(220,53,69,0.08));
+  color: var(--danger);
+  border-color: rgba(220,53,69,0.2);
+}
+
+.cantidad-btn.menos:hover:not(:disabled) {
+  background: rgba(220,53,69,0.15);
+}
+
+.cantidad-display {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.cantidad-numero {
+  font-size: 3rem;
+  font-weight: 900;
+  line-height: 1;
+  color: var(--accent);
+}
+
+.cantidad-texto {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+/* Legend */
+.tipo-leyenda {
+  text-align: center;
+  margin-bottom: 16px;
+  padding: 12px;
+  background: var(--sidebar-hover);
+  border-radius: 10px;
+}
+
+.leyenda-hint {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  margin-bottom: 8px;
+}
+
+.leyenda-hint i {
+  color: var(--accent);
+  margin-right: 4px;
+}
+
+.leyenda-tipos {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+}
+
+.leyenda-tipo {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.leyenda-tipo i {
+  font-size: 1rem;
+}
+
+/* Builder Grid */
+.mapa-builder-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 10px;
+  padding: 8px 0;
+}
+
+.builder-slot {
+  aspect-ratio: 1;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  cursor: pointer;
+  border: 2.5px solid var(--slot-color, #3b82f6);
+  background: color-mix(in srgb, var(--slot-color, #3b82f6) 8%, transparent);
+  transition: all 0.25s ease;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.builder-slot::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, color-mix(in srgb, var(--slot-color) 12%, transparent), transparent 70%);
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.builder-slot:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px color-mix(in srgb, var(--slot-color, #3b82f6) 25%, transparent);
+}
+
+.builder-slot:hover::after {
+  opacity: 1;
+}
+
+.builder-slot:active {
+  transform: scale(0.93);
+}
+
+.builder-slot-icon {
+  font-size: 1.6rem;
+  color: var(--slot-color, #3b82f6);
+  position: relative;
+  z-index: 1;
+}
+
+.builder-slot-name {
+  font-size: 0.85rem;
+  font-weight: 900;
+  color: var(--text-primary);
+  letter-spacing: 1px;
+  position: relative;
+  z-index: 1;
+}
+
+.builder-slot-type {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--slot-color, #3b82f6);
+  position: relative;
+  z-index: 1;
+}
+
+/* ============================
+   Layout Dimension Selector
+============================ */
+.layout-dimension-selector {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 16px;
+  padding: 16px 0;
+  margin-bottom: 8px;
+}
+
+.dimension-input-group {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 80px;
+}
+
+.dimension-input-group input {
+  width: 80px;
+  font-size: 1.4rem;
+  font-weight: 700;
+  padding: 8px 4px;
+}
+
+.dimension-x {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.btn-generar-mapa {
+  background: var(--accent);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  transition: background 0.2s, transform 0.2s, box-shadow 0.2s;
+  margin-bottom: 2px;
+}
+
+.btn-generar-mapa:hover {
+  background: var(--accent-hover);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 16px rgba(24, 119, 242, 0.3);
+}
+
+.btn-generar-mapa:active {
+  transform: translateY(0);
+}
+
+/* ============================
+   Comodidades Grid
+============================ */
+.comodidades-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.comodidad-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  border: 1.5px solid var(--sidebar-border);
+  border-radius: 10px;
+  background: var(--input-bg);
+  cursor: pointer;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-primary);
+  transition: all 0.2s ease;
+  user-select: none;
+}
+
+.comodidad-chip:hover {
+  border-color: var(--accent);
+  background: rgba(24, 119, 242, 0.04);
+}
+
+.comodidad-chip:has(input:checked) {
+  border-color: var(--accent);
+  background: rgba(24, 119, 242, 0.1);
+  color: var(--accent);
+  box-shadow: 0 2px 8px rgba(24, 119, 242, 0.15);
+}
+
+.comodidad-chip input[type="checkbox"] {
+  display: none;
+}
+
+.comodidad-chip i {
+  font-size: 1rem;
+  opacity: 0.7;
+}
+
+.comodidad-chip:has(input:checked) i {
+  opacity: 1;
+}
+
+/* Animation */
+@keyframes fadeInScale {
+  from {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .mapa-builder-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+  
+  .cantidad-btn {
+    width: 48px;
+    height: 48px;
+    font-size: 1.2rem;
+  }
+  
+  .cantidad-numero {
+    font-size: 2.4rem;
+  }
+}

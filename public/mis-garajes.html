@@ -1,0 +1,386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Gestión de espacios de parqueo — EstAirbnb, la plataforma de alquiler de parqueos.">
+  <title>Mis Garajes · EstAirbnb</title>
+
+  <!-- Bootstrap 5 CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <!-- Font Awesome 6 -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <!-- Google Fonts — Inter & Material Symbols -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+  
+  <!-- Tailwind CSS & Configuration -->
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="/css/dark-theme.css" rel="stylesheet">
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "on-tertiary": "#ffffff", "on-error": "#ffffff", "on-tertiary-fixed-variant": "#004f51", "surface-variant": "#e0e3e5",
+            "on-primary-container": "#87a5ca", "surface-container": "#eceef0", "outline-variant": "#c3c6ce", "on-tertiary-fixed": "#002021",
+            "surface": "#f7f9fb", "on-error-container": "#93000a", "tertiary": "#002829", "on-primary-fixed-variant": "#2a4968",
+            "secondary-fixed": "#57fae9", "on-background": "#191c1e", "on-tertiary-container": "#00b4b8", "on-surface-variant": "#43474d",
+            "surface-container-high": "#e6e8ea", "surface-container-lowest": "#ffffff", "on-surface": "#191c1e", "surface-container-highest": "#e0e3e5",
+            "inverse-surface": "#2d3133", "surface-bright": "#f7f9fb", "outline": "#73777e", "primary-fixed-dim": "#abc9ef",
+            "inverse-primary": "#abc9ef", "secondary-fixed-dim": "#2addcd", "inverse-on-surface": "#eff1f3", "on-secondary-fixed": "#00201d",
+            "on-primary": "#ffffff", "error-container": "#ffdad6", "background": "#f7f9fb", "tertiary-container": "#004041",
+            "primary-fixed": "#d1e4ff", "tertiary-fixed": "#52f9fc", "primary": "#002542", "on-primary-fixed": "#001d35",
+            "surface-dim": "#d8dadc", "secondary-container": "#57fae9", "secondary": "#006a62", "on-secondary-container": "#007168",
+            "surface-tint": "#436182", "surface-container-low": "#f2f4f6", "primary-container": "#1b3b5a", "on-secondary-fixed-variant": "#005049",
+            "tertiary-fixed-dim": "#1edce0", "error": "#ba1a1a", "on-secondary": "#ffffff"
+          },
+          "borderRadius": { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+          "fontFamily": { "headline": ["Inter"], "body": ["Inter"], "label": ["Inter"] }
+        }
+      }
+    }
+  </script>
+  
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+    /* Estilos preservados para Formularios Legados y Modales */
+    .form-group { margin-bottom: 1.5rem; }
+    .toast-container { z-index: 9999; }
+  </style>
+
+  <!-- Mis Garajes Backend Styles -->
+  <link href="/css/mis-garajes.css" rel="stylesheet">
+</head>
+<body class="bg-background text-on-background min-h-screen">
+
+  <!-- ==============================
+       Top Navigation Bar
+  ============================== -->
+  <nav class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm transition-colors" id="topNavbar">
+    <div class="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
+      <div class="flex items-center gap-8">
+        <a class="flex items-center gap-2 text-xl font-black tracking-tighter text-[#002542] dark:text-slate-100 hover:opacity-80 transition-opacity" href="/">
+          <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">local_parking</span>
+          EstAirbnb
+        </a>
+        <div class="hidden md:flex gap-6">
+          <a class="font-['Inter'] font-medium tracking-tight text-[#002542] border-b-2 border-[#006a62] pb-1 px-3 py-2 rounded-md dark:text-slate-100 dark:border-teal-400" href="/mis-garajes.html" id="navLinkGarajes">Mis Garajes</a>
+          <a class="font-['Inter'] font-medium tracking-tight text-slate-500 hover:text-slate-800 transition-colors px-3 py-2 rounded-md dark:text-slate-400 dark:hover:text-slate-200" href="/configuracion.html" id="navLinkPerfil">Mi Perfil</a>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="navUserName" class="hidden md:inline-block font-semibold text-sm text-surface-variant"></span>
+        <button class="text-slate-500 hover:bg-slate-100/50 p-2 rounded-full transition-colors flex items-center justify-center" id="btnThemeToggle" title="Cambiar tema">
+          <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+        </button>
+        <button class="text-error hover:bg-error-container/50 p-2 rounded-full transition-colors font-bold flex items-center justify-center" id="btnLogout" title="Cerrar sesión">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+        <div class="w-10 h-10 rounded-full bg-secondary text-white flex items-center justify-center font-bold text-lg shadow-sm border border-transparent hover:border-outline cursor-pointer overflow-hidden transition-all" id="userAvatar" title="Mi perfil" onclick="window.location.href='/configuracion.html'">
+          <span id="navInitials">?</span>
+        </div>
+      </div>
+    </div>
+    <div class="bg-gradient-to-b from-slate-200/50 to-transparent h-[1px] w-full absolute bottom-0 dark:from-slate-700/50"></div>
+  </nav>
+
+  <!-- ==============================
+       Toast Notifications
+  ============================== -->
+  <div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="toastNotification" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+      <div class="toast-body" id="toastBody">
+        <i class="fa-solid fa-circle-check"></i>
+        <span id="toastMessage">Mensaje</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==============================
+       Page Content
+  ============================== -->
+  <main class="max-w-7xl mx-auto px-6 py-12" id="mainContentWrapper">
+    <!-- Header Section -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+      <div>
+        <h1 class="text-3xl md:text-4xl font-headline font-bold text-primary tracking-tight mb-2">Tus Espacios de Parqueo</h1>
+        <p class="text-on-surface-variant font-body text-lg">Publica y gestiona tus estacionamientos disponibles.</p>
+      </div>
+      <button onclick="openModalFormulario()" class="bg-gradient-to-br from-primary to-primary-container text-on-primary hover:from-primary hover:to-secondary transition-all duration-300 rounded-md px-6 py-3 font-label text-sm uppercase tracking-wider font-semibold shadow-[0px_12px_24px_rgba(0,37,66,0.1)] flex items-center justify-center gap-2 group whitespace-nowrap">
+        <span class="material-symbols-outlined text-lg transition-transform group-hover:rotate-90 duration-300">add</span>
+        Publicar nuevo espacio
+      </button>
+    </div>
+
+    <!-- ========================
+         Modal Formulario (Oculto por defecto)
+    ======================== -->
+    <div id="modalFormularioWrapper" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 transition-opacity">
+      <div class="bg-surface-container-lowest w-full max-w-4xl rounded-2xl shadow-2xl relative flex flex-col max-h-[90vh] overflow-hidden">
+        <!-- Header modal -->
+        <div class="px-6 py-4 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-lowest z-10">
+          <h2 class="text-xl font-headline font-bold text-primary flex items-center gap-2"><span class="material-symbols-outlined cursor-pointer">add_circle</span> Publicar Nuevo Espacio</h2>
+          <button onclick="closeModalFormulario()" type="button" class="w-8 h-8 flex flex-col items-center justify-center rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant"><span class="material-symbols-outlined">close</span></button>
+        </div>
+        <div class="p-6 overflow-y-auto w-full">
+          <section id="sectionFormulario" class="mb-0">
+            <div class="card-body-custom pt-0 border-0 shadow-none">
+
+        <form id="formGaraje" autocomplete="off">
+
+          <!-- Dirección -->
+          <div class="form-group">
+            <label for="inpDireccion" class="form-label-custom">Dirección</label>
+            <input type="text" class="form-control-custom" id="inpDireccion"
+                   placeholder="Ej: Av. 27 de Febrero #45, Naco, Santo Domingo" maxlength="255" required>
+          </div>
+
+          <!-- Descripción -->
+          <div class="form-group">
+            <label for="inpDescripcion" class="form-label-custom">Descripción</label>
+            <textarea class="form-control-custom" id="inpDescripcion"
+                      placeholder="Describe tu espacio: techado, seguridad, horarios disponibles..." maxlength="500" rows="3"></textarea>
+          </div>
+
+          <!-- Precio -->
+          <div class="form-group">
+            <label for="inpPrecio" class="form-label-custom">Precio por hora (Bs.)</label>
+            <input type="number" class="form-control-custom" id="inpPrecio"
+                   placeholder="Ej: 75.00" min="1" step="0.01" required>
+          </div>
+
+          <hr class="form-divider">
+
+          <!-- Horario Operativo -->
+          <div class="form-group">
+            <label class="form-label-custom">
+              <i class="fa-solid fa-clock"></i> Horario Operativo
+            </label>
+            <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">
+              Define el horario y los días en que tu parqueo está abierto.
+            </p>
+            <div class="form-row" style="grid-template-columns: 1fr 1fr 1fr; gap: 12px;">
+              <div>
+                <label for="inpHoraApertura" class="form-label-custom" style="font-size:0.7rem;">Apertura</label>
+                <input type="time" class="form-control-custom" id="inpHoraApertura" value="08:00" required>
+              </div>
+              <div>
+                <label for="inpHoraCierre" class="form-label-custom" style="font-size:0.7rem;">Cierre</label>
+                <input type="time" class="form-control-custom" id="inpHoraCierre" value="22:00" required>
+              </div>
+              <div>
+                <label for="inpDiasOperativos" class="form-label-custom" style="font-size:0.7rem;">Días</label>
+                <select class="form-control-custom" id="inpDiasOperativos">
+                  <option value="L-D">Lunes a Domingo</option>
+                  <option value="L-V">Lunes a Viernes</option>
+                  <option value="L-S">Lunes a Sábado</option>
+                  <option value="S-D">Sábado y Domingo</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <hr class="form-divider">
+
+          <!-- Configurador Visual de Espacios (Filas x Columnas) -->
+          <div class="form-group" id="espacioBuilderSection">
+            <label class="form-label-custom">
+              <i class="fa-solid fa-grip"></i> Constructor del Layout de tu Parqueo
+            </label>
+            <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:16px;">
+              Ingresa las filas y columnas de tu terreno para generar el mapa. Luego toca cada espacio para cambiar el tipo de vehículo.
+            </p>
+
+            <!-- Selector de Filas y Columnas -->
+            <div class="layout-dimension-selector">
+              <div class="dimension-input-group">
+                <label for="inpFilas" class="form-label-custom" style="font-size:0.7rem;">Filas</label>
+                <input type="number" class="form-control-custom" id="inpFilas" min="1" max="10" value="2" style="text-align:center;">
+              </div>
+              <span class="dimension-x">×</span>
+              <div class="dimension-input-group">
+                <label for="inpColumnas" class="form-label-custom" style="font-size:0.7rem;">Columnas</label>
+                <input type="number" class="form-control-custom" id="inpColumnas" min="1" max="10" value="4" style="text-align:center;">
+              </div>
+              <button type="button" class="btn-generar-mapa" id="btnGenerarMapa">
+                <i class="fa-solid fa-table-cells-large"></i> Generar Mapa
+              </button>
+            </div>
+
+            <!-- Cantidad display -->
+            <div class="cantidad-display" style="margin:12px 0;">
+              <span class="cantidad-numero" id="cantidadNumero">0</span>
+              <span class="cantidad-texto">espacios</span>
+            </div>
+
+            <!-- Leyenda -->
+            <div class="tipo-leyenda" id="tipoLeyenda" style="display:none;">
+              <span class="leyenda-hint"><i class="fa-solid fa-hand-pointer"></i> Toca un espacio para cambiar su tipo:</span>
+              <div class="leyenda-tipos">
+                <span class="leyenda-tipo"><i class="fa-solid fa-car"></i> Auto</span>
+                <span class="leyenda-tipo"><i class="fa-solid fa-motorcycle"></i> Moto</span>
+                <span class="leyenda-tipo"><i class="fa-solid fa-truck-pickup"></i> SUV</span>
+              </div>
+            </div>
+
+            <!-- Mapa Visual de Espacios -->
+            <div id="mapaBuilder" class="mapa-builder-grid"></div>
+          </div>
+
+          <hr class="form-divider">
+
+          <!-- Comodidades y Reglas -->
+          <div class="form-group">
+            <label class="form-label-custom">
+              <i class="fa-solid fa-tags"></i> Comodidades y Características
+            </label>
+            <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">
+              Selecciona las comodidades que ofrece tu parqueo.
+            </p>
+            <div class="comodidades-grid" id="comodidadesGrid">
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="techado"><i class="fa-solid fa-warehouse"></i> Techado</label>
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="cctv"><i class="fa-solid fa-video"></i> CCTV</label>
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="vigilancia"><i class="fa-solid fa-shield-halved"></i> Vigilancia 24/7</label>
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="iluminado"><i class="fa-solid fa-lightbulb"></i> Iluminado</label>
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="acceso_24h"><i class="fa-solid fa-clock"></i> Acceso 24h</label>
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="cargador_ev"><i class="fa-solid fa-charging-station"></i> Cargador EV</label>
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="lavado"><i class="fa-solid fa-droplet"></i> Lavado</label>
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="acceso_discapacidad"><i class="fa-solid fa-wheelchair"></i> Accesible</label>
+            </div>
+          </div>
+
+          <hr class="form-divider">
+
+          <!-- Fotos -->
+          <div class="form-group">
+            <label class="form-label-custom">Fotos del espacio</label>
+            <div class="file-upload-zone" id="uploadZone">
+              <div class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+              <div class="upload-text">Arrastra tus fotos aquí o haz clic para seleccionar</div>
+              <div class="upload-hint">JPG, PNG o WEBP · Máximo 5 fotos · 5 MB cada una</div>
+              <input type="file" id="inpFotos" name="fotos" multiple
+                     accept="image/jpeg,image/png,image/webp">
+            </div>
+            <div class="photo-preview-grid" id="photoPreviewGrid"></div>
+          </div>
+
+          <hr class="form-divider">
+
+          <!-- Submit -->
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn-save" id="btnPublicar">
+              <i class="fa-solid fa-paper-plane"></i> Publicar Espacio
+            </button>
+          </div>
+
+        </form>
+
+      </div>
+    </section>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================
+         Sección 2: Mis Parqueos
+    ======================== -->
+    <section class="settings-card" id="sectionMisParqueos">
+      <div class="card-header-custom">
+        <h2><i class="fa-solid fa-car-side"></i> Mis Parqueos Publicados</h2>
+        <span id="contadorGarajes" style="font-size:0.82rem;font-weight:600;color:var(--text-secondary);"></span>
+      </div>
+      <div class="card-body-custom">
+
+        <!-- Stats Bar -->
+        <div class="stats-bar" id="statsBar" style="display:none;">
+          <div class="stat-item">
+            <div class="stat-icon total"><i class="fa-solid fa-warehouse"></i></div>
+            <div class="stat-info">
+              <span class="stat-number" id="statTotal">0</span>
+              <span class="stat-label">Total</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon activos"><i class="fa-solid fa-circle-check"></i></div>
+            <div class="stat-info">
+              <span class="stat-number" id="statActivos">0</span>
+              <span class="stat-label">Activos</span>
+            </div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-icon inactivos"><i class="fa-solid fa-circle-pause"></i></div>
+            <div class="stat-info">
+              <span class="stat-number" id="statInactivos">0</span>
+              <span class="stat-label">Inactivos</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div class="flex flex-col items-center justify-center py-12" id="loadingGarajes">
+          <div class="spinner-border text-secondary" role="status"></div>
+          <p class="mt-4 text-on-surface-variant">Cargando tus espacios...</p>
+        </div>
+
+        <!-- Grid de tarjetas (Tailwind CSS Layout) -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="garajesGrid"></div>
+
+        <!-- Empty State -->
+        <div id="emptyState" style="display:none;" class="bg-surface-container-low rounded-xl border-2 border-dashed border-outline-variant/30 flex flex-col items-center justify-center p-12 text-center mt-6">
+          <div class="w-16 h-16 rounded-full bg-surface-container-highest flex items-center justify-center mb-4 text-primary">
+            <span class="material-symbols-outlined text-4xl opacity-50">warehouse</span>
+          </div>
+          <h3 class="font-headline font-bold text-xl text-primary mb-2">No tienes parqueos publicados</h3>
+          <p class="text-on-surface-variant font-body max-w-md">Usa el formulario superior para publicar tu primer espacio de estacionamiento comercial o residencial.</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ========================
+         Sección 3: Reservas Recibidas
+    ======================== -->
+    <section class="settings-card" id="sectionReservas">
+      <div class="card-header-custom">
+        <h2><i class="fa-solid fa-calendar-check"></i> Reservas Recibidas</h2>
+        <span id="contadorReservas" style="font-size:0.82rem;font-weight:600;color:var(--text-secondary);"></span>
+      </div>
+      <div class="card-body-custom">
+
+        <!-- Loading -->
+        <div id="loadingReservas" style="text-align:center;padding:30px 0;">
+          <div class="spinner-border" role="status" style="width:2rem;height:2rem;">
+            <span class="visually-hidden">Cargando...</span>
+          </div>
+          <p class="mt-2" style="font-size:0.9rem;color:var(--text-secondary);">Cargando reservas...</p>
+        </div>
+
+        <!-- Tabla de reservas -->
+        <div id="reservasTableWrapper" style="display:none;overflow-x:auto;"></div>
+
+        <!-- Empty State -->
+        <div id="emptyReservas" style="display:none;text-align:center;padding:40px 20px;">
+          <div style="font-size:2.5rem;color:var(--text-secondary);opacity:0.4;margin-bottom:12px;">
+            <i class="fa-solid fa-calendar-xmark"></i>
+          </div>
+          <h3 style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">Sin reservas aún</h3>
+          <p style="font-size:0.85rem;color:var(--text-secondary);">Cuando un conductor reserve uno de tus espacios, aparecerá aquí.</p>
+        </div>
+
+      </div>
+    </section>
+
+  </main>
+
+  <!-- Bootstrap 5 JS Bundle -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Mis Garajes Logic -->
+  <script src="/js/mis-garajes.js"></script>
+
+  <!-- Badge navbar -->
+  <script src="/js/navbar-badge.js"></script>
+</body>
+</html>
