@@ -51,11 +51,12 @@ const inpDiasOperativos = document.getElementById('inpDiasOperativos');
 let espaciosConfigurados = []; // Array de { numero_espacio, tipo_vehiculo, fila, columna }
 
 // Vehicle type cycle
-const TIPOS = ['auto', 'moto', 'camioneta'];
+const TIPOS = ['auto', 'moto', 'camioneta', 'techado'];
 const TIPO_CONFIG = {
   auto:      { icon: 'fa-car',          emoji: '🚗', label: 'Auto',    color: '#3b82f6' },
   moto:      { icon: 'fa-motorcycle',   emoji: '🏍️', label: 'Moto',    color: '#f59e0b' },
-  camioneta: { icon: 'fa-truck-pickup', emoji: '🚙', label: 'SUV',     color: '#8b5cf6' }
+  camioneta: { icon: 'fa-truck-pickup', emoji: '🚙', label: 'SUV',     color: '#8b5cf6' },
+  techado:   { icon: 'fa-warehouse',    emoji: '🛖', label: 'Techado', color: '#10b981' }
 };
 
 // ============================================================
@@ -228,9 +229,11 @@ function initEspacioBuilder() {
     for (let f = 1; f <= filas; f++) {
       for (let c = 1; c <= columnas; c++) {
         const letra = letras[f - 1] || 'X';
+        // Alternar entre los diferentes tipos para que haya variedad de techados, SUV, etc.
+        const idx = (f + c) % TIPOS.length;
         espaciosConfigurados.push({
           numero_espacio: `${letra}${c}`,
-          tipo_vehiculo: 'auto',
+          tipo_vehiculo: TIPOS[idx],
           fila: f,
           columna: c
         });

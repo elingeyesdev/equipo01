@@ -91,7 +91,8 @@
   const ICON_MAP = {
     auto: 'fa-car',
     moto: 'fa-motorcycle',
-    camioneta: 'fa-truck-pickup'
+    camioneta: 'fa-truck-pickup',
+    techado: 'fa-warehouse'
   };
 
   // ─── Días operativos label ───

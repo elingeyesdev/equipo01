@@ -635,7 +635,7 @@ app.post('/api/garajes', (req, res) => {
 
       // ── Paso 1B: Insertar Espacios definidos por el anfitrión ──
       for (const esp of espacios) {
-        const tipoValido = ['auto', 'moto', 'camioneta'].includes(esp.tipo_vehiculo) ? esp.tipo_vehiculo : 'auto';
+        const tipoValido = ['auto', 'moto', 'camioneta', 'techado'].includes(esp.tipo_vehiculo) ? esp.tipo_vehiculo : 'auto';
         await db.request()
           .input('garaje_id', sql.Int, garajeId)
           .input('num', sql.VarChar(10), String(esp.numero_espacio || '').substring(0, 10))

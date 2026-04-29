@@ -69,7 +69,8 @@
   const TIPO_CONFIG = {
     auto:      { label: '🚗 Auto',          icon: 'fa-car' },
     moto:      { label: '🏍️ Moto',          icon: 'fa-motorcycle' },
-    camioneta: { label: '🚙 Camioneta / SUV', icon: 'fa-truck-pickup' }
+    camioneta: { label: '🚙 Camioneta / SUV', icon: 'fa-truck-pickup' },
+    techado:   { label: '🛖 Techado',       icon: 'fa-warehouse' }
   };
 
   // ─── Theme Toggle (Material Symbols + Tailwind dark class) ───
@@ -242,7 +243,7 @@
       slot.dataset.numero = esp.numero_espacio;
       slot.dataset.estado = esp.estado;
 
-      const iconMap = { auto: 'fa-car', moto: 'fa-motorcycle', camioneta: 'fa-truck-pickup' };
+      const iconMap = { auto: 'fa-car', moto: 'fa-motorcycle', camioneta: 'fa-truck-pickup', techado: 'fa-warehouse' };
       const iconClass = iconMap[esp.tipo_vehiculo] || 'fa-car';
 
       slot.innerHTML = `
