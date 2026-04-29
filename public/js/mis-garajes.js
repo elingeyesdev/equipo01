@@ -50,7 +50,6 @@ const inpDiasOperativos = document.getElementById('inpDiasOperativos');
 
 let espaciosConfigurados = []; // Array de { numero_espacio, tipo_vehiculo, fila, columna }
 
-// se aumento los parqueos con techo para lo que actualizamos en el repositorio
 // Vehicle type cycle
 const TIPOS = ['auto', 'moto', 'camioneta', 'techado'];
 const TIPO_CONFIG = {
