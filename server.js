@@ -146,10 +146,10 @@ app.post('/api/auth/register', async (req, res) => {
 
     // Insertar Perfil (Subtabla)
     const reqProfile = db.request()
-        .input('id', sql.Int, newId)
-        .input('nombre', sql.VarChar(255), nombre.trim())
-        .input('apellidos', sql.VarChar(255), apellidos.trim())
-        .input('telefono', sql.VarChar(20), telefono ? telefono.trim() : null);
+      .input('id', sql.Int, newId)
+      .input('nombre', sql.VarChar(255), nombre.trim())
+      .input('apellidos', sql.VarChar(255), apellidos.trim())
+      .input('telefono', sql.VarChar(20), telefono ? telefono.trim() : null);
 
     if (rol === 'conductor') {
       await reqProfile.query(`
@@ -564,12 +564,18 @@ app.post('/api/garajes', (req, res) => {
       return res.status(400).json({ status: 'error', message: msg });
     }
 
-    const { usuario_id, direccion, descripcion, precio_hora } = req.body;
+    const { usuario_id, direccion, descripcion, precio_hora, hora_apertura, hora_cierre, dias_operativos, instrucciones_acceso, nivel_seguridad, metodo_acceso, horarios_flexibles } = req.body;
     let espacios = [];
     try {
       espacios = JSON.parse(req.body.espacios || '[]');
-    } catch(_) {
+    } catch (_) {
       espacios = [];
+    }
+    let comodidades = [];
+    try {
+      comodidades = JSON.parse(req.body.comodidades || '[]');
+    } catch (_) {
+      comodidades = [];
     }
 
     // Validaciones
@@ -608,16 +614,23 @@ app.post('/api/garajes', (req, res) => {
         return res.status(403).json({ status: 'error', message: 'Solo los anfitriones pueden publicar espacios de parqueo.' });
       }
 
-      // ── Paso 1: Insertar el garaje ──
+      // ── Paso 1: Insertar el garaje (con horarios) ──
       const insertResult = await db.request()
         .input('anfitrion_id', sql.Int, parseInt(usuario_id, 10))
         .input('direccion', sql.NVarChar(255), String(direccion).trim())
         .input('descripcion', sql.NVarChar(500), descripcion ? String(descripcion).trim() : null)
         .input('precio_hora', sql.Decimal(10, 2), parseFloat(precio_hora))
         .input('tipo_vehiculo', sql.VarChar(20), tipoPrincipal)
+        .input('hora_apertura', sql.VarChar(5), hora_apertura || '08:00')
+        .input('hora_cierre', sql.VarChar(5), hora_cierre || '22:00')
+        .input('dias_operativos', sql.VarChar(50), dias_operativos || 'L-D')
+        .input('instrucciones', sql.NVarChar(sql.MAX), instrucciones_acceso || null)
+        .input('nivel_seg', sql.VarChar(50), nivel_seguridad || 'Estándar')
+        .input('metodo', sql.VarChar(50), metodo_acceso || 'Manual')
+        .input('horarios_flex', sql.NVarChar(sql.MAX), horarios_flexibles || null)
         .query(`
-          INSERT INTO Garajes (anfitrion_id, direccion, descripcion, precio_hora, tipo_vehiculo)
-          VALUES (@anfitrion_id, @direccion, @descripcion, @precio_hora, @tipo_vehiculo);
+          INSERT INTO Garajes (anfitrion_id, direccion, descripcion, precio_hora, tipo_vehiculo, hora_apertura, hora_cierre, dias_operativos, instrucciones_acceso, nivel_seguridad, metodo_acceso, horarios_flexibles)
+          VALUES (@anfitrion_id, @direccion, @descripcion, @precio_hora, @tipo_vehiculo, @hora_apertura, @hora_cierre, @dias_operativos, @instrucciones, @nivel_seg, @metodo, @horarios_flex);
           SELECT SCOPE_IDENTITY() AS nuevoId;
         `);
 
@@ -626,7 +639,7 @@ app.post('/api/garajes', (req, res) => {
 
       // ── Paso 1B: Insertar Espacios definidos por el anfitrión ──
       for (const esp of espacios) {
-        const tipoValido = ['auto', 'moto', 'camioneta'].includes(esp.tipo_vehiculo) ? esp.tipo_vehiculo : 'auto';
+        const tipoValido = ['auto', 'moto', 'camioneta', 'techado'].includes(esp.tipo_vehiculo) ? esp.tipo_vehiculo : 'auto';
         await db.request()
           .input('garaje_id', sql.Int, garajeId)
           .input('num', sql.VarChar(10), String(esp.numero_espacio || '').substring(0, 10))
@@ -636,6 +649,19 @@ app.post('/api/garajes', (req, res) => {
           .query("INSERT INTO Espacios (garaje_id, numero_espacio, estado, fila, columna, tipo_vehiculo) VALUES (@garaje_id, @num, 'libre', @fila, @col, @tipo)");
       }
       console.log(`   🅿️ ${espacios.length} Espacio(s) insertados.`);
+
+      // ── Paso 1C: Insertar Comodidades del garaje ──
+      if (comodidades && comodidades.length > 0) {
+        for (const clave of comodidades) {
+          if (typeof clave === 'string' && clave.trim()) {
+            await db.request()
+              .input('garaje_id', sql.Int, garajeId)
+              .input('clave', sql.VarChar(50), clave.trim())
+              .query('INSERT INTO ComodidadesGaraje (garaje_id, clave) VALUES (@garaje_id, @clave)');
+          }
+        }
+        console.log(`   🏷️ ${comodidades.length} comodidad(es) insertadas.`);
+      }
 
       // ── Paso 2: Guardar fotos en FotosGaraje ──
       const fotosGuardadas = [];
@@ -702,6 +728,10 @@ app.get('/api/garajes/mis-espacios', async (req, res) => {
           g.tipo_vehiculo,
           g.estado_activo,
           g.fecha_creacion,
+          g.hora_apertura,
+          g.hora_cierre,
+          g.dias_operativos,
+          g.horarios_flexibles,
           fp.foto_url AS foto_principal
         FROM Garajes g
         OUTER APPLY (
@@ -777,7 +807,7 @@ app.put('/api/garajes/:id/estado', async (req, res) => {
 // ============================================================
 app.get('/api/explorar', async (req, res) => {
   console.log('\n🔍 [GET /api/explorar]');
-  let { precio_min, precio_max, tipo_vehiculo, busqueda, page, limit, fecha_entrada, fecha_salida } = req.query;
+  let { precio_min, precio_max, tipo_vehiculo, busqueda, page, limit, fecha_entrada, fecha_salida, nivel_seguridad, metodo_acceso } = req.query;
 
   // Parámetros de paginación por defecto
   const currentPage = parseInt(page, 10) || 1;
@@ -833,6 +863,16 @@ app.get('/api/explorar', async (req, res) => {
       conditions.push('g.tipo_vehiculo = @tipo_vehiculo');
     }
 
+    if (nivel_seguridad && ['Básico', 'Estándar', 'Premium'].includes(nivel_seguridad)) {
+      request.input('nivel_seguridad', sql.VarChar(50), nivel_seguridad);
+      conditions.push('g.nivel_seguridad = @nivel_seguridad');
+    }
+
+    if (metodo_acceso && ['Manual', 'Código', 'QR'].includes(metodo_acceso)) {
+      request.input('metodo_acceso', sql.VarChar(50), metodo_acceso);
+      conditions.push('g.metodo_acceso = @metodo_acceso');
+    }
+
     const whereClause = conditions.join(' AND ');
 
     const result = await request.query(`
@@ -844,6 +884,8 @@ app.get('/api/explorar', async (req, res) => {
         g.precio_hora,
         g.tipo_vehiculo,
         g.fecha_creacion,
+        g.nivel_seguridad,
+        g.metodo_acceso,
         fp.foto_url AS foto_portada
       FROM Garajes g
       OUTER APPLY (
@@ -910,7 +952,14 @@ app.get('/api/explorar/:id', async (req, res) => {
           g.precio_hora,
           g.tipo_vehiculo,
           g.estado_activo,
-          g.fecha_creacion
+          g.fecha_creacion,
+          g.hora_apertura,
+          g.hora_cierre,
+          g.dias_operativos,
+          g.instrucciones_acceso,
+          g.nivel_seguridad,
+          g.metodo_acceso,
+          g.horarios_flexibles
         FROM Garajes g
         WHERE g.id = @id AND g.estado_activo = 1
       `);
@@ -932,7 +981,13 @@ app.get('/api/explorar/:id', async (req, res) => {
     const garaje = garajeResult.recordset[0];
     garaje.fotos = fotosResult.recordset;
 
-    console.log(`   ✅ Garaje ${garaje_id} cargado con ${garaje.fotos.length} foto(s).`);
+    // Cargar comodidades del garaje
+    const comodidadesResult = await db.request()
+      .input('garaje_id2', sql.Int, garaje_id)
+      .query('SELECT clave FROM ComodidadesGaraje WHERE garaje_id = @garaje_id2');
+    garaje.comodidades = comodidadesResult.recordset.map(c => c.clave);
+
+    console.log(`   ✅ Garaje ${garaje_id} cargado con ${garaje.fotos.length} foto(s) y ${garaje.comodidades.length} comodidad(es).`);
     return res.json({ status: 'ok', data: garaje });
 
   } catch (err) {
@@ -956,12 +1011,13 @@ app.get('/api/garajes/:id/espacios', async (req, res) => {
   try {
     const db = await getPool();
 
+    // Para conductores: OCULTAR los espacios en mantenimiento
     const result = await db.request()
       .input('garaje_id', sql.Int, garaje_id)
       .query(`
         SELECT e.id, e.numero_espacio, e.estado, e.fila, e.columna, e.tipo_vehiculo
         FROM Espacios e
-        WHERE e.garaje_id = @garaje_id
+        WHERE e.garaje_id = @garaje_id AND e.estado != 'mantenimiento'
         ORDER BY e.fila ASC, e.columna ASC
       `);
 
@@ -990,11 +1046,11 @@ app.post('/api/reservas', async (req, res) => {
   try {
     const db = await getPool();
 
-    // 1. Validar si el espacio existe y recuperar su precio_hora (a través del Garaje padre)
+    // 1. Validar si el espacio existe y recuperar su precio_hora + horarios (a través del Garaje padre)
     const garajeResult = await db.request()
       .input('espacio_id', sql.Int, parseInt(espacio_id, 10))
       .query(`
-        SELECT g.precio_hora 
+        SELECT g.precio_hora, g.hora_apertura, g.hora_cierre, g.dias_operativos, g.horarios_flexibles
         FROM Espacios e 
         INNER JOIN Garajes g ON e.garaje_id = g.id 
         WHERE e.id = @espacio_id
@@ -1003,7 +1059,66 @@ app.post('/api/reservas', async (req, res) => {
     if (garajeResult.recordset.length === 0) {
       return res.status(404).json({ status: 'error', message: 'Espacio no encontrado.' });
     }
-    const precio_hora = garajeResult.recordset[0].precio_hora;
+    const garajeData = garajeResult.recordset[0];
+    const precio_hora = garajeData.precio_hora;
+
+    // ── Validación de Horario Operativo ──
+    const inicioDate = new Date(fecha_inicio);
+    const finDate = new Date(fecha_fin);
+
+    const horaInicioStr = inicioDate.getHours().toString().padStart(2, '0') + ':' + inicioDate.getMinutes().toString().padStart(2, '0');
+    const horaFinStr = finDate.getHours().toString().padStart(2, '0') + ':' + finDate.getMinutes().toString().padStart(2, '0');
+    const diaInicio = inicioDate.getDay();
+    const diaFin = finDate.getDay();
+
+    if (garajeData.horarios_flexibles) {
+      let horariosArr = [];
+      try {
+        horariosArr = JSON.parse(garajeData.horarios_flexibles);
+      } catch (e) {}
+
+      if (horariosArr.length > 0) {
+        // Encontrar un horario que coincida con el día de inicio
+        const horarioInicioPermitido = horariosArr.find(h => h.dias.includes(diaInicio) && horaInicioStr >= h.inicio && horaInicioStr <= h.fin);
+        // Encontrar un horario que coincida con el día de fin
+        const horarioFinPermitido = horariosArr.find(h => h.dias.includes(diaFin) && horaFinStr >= h.inicio && horaFinStr <= h.fin);
+
+        if (!horarioInicioPermitido || !horarioFinPermitido) {
+          return res.status(400).json({
+            status: 'error',
+            message: 'La reserva cae fuera de los horarios flexibles permitidos por el anfitrión.'
+          });
+        }
+      }
+    } else {
+      // Legacy validation
+      const diasMap = {
+        'L-D': [0, 1, 2, 3, 4, 5, 6],
+        'L-V': [1, 2, 3, 4, 5],
+        'L-S': [1, 2, 3, 4, 5, 6],
+        'S-D': [0, 6],
+      };
+      const diasPermitidos = diasMap[garajeData.dias_operativos] || [0, 1, 2, 3, 4, 5, 6];
+
+      if (!diasPermitidos.includes(diaInicio) || !diasPermitidos.includes(diaFin)) {
+        return res.status(400).json({
+          status: 'error',
+          message: `Este garaje solo opera los días ${garajeData.dias_operativos}. Tu reserva cae fuera de los días permitidos.`
+        });
+      }
+
+      if (garajeData.hora_apertura && garajeData.hora_cierre) {
+        const apertura = String(garajeData.hora_apertura).substring(0, 5);
+        const cierre = String(garajeData.hora_cierre).substring(0, 5);
+
+        if (horaInicioStr < apertura || horaFinStr > cierre) {
+          return res.status(400).json({
+            status: 'error',
+            message: `Este garaje opera de ${apertura} a ${cierre}. Tu reserva cae fuera del horario permitido.`
+          });
+        }
+      }
+    }
 
     // 2. Validación de Double-Booking (Con Buffer de 30 minutos)
     // Buscamos si existe alguna reserva para el mismo **espacio** que se solape en fechas
@@ -1096,7 +1211,7 @@ app.get('/api/reservas/mis-reservas', async (req, res) => {
       query = `
         SELECT 
           r.id, r.fecha_inicio, r.fecha_fin, r.estado, r.precio_total,
-          g.direccion as garaje_direccion, g.tipo_vehiculo,
+          g.direccion as garaje_direccion, g.tipo_vehiculo, g.instrucciones_acceso, g.metodo_acceso,
           e.numero_espacio
         FROM Reservas r
         JOIN Espacios e ON r.espacio_id = e.id
@@ -1235,6 +1350,106 @@ app.get('/api/reservas/pendientes-count', async (req, res) => {
   } catch (err) {
     console.error('❌ Error al contar reservas pendientes:', err.message);
     return res.status(500).json({ status: 'error' });
+  }
+});
+
+// ============================================================
+// GARAJES — Listar Espacios de un Garaje (ADMIN / Anfitrión)
+// GET /api/garajes/:id/espacios-admin?usuario_id=X
+// Incluye los espacios en mantenimiento
+// ============================================================
+app.get('/api/garajes/:id/espacios-admin', async (req, res) => {
+  const garaje_id = parseInt(req.params.id, 10);
+  const usuario_id = parseInt(req.query.usuario_id, 10);
+  console.log(`\n🛠️ [GET /api/garajes/${garaje_id}/espacios-admin] Usuario: ${usuario_id}`);
+
+  if (!garaje_id || !usuario_id)
+    return res.status(400).json({ status: 'error', message: 'garaje_id y usuario_id requeridos.' });
+
+  try {
+    const db = await getPool();
+
+    // Verificar que el garaje le pertenece al anfitrión
+    const check = await db.request()
+      .input('id', sql.Int, garaje_id)
+      .input('usuario_id', sql.Int, usuario_id)
+      .query('SELECT id, direccion, precio_hora, hora_apertura, hora_cierre, dias_operativos FROM Garajes WHERE id = @id AND anfitrion_id = @usuario_id');
+
+    if (check.recordset.length === 0)
+      return res.status(404).json({ status: 'error', message: 'Garaje no encontrado o no te pertenece.' });
+
+    const garaje = check.recordset[0];
+
+    // Devolver TODOS los espacios (incluidos los de mantenimiento)
+    const result = await db.request()
+      .input('garaje_id', sql.Int, garaje_id)
+      .query(`
+        SELECT e.id, e.numero_espacio, e.estado, e.fila, e.columna, e.tipo_vehiculo
+        FROM Espacios e
+        WHERE e.garaje_id = @garaje_id
+        ORDER BY e.fila ASC, e.columna ASC
+      `);
+
+    console.log(`   ✅ ${result.recordset.length} espacio(s) encontrados (admin).`);
+    return res.json({ status: 'ok', data: { garaje, espacios: result.recordset } });
+
+  } catch (err) {
+    console.error('❌ Error al listar espacios (admin):', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al cargar los espacios.' });
+  }
+});
+
+// ============================================================
+// GARAJES — Cambiar estado de un espacio (mantenimiento/libre)
+// PUT /api/garajes/espacio/:id/estado
+// Body: { usuario_id, estado }
+// ============================================================
+app.put('/api/garajes/espacio/:id/estado', async (req, res) => {
+  const espacio_id = parseInt(req.params.id, 10);
+  const { usuario_id, estado } = req.body;
+  console.log(`\n🔧 [PUT /api/garajes/espacio/${espacio_id}/estado] -> ${estado}`);
+
+  if (!espacio_id || !usuario_id || !estado)
+    return res.status(400).json({ status: 'error', message: 'espacio_id, usuario_id y estado son requeridos.' });
+
+  const estadosValidos = ['libre', 'mantenimiento'];
+  if (!estadosValidos.includes(estado))
+    return res.status(400).json({ status: 'error', message: 'Estado inválido. Usa: libre o mantenimiento.' });
+
+  try {
+    const db = await getPool();
+
+    // Verificar que el espacio pertenece a un garaje del anfitrión
+    const check = await db.request()
+      .input('espacio_id', sql.Int, espacio_id)
+      .input('usuario_id', sql.Int, parseInt(usuario_id, 10))
+      .query(`
+        SELECT e.id, e.estado AS estado_actual
+        FROM Espacios e
+        JOIN Garajes g ON e.garaje_id = g.id
+        WHERE e.id = @espacio_id AND g.anfitrion_id = @usuario_id
+      `);
+
+    if (check.recordset.length === 0)
+      return res.status(404).json({ status: 'error', message: 'Espacio no encontrado o no te pertenece.' });
+
+    // No permitir cambiar un espacio ocupado a mantenimiento
+    if (check.recordset[0].estado_actual === 'ocupado' && estado === 'mantenimiento')
+      return res.status(400).json({ status: 'error', message: 'No puedes poner en mantenimiento un espacio que está ocupado.' });
+
+    await db.request()
+      .input('estado', sql.VarChar(20), estado)
+      .input('espacio_id', sql.Int, espacio_id)
+      .query('UPDATE Espacios SET estado = @estado WHERE id = @espacio_id');
+
+    const label = estado === 'mantenimiento' ? 'en mantenimiento' : 'habilitado';
+    console.log(`   ✅ Espacio ${espacio_id} ahora está ${label}.`);
+
+    return res.json({ status: 'ok', message: `Espacio ${label} correctamente.` });
+
+  } catch (err) {
+    console.error('❌ Error al cambiar estado de espacio:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al cambiar el estado.' });
   }
 });
 

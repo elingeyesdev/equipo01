@@ -79,19 +79,144 @@ tailwind.config = {
 }
 </script>
 <style>
-/* Estilos puente para las cards generadas dinamicamente en mis-reservas.js */
-body { font-family: 'Inter', sans-serif; }
-.card.reserva-item { background: white; border-radius: 12px; border: 1px solid #e0e3e5; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px; transition: transform 0.2s, box-shadow 0.2s; }
-.card.reserva-item:hover { transform: translateY(-3px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
-.card-header { padding: 15px 20px; border-bottom: 1px solid #e0e3e5; font-weight: 700; color: #002542; display: flex; align-items: center; justify-content: space-between; background-color: #f7f9fb; }
-.card-body { padding: 20px; }
-.card-footer { padding: 15px 20px; border-top: 1px solid #e0e3e5; background-color: #ffffff; display: flex; align-items: center; justify-content: space-between; }
-.badge.bg-success { background-color: #006a62 !important; padding: 6px 10px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; letter-spacing: 0.5px; }
-.badge.bg-warning { background-color: #d1e4ff !important; color: #001d35 !important; padding: 6px 10px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; letter-spacing: 0.5px; }
-.badge.bg-danger { background-color: #ffdad6 !important; color: #93000a !important; padding: 6px 10px; border-radius: 6px; font-weight: 600; font-size: 0.75rem; letter-spacing: 0.5px; }
-.btn-primary { background-color: #006a62 !important; border: transparent !important; }
-.btn-primary:hover { background-color: #005049 !important; }
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap');
+  * { box-sizing: border-box; }
+  body { font-family: 'Inter', sans-serif; background: #f0f4f8; }
+
+  /* ── Reservation Card ── */
+  .reserva-card {
+    background: #ffffff;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 2px 12px rgba(0,37,66,0.07), 0 1px 3px rgba(0,37,66,0.04);
+    transition: transform 0.25s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.25s ease;
+    border: 1px solid rgba(0,37,66,0.06);
+    display: flex;
+    flex-direction: column;
+    position: relative;
+  }
+  .reserva-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 16px 40px rgba(0,37,66,0.12), 0 4px 12px rgba(0,37,66,0.06);
+  }
+
+  /* ── Card Status Strip ── */
+  .card-status-strip { height: 4px; width: 100%; }
+  .strip-pendiente  { background: linear-gradient(90deg, #f59e0b, #fde68a); }
+  .strip-confirmada { background: linear-gradient(90deg, #006a62, #2addcd); }
+  .strip-rechazada  { background: linear-gradient(90deg, #ba1a1a, #ffdad6); }
+  .strip-finalizada { background: linear-gradient(90deg, #64748b, #cbd5e1); }
+
+  /* ── Card Head ── */
+  .card-head {
+    padding: 20px 22px 14px;
+    display: flex; align-items: flex-start; justify-content: space-between; gap: 12px;
+  }
+  .card-head-location { display: flex; align-items: center; gap: 10px; flex: 1; min-width: 0; }
+  .location-icon {
+    width: 38px; height: 38px; flex-shrink: 0;
+    background: linear-gradient(135deg, #002542, #436182);
+    border-radius: 11px;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 1rem;
+  }
+  .location-name { font-weight: 700; font-size: 0.92rem; color: #002542; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .reserva-num { font-size: 0.7rem; color: #73777e; font-weight: 500; }
+
+  /* ── Status Badge ── */
+  .badge-estado {
+    display: inline-flex; align-items: center; gap: 5px;
+    padding: 5px 12px; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 700; letter-spacing: 0.06em;
+    text-transform: uppercase; white-space: nowrap; flex-shrink: 0;
+  }
+  .badge-pendiente  { background: #fff7ed; color: #92400e; border: 1px solid #fde68a; }
+  .badge-confirmada { background: #f0fdf4; color: #14532d; border: 1px solid #86efac; }
+  .badge-rechazada  { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+  .badge-finalizada { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+  /* ── Card Body ── */
+  .card-body-inner { padding: 0 22px 18px; flex: 1; }
+
+  /* ── Date Timeline ── */
+  .date-timeline {
+    display: flex; align-items: stretch;
+    background: #f8fafc; border-radius: 12px; border: 1px solid #e2e8f0;
+    overflow: hidden; margin-bottom: 14px;
+  }
+  .date-block { flex: 1; padding: 10px 14px; display: flex; flex-direction: column; gap: 2px; }
+  .date-label { font-size: 0.62rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; }
+  .date-value { font-size: 0.82rem; font-weight: 700; color: #002542; }
+  .date-time  { font-size: 0.73rem; color: #73777e; }
+  .date-arrow { padding: 10px 8px; display: flex; align-items: center; color: #006a62; font-size: 1rem; background: #f8fafc; }
+  .date-divider { width: 1px; background: #e2e8f0; }
+
+  /* ── Price Row ── */
+  .price-row {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #f0fdf4, #ecfdf5);
+    border-radius: 10px; border: 1px solid #bbf7d0; margin-bottom: 14px;
+  }
+  .price-label  { font-size: 0.75rem; font-weight: 600; color: #14532d; }
+  .price-amount { font-size: 1.2rem; font-weight: 900; color: #006a62; letter-spacing: -0.02em; }
+
+  /* ── Space Badge ── */
+  .espacio-badge {
+    display: inline-flex; align-items: center; gap: 5px;
+    background: #dbeafe; color: #1e40af;
+    padding: 3px 10px; border-radius: 999px;
+    font-size: 0.7rem; font-weight: 700;
+    margin-bottom: 14px;
+  }
+
+  /* ── Access Instructions (Conductor) ── */
+  .access-card {
+    background: linear-gradient(135deg, #fffbeb, #fef3c7);
+    border: 1px dashed #f59e0b;
+    border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;
+  }
+  .access-header { display: flex; align-items: center; gap: 8px; font-size: 0.77rem; font-weight: 700; color: #92400e; margin-bottom: 5px; }
+  .access-text { font-size: 0.8rem; color: #78350f; line-height: 1.5; }
+
+  /* ── Conductor Info (Host) ── */
+  .conductor-card {
+    background: #f8fafc; border: 1px solid #e2e8f0;
+    border-radius: 12px; padding: 12px 14px; margin-bottom: 14px;
+    display: flex; align-items: center; gap: 12px;
+  }
+  .conductor-avatar {
+    width: 40px; height: 40px; flex-shrink: 0;
+    background: linear-gradient(135deg, #006a62, #2addcd);
+    border-radius: 50%; display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 800; font-size: 1rem;
+  }
+  .conductor-info .c-name  { font-size: 0.88rem; font-weight: 700; color: #002542; }
+  .conductor-info .c-phone { font-size: 0.75rem; color: #73777e; margin-top: 2px; }
+
+  /* ── Action Footer ── */
+  .card-footer-inner {
+    padding: 12px 22px 18px;
+    display: flex; gap: 10px;
+    border-top: 1px solid #f1f5f9;
+  }
+  .btn-action-card {
+    flex: 1; display: flex; align-items: center; justify-content: center; gap: 7px;
+    padding: 10px 14px; border-radius: 10px;
+    font-size: 0.8rem; font-weight: 700; text-decoration: none;
+    cursor: pointer; border: none; transition: all 0.18s ease;
+    font-family: inherit;
+  }
+  .btn-navigate  { background: #f1f5f9; color: #002542; border: 1px solid #e2e8f0; }
+  .btn-navigate:hover  { background: #e2e8f0; color: #002542; }
+  .btn-checkin   { background: linear-gradient(135deg, #002542, #436182); color: white; }
+  .btn-checkin:hover   { opacity: 0.88; }
+  .btn-confirmar { background: linear-gradient(135deg, #006a62, #009688); color: white; }
+  .btn-confirmar:hover { opacity: 0.9; }
+  .btn-rechazar  { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+  .btn-rechazar:hover  { background: #fee2e2; }
 </style>
+
 </head>
 <body class="bg-background text-on-background font-body antialiased min-h-screen">
 <!-- TopNavBar -->

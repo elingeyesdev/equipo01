@@ -69,7 +69,8 @@
   const TIPO_CONFIG = {
     auto:      { label: '🚗 Auto',          icon: 'fa-car' },
     moto:      { label: '🏍️ Moto',          icon: 'fa-motorcycle' },
-    camioneta: { label: '🚙 Camioneta / SUV', icon: 'fa-truck-pickup' }
+    camioneta: { label: '🚙 Camioneta / SUV', icon: 'fa-truck-pickup' },
+    techado:   { label: '🛖 Techado',       icon: 'fa-warehouse' }
   };
 
   // ─── Theme Toggle (Material Symbols + Tailwind dark class) ───
@@ -158,6 +159,95 @@
       } else {
         garajeDescripcion.innerHTML = '<p class="opacity-50">Sin descripción disponible.</p>';
       }
+
+      // Horario Operativo / Flexibles
+      if (garaje.horarios_flexibles) {
+        try {
+          const mapDias = {1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb', 0: 'Dom'};
+          const horariosArr = JSON.parse(garaje.horarios_flexibles);
+          let horariosHtml = horariosArr.map(h => {
+            const diasStr = h.dias.map(d => mapDias[d]).join(', ');
+            return `<div style="display:flex;align-items:center;gap:6px;font-size:0.88rem;font-weight:600;color:#006a62;">
+                      <i class="fa-solid fa-calendar-days"></i> ${diasStr}: ${h.inicio} — ${h.fin}
+                    </div>`;
+          }).join('');
+
+          garajeDescripcion.innerHTML += `
+            <div style="margin-top:16px;padding:12px 16px;background:rgba(0,106,98,0.06);border-radius:10px;border:1px solid rgba(0,106,98,0.15);display:flex;flex-direction:column;gap:8px;">
+              <div style="font-size:0.75rem; color:var(--text-secondary); text-transform:uppercase; font-weight:700;">Horarios Disponibles</div>
+              ${horariosHtml}
+            </div>
+          `;
+        } catch(e) {}
+      } else if (garaje.hora_apertura && garaje.hora_cierre) {
+        const apertura = String(garaje.hora_apertura).substring(0, 5);
+        const cierre = String(garaje.hora_cierre).substring(0, 5);
+        const diasLabels = { 'L-D': 'Lunes a Domingo', 'L-V': 'Lunes a Viernes', 'L-S': 'Lunes a Sábado', 'S-D': 'Sábado y Domingo' };
+        const diasLabel = diasLabels[garaje.dias_operativos] || garaje.dias_operativos || 'Todos los días';
+        garajeDescripcion.innerHTML += `
+          <div style="margin-top:16px;padding:12px 16px;background:rgba(0,106,98,0.06);border-radius:10px;border:1px solid rgba(0,106,98,0.15);display:flex;flex-wrap:wrap;gap:16px;align-items:center;">
+            <div style="display:flex;align-items:center;gap:6px;font-size:0.88rem;font-weight:600;color:#006a62;">
+              <i class="fa-solid fa-clock"></i> ${apertura} — ${cierre}
+            </div>
+            <div style="display:flex;align-items:center;gap:6px;font-size:0.88rem;font-weight:600;color:#006a62;">
+              <i class="fa-solid fa-calendar-days"></i> ${diasLabel}
+            </div>
+          </div>
+        `;
+      }
+
+      // Comodidades
+      if (garaje.comodidades && garaje.comodidades.length > 0) {
+        const COMODIDAD_CONFIG = {
+          techado: { icon: 'fa-warehouse', label: 'Techado' },
+          cctv: { icon: 'fa-video', label: 'CCTV' },
+          vigilancia: { icon: 'fa-shield-halved', label: 'Vigilancia 24/7' },
+          iluminado: { icon: 'fa-lightbulb', label: 'Iluminado' },
+          acceso_24h: { icon: 'fa-clock', label: 'Acceso 24h' },
+          cargador_ev: { icon: 'fa-charging-station', label: 'Cargador EV' },
+          lavado: { icon: 'fa-droplet', label: 'Lavado' },
+          acceso_discapacidad: { icon: 'fa-wheelchair', label: 'Accesible' }
+        };
+        const chips = garaje.comodidades.map(c => {
+          const cfg = COMODIDAD_CONFIG[c] || { icon: 'fa-tag', label: c };
+          return `<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:rgba(0,37,66,0.05);font-size:0.8rem;font-weight:600;color:#002542;border:1px solid rgba(0,37,66,0.1);"><i class="fa-solid ${cfg.icon}" style="color:#006a62;"></i> ${cfg.label}</span>`;
+        }).join('');
+        garajeDescripcion.innerHTML += `
+          <div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:8px;">
+            ${chips}
+          </div>
+        `;
+      }
+
+      // Mejora Real-Life: Nivel de Seguridad y Acceso
+      const securityIcons = { 'Básico': 'fa-lock', 'Estándar': 'fa-shield-halved', 'Premium': 'fa-shield-heart' };
+      const accessIcons = { 'Manual': 'fa-hand', 'Código': 'fa-hashtag', 'QR': 'fa-qrcode' };
+      
+      garajeDescripcion.innerHTML += `
+        <div style="margin-top:24px; padding:20px; background: #f8fafc; border-radius:12px; border: 1px solid #e2e8f0;">
+          <h4 style="font-size: 0.9rem; font-weight: 700; color: #1e293b; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Seguridad y Acceso</h4>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 36px; height: 36px; border-radius: 50%; background: #e0f2fe; color: #0369a1; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-solid ${securityIcons[garaje.nivel_seguridad] || 'fa-shield'}"></i>
+              </div>
+              <div>
+                <div style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Seguridad</div>
+                <div style="font-size: 0.85rem; color: #0f172a; font-weight: 700;">${garaje.nivel_seguridad || 'Estándar'}</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <div style="width: 36px; height: 36px; border-radius: 50%; background: #f0fdf4; color: #15803d; display: flex; align-items: center; justify-content: center;">
+                <i class="fa-solid ${accessIcons[garaje.metodo_acceso] || 'fa-key'}"></i>
+              </div>
+              <div>
+                <div style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Entrada</div>
+                <div style="font-size: 0.85rem; color: #0f172a; font-weight: 700;">${garaje.metodo_acceso || 'Manual'}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      `;
     }
   }
 
@@ -201,7 +291,7 @@
       slot.dataset.numero = esp.numero_espacio;
       slot.dataset.estado = esp.estado;
 
-      const iconMap = { auto: 'fa-car', moto: 'fa-motorcycle', camioneta: 'fa-truck-pickup' };
+      const iconMap = { auto: 'fa-car', moto: 'fa-motorcycle', camioneta: 'fa-truck-pickup', techado: 'fa-warehouse' };
       const iconClass = iconMap[esp.tipo_vehiculo] || 'fa-car';
 
       slot.innerHTML = `
