@@ -135,32 +135,75 @@
   function generarTarjetas(reservas) {
     return reservas.map(res => {
       
-      const badgeClass = estadoClase[res.estado] || 'bg-secondary';
-      const fInicio = moment(res.fecha_inicio).format('DD MMM YYYY, HH:mm');
-      const fFin = moment(res.fecha_fin).format('DD MMM YYYY, HH:mm');
-      
+      const badgeClass = estadoClase[res.estado] || 'badge-finalizada';
+      const estadoStr  = estadoLabel[res.estado] || res.estado;
+
+      // Status icons
+      const estadoIcono = { pendiente: 'fa-clock', confirmada: 'fa-circle-check', rechazada: 'fa-circle-xmark', finalizada: 'fa-flag-checkered' };
+      const icono = estadoIcono[res.estado] || 'fa-circle';
+
+      // Dates
+      const fInicioDate = moment(res.fecha_inicio);
+      const fFinDate    = moment(res.fecha_fin);
+
       let bloqueOpcional = '';
-      let actionButtons = '';
+      let espacioBadge   = '';
+      let cardFooterHtml = '';
+
+      // ── Space badge ──
+      if (res.numero_espacio) {
+        espacioBadge = `<div class="espacio-badge"><i class="fa-solid fa-square-parking"></i> Espacio ${res.numero_espacio}</div>`;
+      }
 
       if (esAnfitrion) {
-        // Bloque del anfitrión
+        // Conductor info block
+        const initial = (res.conductor_nombre || 'C')[0].toUpperCase();
         bloqueOpcional = `
-          <div class="info-block" style="grid-column: span 2;">
-            <span>Conductor</span>
-            <div><i class="fa-solid fa-user me-1 text-muted"></i> ${res.conductor_nombre}</div>
-            <div><i class="fa-solid fa-phone me-1 text-muted"></i> ${res.conductor_telefono || 'Sin teléfono'}</div>
+          <div class="conductor-card">
+            <div class="conductor-avatar">${initial}</div>
+            <div class="conductor-info">
+              <div class="c-name"><i class="fa-solid fa-user" style="color:#006a62;margin-right:5px;font-size:0.75rem;"></i>${res.conductor_nombre || 'N/A'}</div>
+              <div class="c-phone"><i class="fa-solid fa-phone" style="margin-right:5px;font-size:0.7rem;"></i>${res.conductor_telefono || 'Sin teléfono'}</div>
+            </div>
           </div>
         `;
-        
-        // Mostrar botones solo si está pendiente
+
         if (res.estado === 'pendiente') {
-          actionButtons = `
-            <div class="mt-3 pt-3 border-top d-flex gap-2 justify-content-end">
-              <button class="btn btn-outline-danger btn-action" onclick="cambiarEstado(${res.id}, 'rechazada')">
+          cardFooterHtml = `
+            <div class="card-footer-inner">
+              <button class="btn-action-card btn-rechazar" onclick="cambiarEstado(${res.id}, 'rechazada')">
                 <i class="fa-solid fa-xmark"></i> Rechazar
               </button>
-              <button class="btn btn-success btn-action" onclick="cambiarEstado(${res.id}, 'confirmada')">
+              <button class="btn-action-card btn-confirmar" onclick="cambiarEstado(${res.id}, 'confirmada')">
                 <i class="fa-solid fa-check"></i> Confirmar
+              </button>
+            </div>
+          `;
+        }
+
+      } else if (esConductor) {
+        // Access instructions
+        if (res.instrucciones_acceso) {
+          bloqueOpcional = `
+            <div class="access-card">
+              <div class="access-header">
+                <i class="fa-solid fa-key"></i> Instrucciones de Acceso
+              </div>
+              <div class="access-text">${res.instrucciones_acceso}</div>
+            </div>
+          `;
+        }
+
+        // Action buttons for confirmed reservations
+        if (res.estado === 'confirmada') {
+          const addressEnc = encodeURIComponent(res.garaje_direccion);
+          cardFooterHtml = `
+            <div class="card-footer-inner">
+              <a href="https://www.google.com/maps/search/?api=1&query=${addressEnc}" target="_blank" class="btn-action-card btn-navigate">
+                <i class="fa-solid fa-location-arrow"></i> Llegar
+              </a>
+              <button class="btn-action-card btn-checkin" onclick="mostrarCheckIn(${res.id})">
+                <i class="fa-solid fa-qrcode"></i> Check-in
               </button>
             </div>
           `;
@@ -169,36 +212,62 @@
 
       return `
         <div class="reserva-card" id="reserva-${res.id}">
-          <div class="reserva-header">
-            <div>
-              <div class="reserva-title"><i class="fa-solid fa-location-dot me-2 text-muted"></i>${res.garaje_direccion}</div>
-              <small class="text-muted">Reserva #${res.id}</small>
+          <!-- Status color strip -->
+          <div class="card-status-strip strip-${res.estado}"></div>
+
+          <!-- Card Header -->
+          <div class="card-head">
+            <div class="card-head-location">
+              <div class="location-icon"><i class="fa-solid fa-warehouse"></i></div>
+              <div style="min-width:0;">
+                <div class="location-name" title="${res.garaje_direccion}">${res.garaje_direccion}</div>
+                <div class="reserva-num">Reserva #${res.id}</div>
+              </div>
             </div>
-            <span class="badge-estado ${badgeClass}">${estadoLabel[res.estado].toUpperCase()}</span>
+            <span class="badge-estado ${badgeClass}">
+              <i class="fa-solid ${icono}" style="font-size:0.65rem;"></i>
+              ${estadoStr}
+            </span>
           </div>
 
-          <div class="reserva-info">
-            <div class="info-block">
-              <span>Fechas</span>
-              <div><i class="fa-regular fa-clock me-1 text-muted"></i> ${fInicio}</div>
-              <div><i class="fa-solid fa-arrow-right me-1 text-muted"></i> ${fFin}</div>
-            </div>
-            
-            <div class="info-block">
-              <span>Total a pagar</span>
-              <div style="font-weight: 700; color: var(--brand-color, #4f46e5); font-size: 1.1rem;">
-                Bs. ${parseFloat(res.precio_total).toFixed(2)}
+          <!-- Card Body -->
+          <div class="card-body-inner">
+
+            ${espacioBadge}
+
+            <!-- Date Timeline -->
+            <div class="date-timeline">
+              <div class="date-block">
+                <div class="date-label">Check-in</div>
+                <div class="date-value">${fInicioDate.format('DD MMM YYYY')}</div>
+                <div class="date-time">${fInicioDate.format('HH:mm')}</div>
+              </div>
+              <div class="date-divider"></div>
+              <div class="date-arrow"><i class="fa-solid fa-arrow-right"></i></div>
+              <div class="date-divider"></div>
+              <div class="date-block">
+                <div class="date-label">Check-out</div>
+                <div class="date-value">${fFinDate.format('DD MMM YYYY')}</div>
+                <div class="date-time">${fFinDate.format('HH:mm')}</div>
               </div>
             </div>
 
+            <!-- Price -->
+            <div class="price-row">
+              <div class="price-label"><i class="fa-solid fa-coins" style="margin-right:5px;"></i>Total a pagar</div>
+              <div class="price-amount">Bs. ${parseFloat(res.precio_total).toFixed(2)}</div>
+            </div>
+
             ${bloqueOpcional}
+
           </div>
 
-          ${actionButtons}
+          ${cardFooterHtml}
         </div>
       `;
     }).join('');
   }
+
 
   // ─── Actualizar Estado (Anfitrión) ───
   window.cambiarEstado = async function(id, nuevoEstado) {
@@ -226,6 +295,26 @@
       alert('Error de red al actualizar estado');
       cargarReservas();
     }
+  }
+
+  // ─── Check-in (Simulación QR) ───
+  window.mostrarCheckIn = function(id) {
+    const modalHTML = `
+      <div id="checkInModal" class="fixed inset-0 z-[200] flex items-center justify-center bg-black/80 backdrop-blur-sm p-4">
+        <div class="bg-white rounded-2xl p-8 max-w-sm w-full text-center shadow-2xl">
+          <h3 class="text-2xl font-bold text-slate-900 mb-2">Check-in</h3>
+          <p class="text-slate-500 mb-6">Muestra este código al llegar al garaje</p>
+          <div class="bg-slate-100 p-4 rounded-xl mb-6 flex justify-center">
+             <img src="https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=EstAirbnb-Reserva-${id}" alt="QR Code" class="w-48 h-48">
+          </div>
+          <p class="text-xs text-slate-400 mb-6">Reserva #${id} · Valida por 15 minutos</p>
+          <button onclick="document.getElementById('checkInModal').remove()" class="w-full bg-slate-900 text-white font-bold py-3 rounded-lg hover:bg-slate-800 transition-colors">
+            Cerrar
+          </button>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHTML);
   }
 
   // ─── Iniciar ───

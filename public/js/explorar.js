@@ -41,6 +41,7 @@
   const filtroPrecioMin  = document.getElementById('filtroPrecioMin');
   const filtroPrecioMax  = document.getElementById('filtroPrecioMax');
   const filtroTipo       = document.getElementById('filtroTipoVehiculo');
+  const filtroSeguridad  = document.getElementById('filtroSeguridad');
   const btnBuscar        = document.getElementById('btnBuscar');
   const btnLimpiar       = document.getElementById('btnLimpiar');
 
@@ -94,6 +95,8 @@
     const precioMin = filtroPrecioMin.value.trim();
     const precioMax = filtroPrecioMax.value.trim();
     const tipoVehiculo = filtroTipo.value;
+    const nivelSeguridad = filtroSeguridad.value;
+    const metodoAcceso = document.querySelector('input[name="filtroAcceso"]:checked')?.value;
 
     // Validación Fechas
     if (fEntrada || fSalida) {
@@ -120,6 +123,8 @@
     if (precioMin) params.set('precio_min', precioMin);
     if (precioMax) params.set('precio_max', precioMax);
     if (tipoVehiculo) params.set('tipo_vehiculo', tipoVehiculo);
+    if (nivelSeguridad) params.set('nivel_seguridad', nivelSeguridad);
+    if (metodoAcceso) params.set('metodo_acceso', metodoAcceso);
 
     // Parametros de Paginación
     params.set('page', paginaActual);
@@ -205,6 +210,12 @@
       <div class="explore-card-body">
         <div class="explore-card-direccion">${garaje.direccion}</div>
         <div class="explore-card-descripcion">${descripcion}</div>
+        
+        <div style="display:flex; gap:8px; margin-bottom: 12px; flex-wrap:wrap;">
+          <span style="font-size:0.7rem; background:#e0e3e5; color:#191c1e; padding:2px 8px; border-radius:4px; font-weight:600;"><i class="fa-solid fa-shield-halved" style="color:#006a62;"></i> Seg: ${garaje.nivel_seguridad || 'Estándar'}</span>
+          <span style="font-size:0.7rem; background:#e0e3e5; color:#191c1e; padding:2px 8px; border-radius:4px; font-weight:600;"><i class="fa-solid fa-key" style="color:#006a62;"></i> Acceso: ${garaje.metodo_acceso || 'Manual'}</span>
+        </div>
+
         <div class="explore-card-footer">
           <span class="explore-card-precio">
             Bs. ${precio} <small>/ hora</small>
@@ -282,6 +293,10 @@
     filtroPrecioMin.value = '';
     filtroPrecioMax.value = '';
     filtroTipo.value = '';
+    filtroSeguridad.value = '';
+    const defaultAcceso = document.querySelector('input[name="filtroAcceso"][value=""]');
+    if (defaultAcceso) defaultAcceso.checked = true;
+    
     paginaActual = 1; // Reset a primera página
     cargarGarajes();
   });

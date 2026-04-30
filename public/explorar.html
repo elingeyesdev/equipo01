@@ -164,6 +164,38 @@ tailwind.config = {
 <option value="camioneta">Camioneta / SUV</option>
 </select>
 </div>
+<!-- Security Level -->
+<div class="flex flex-col gap-2">
+<label class="font-label text-sm uppercase tracking-wider text-on-surface-variant font-medium" for="filtroSeguridad">Nivel de Seguridad</label>
+<select class="w-full bg-surface-container-highest text-on-surface border-0 rounded-md py-3 px-4 focus:ring-0 focus:border-b-2 focus:border-b-secondary outline-none" id="filtroSeguridad">
+<option value="">Cualquier nivel</option>
+<option value="Básico">Básico</option>
+<option value="Estándar">Estándar</option>
+<option value="Premium">Premium</option>
+</select>
+</div>
+<!-- Access Method -->
+<div class="flex flex-col gap-2">
+<label class="font-label text-sm uppercase tracking-wider text-on-surface-variant font-medium" for="filtroAcceso">Método de Acceso</label>
+<div class="grid grid-cols-3 gap-2">
+  <label class="cursor-pointer">
+    <input type="radio" name="filtroAcceso" value="" class="peer sr-only" checked>
+    <div class="text-center text-xs font-semibold rounded-md py-2 px-1 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all">Todos</div>
+  </label>
+  <label class="cursor-pointer">
+    <input type="radio" name="filtroAcceso" value="Manual" class="peer sr-only">
+    <div class="text-center text-xs font-semibold rounded-md py-2 px-1 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all">Manual</div>
+  </label>
+  <label class="cursor-pointer">
+    <input type="radio" name="filtroAcceso" value="Código" class="peer sr-only">
+    <div class="text-center text-xs font-semibold rounded-md py-2 px-1 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all">Código</div>
+  </label>
+  <label class="cursor-pointer col-span-3">
+    <input type="radio" name="filtroAcceso" value="QR" class="peer sr-only">
+    <div class="text-center text-xs font-semibold rounded-md py-2 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all flex items-center justify-center gap-1"><i class="fa-solid fa-qrcode"></i> QR (Auto Check-in)</div>
+  </label>
+</div>
+</div>
 </div>
 <div class="flex flex-col gap-3 mt-8">
 <button class="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-md py-3 px-6 font-medium hover:from-secondary hover:to-secondary-container transition-all flex items-center justify-center gap-2 shadow-sm" id="btnBuscar">

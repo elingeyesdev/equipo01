@@ -36,20 +36,34 @@ const statsBar          = document.getElementById('statsBar');
 const contadorGarajes   = document.getElementById('contadorGarajes');
 
 // Visual builder elements
-const btnMenos        = document.getElementById('btnMenos');
-const btnMas          = document.getElementById('btnMas');
+const inpFilas        = document.getElementById('inpFilas');
+const inpColumnas     = document.getElementById('inpColumnas');
+const btnGenerarMapa  = document.getElementById('btnGenerarMapa');
 const cantidadNumero  = document.getElementById('cantidadNumero');
 const mapaBuilder     = document.getElementById('mapaBuilder');
 const tipoLeyenda     = document.getElementById('tipoLeyenda');
 
+// Horarios Flexibles Elements
+const btnAgregarHorario = document.getElementById('btnAgregarHorario');
+const horariosContainer = document.getElementById('horariosContainer');
+const inpHorarioDesde = document.getElementById('inpHorarioDesde');
+const inpHorarioHasta = document.getElementById('inpHorarioHasta');
+const horariosError = document.getElementById('horariosError');
+
+let horariosConfigurados = []; // Array de { dias: [1,2], inicio: "08:00", fin: "18:00" }
+const inpNivelSeguridad = document.getElementById('inpNivelSeguridad');
+const inpMetodoAcceso   = document.getElementById('inpMetodoAcceso');
+const inpInstrucciones  = document.getElementById('inpInstrucciones');
+
 let espaciosConfigurados = []; // Array de { numero_espacio, tipo_vehiculo, fila, columna }
 
 // Vehicle type cycle
-const TIPOS = ['auto', 'moto', 'camioneta'];
+const TIPOS = ['auto', 'moto', 'camioneta', 'techado'];
 const TIPO_CONFIG = {
   auto:      { icon: 'fa-car',          emoji: '🚗', label: 'Auto',    color: '#3b82f6' },
   moto:      { icon: 'fa-motorcycle',   emoji: '🏍️', label: 'Moto',    color: '#f59e0b' },
-  camioneta: { icon: 'fa-truck-pickup', emoji: '🚙', label: 'SUV',     color: '#8b5cf6' }
+  camioneta: { icon: 'fa-truck-pickup', emoji: '🚙', label: 'SUV',     color: '#8b5cf6' },
+  techado:   { icon: 'fa-warehouse',    emoji: '🛖', label: 'Techado', color: '#10b981' }
 };
 
 // ============================================================
@@ -206,37 +220,39 @@ function renderPreviews() {
 // Visual Espacio Builder — +/- & tap-to-cycle
 // ============================================================
 function initEspacioBuilder() {
-  btnMas.addEventListener('click', () => {
-    if (espaciosConfigurados.length >= 10) {
-      showToast('Máximo 10 espacios por garaje.', 'error');
+  btnGenerarMapa.addEventListener('click', () => {
+    const filas = Math.min(Math.max(parseInt(inpFilas.value, 10) || 1, 1), 10);
+    const columnas = Math.min(Math.max(parseInt(inpColumnas.value, 10) || 1, 1), 10);
+
+    if (filas * columnas > 100) {
+      showToast('Máximo 100 espacios por garaje (10x10).', 'error');
       return;
     }
-    addEspacioVisual();
-  });
 
-  btnMenos.addEventListener('click', () => {
-    if (espaciosConfigurados.length <= 0) return;
-    espaciosConfigurados.pop();
+    // Regenerar todo el array de espacios
+    espaciosConfigurados = [];
+    const letras = 'ABCDEFGHIJ';
+
+    for (let f = 1; f <= filas; f++) {
+      for (let c = 1; c <= columnas; c++) {
+        const letra = letras[f - 1] || 'X';
+        // Alternar entre los diferentes tipos para que haya variedad de techados, SUV, etc.
+        const idx = (f + c) % TIPOS.length;
+        espaciosConfigurados.push({
+          numero_espacio: `${letra}${c}`,
+          tipo_vehiculo: TIPOS[idx],
+          fila: f,
+          columna: c
+        });
+      }
+    }
+
     renderMapaBuilder();
+    showToast(`Mapa de ${filas}×${columnas} generado (${espaciosConfigurados.length} espacios).`);
   });
 }
 
-function addEspacioVisual() {
-  const idx = espaciosConfigurados.length;
-  const letras = 'ABCDEFGHIJ';
-  const fila = Math.floor(idx / 5) + 1;
-  const columna = (idx % 5) + 1;
-  const letra = letras[fila - 1] || 'X';
-
-  espaciosConfigurados.push({
-    numero_espacio: `${letra}${columna}`,
-    tipo_vehiculo: 'auto',
-    fila,
-    columna
-  });
-
-  renderMapaBuilder();
-}
+// addEspacioVisual is no longer used — spaces are generated via the matrix
 
 function cycleType(index) {
   const esp = espaciosConfigurados[index];
@@ -252,9 +268,11 @@ function renderMapaBuilder() {
   // Show/hide legend
   tipoLeyenda.style.display = espaciosConfigurados.length > 0 ? 'block' : 'none';
 
-  // Update +/- button states
-  btnMenos.disabled = espaciosConfigurados.length <= 0;
-  btnMas.disabled = espaciosConfigurados.length >= 10;
+  // Determine columns from data
+  const maxCol = espaciosConfigurados.length > 0
+    ? Math.max(...espaciosConfigurados.map(e => e.columna))
+    : 5;
+  mapaBuilder.style.gridTemplateColumns = `repeat(${maxCol}, 1fr)`;
 
   espaciosConfigurados.forEach((esp, idx) => {
     const conf = TIPO_CONFIG[esp.tipo_vehiculo];
@@ -276,6 +294,67 @@ function renderMapaBuilder() {
 
     mapaBuilder.appendChild(card);
   });
+}
+
+// ============================================================
+// Horarios Flexibles Builder
+// ============================================================
+function initHorariosBuilder() {
+  const mapDias = {1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb', 0: 'Dom'};
+
+  window.eliminarHorario = function(idx) {
+    horariosConfigurados.splice(idx, 1);
+    renderHorarios();
+  };
+
+  function renderHorarios() {
+    horariosContainer.innerHTML = '';
+    horariosConfigurados.forEach((horario, idx) => {
+      const diasLabels = horario.dias.map(d => mapDias[d]).join(', ');
+      
+      const div = document.createElement('div');
+      div.className = 'flex items-center justify-between bg-surface-container-low p-3 rounded-lg border border-outline-variant/30';
+      div.innerHTML = `
+        <div class="flex flex-col">
+          <span class="text-sm font-semibold text-primary"><i class="fa-regular fa-calendar text-secondary mr-1"></i> ${diasLabels}</span>
+          <span class="text-xs text-on-surface-variant font-medium"><i class="fa-regular fa-clock mr-1"></i> ${horario.inicio} — ${horario.fin}</span>
+        </div>
+        <button type="button" class="text-error hover:bg-error-container/50 p-2 rounded-full transition-colors flex items-center justify-center" onclick="eliminarHorario(${idx})" title="Eliminar">
+          <i class="fa-solid fa-trash-can"></i>
+        </button>
+      `;
+      horariosContainer.appendChild(div);
+    });
+
+    if (horariosConfigurados.length > 0) {
+      horariosError.classList.add('hidden');
+    }
+  }
+
+  if(btnAgregarHorario) {
+    btnAgregarHorario.addEventListener('click', () => {
+      const checkboxes = document.querySelectorAll('input[name="diasHorario"]:checked');
+      const dias = Array.from(checkboxes).map(cb => parseInt(cb.value, 10));
+      const inicio = inpHorarioDesde.value;
+      const fin = inpHorarioHasta.value;
+
+      if (dias.length === 0) {
+        showToast('Selecciona al menos un día de la semana.', 'error');
+        return;
+      }
+      if (!inicio || !fin || inicio >= fin) {
+        showToast('La hora de inicio debe ser anterior a la hora de cierre.', 'error');
+        return;
+      }
+
+      horariosConfigurados.push({ dias, inicio, fin });
+      
+      // Clear checkboxes for next input
+      checkboxes.forEach(cb => cb.checked = false);
+      
+      renderHorarios();
+    });
+  }
 }
 
 // ============================================================
@@ -303,6 +382,14 @@ formGaraje.addEventListener('submit', async (e) => {
     showToast('Debes agregar al menos un espacio de parqueo.', 'error');
     return;
   }
+  if (horariosConfigurados.length === 0) {
+    horariosError.classList.remove('hidden');
+    showToast('Debes agregar al menos un horario de disponibilidad.', 'error');
+    return;
+  }
+
+  // Recopilar comodidades seleccionadas
+  const comodidades = Array.from(document.querySelectorAll('input[name="comodidad"]:checked')).map(cb => cb.value);
 
   // Construir FormData
   const formData = new FormData();
@@ -310,7 +397,16 @@ formGaraje.addEventListener('submit', async (e) => {
   formData.append('direccion', direccion);
   formData.append('descripcion', descripcion);
   formData.append('precio_hora', precio_hora);
+  // Enviamos datos por defecto para los campos legacy, y el JSON real en horarios_flexibles
+  formData.append('hora_apertura', horariosConfigurados[0]?.inicio || '00:00');
+  formData.append('hora_cierre', horariosConfigurados[0]?.fin || '23:59');
+  formData.append('dias_operativos', 'Flexible');
+  formData.append('horarios_flexibles', JSON.stringify(horariosConfigurados));
+  formData.append('nivel_seguridad', inpNivelSeguridad.value || 'Estándar');
+  formData.append('metodo_acceso', inpMetodoAcceso.value || 'Manual');
+  formData.append('instrucciones_acceso', inpInstrucciones.value || '');
   formData.append('espacios', JSON.stringify(espaciosConfigurados));
+  formData.append('comodidades', JSON.stringify(comodidades));
 
   // Adjuntar archivos
   selectedFiles.forEach(file => {
@@ -466,8 +562,8 @@ function crearTarjetaGaraje(garaje) {
       </div>
       
       <div class="mt-auto pt-4 border-t border-outline-variant/10 flex flex-col gap-2">
-        <button class="w-full text-center text-primary font-label uppercase text-xs tracking-wider font-bold py-2.5 hover:bg-surface-container-low rounded-md transition-colors flex items-center justify-center gap-2" onclick="window.location.href='/detalle-garaje.html?id=${garaje.id}'">
-            <span class="material-symbols-outlined text-sm">visibility</span> Administrar Espacios
+        <button class="w-full text-center text-primary font-label uppercase text-xs tracking-wider font-bold py-2.5 hover:bg-surface-container-low rounded-md transition-colors flex items-center justify-center gap-2" onclick="window.location.href='/panel-mantenimiento.html?id=${garaje.id}'">
+            <span class="material-symbols-outlined text-sm">build</span> Administrar Espacios
         </button>
         <button class="w-full text-center font-label uppercase text-xs tracking-wider font-bold py-2 hover:bg-surface-container-low rounded-md transition-colors flex items-center justify-center gap-2 ${activo ? 'text-error hover:bg-error-container/20' : 'text-secondary'}" 
                 onclick="toggleEstado(${garaje.id}, this)" id="btnEstado-${garaje.id}">
@@ -687,6 +783,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initNavbar();
   initTheme();
   initFileUpload();
+  initHorariosBuilder();
   initEspacioBuilder();
   renderMapaBuilder(); // render initial state (0 spaces)
   cargarMisGarajes();

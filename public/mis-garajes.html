@@ -154,27 +154,112 @@
 
           <hr class="form-divider">
 
-          <!-- Configurador Visual de Espacios -->
+          <!-- Horarios Flexibles -->
+          <div class="form-group">
+            <label class="form-label-custom">
+              <i class="fa-solid fa-calendar-week"></i> Horarios de Disponibilidad
+            </label>
+            <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">
+              Configura los días y las horas en los que tu parqueo estará disponible para reservas. Puedes agregar múltiples horarios (ej. L-V de 08:00 a 17:00, S-D de 10:00 a 20:00).
+            </p>
+            <div id="horariosContainer" class="flex flex-col gap-3 mb-3">
+              <!-- Horarios añadidos irán aquí -->
+            </div>
+            
+            <div class="bg-surface-container p-4 rounded-xl border border-outline-variant/30 flex flex-col md:flex-row gap-3 items-end">
+              <div class="w-full md:w-auto flex-1">
+                <label class="form-label-custom" style="font-size:0.7rem;">Días de la semana</label>
+                <div class="flex flex-wrap gap-2 mt-1">
+                  <label class="flex items-center gap-1"><input type="checkbox" name="diasHorario" value="1" class="rounded border-outline-variant text-primary focus:ring-primary"> Lun</label>
+                  <label class="flex items-center gap-1"><input type="checkbox" name="diasHorario" value="2" class="rounded border-outline-variant text-primary focus:ring-primary"> Mar</label>
+                  <label class="flex items-center gap-1"><input type="checkbox" name="diasHorario" value="3" class="rounded border-outline-variant text-primary focus:ring-primary"> Mié</label>
+                  <label class="flex items-center gap-1"><input type="checkbox" name="diasHorario" value="4" class="rounded border-outline-variant text-primary focus:ring-primary"> Jue</label>
+                  <label class="flex items-center gap-1"><input type="checkbox" name="diasHorario" value="5" class="rounded border-outline-variant text-primary focus:ring-primary"> Vie</label>
+                  <label class="flex items-center gap-1"><input type="checkbox" name="diasHorario" value="6" class="rounded border-outline-variant text-primary focus:ring-primary"> Sáb</label>
+                  <label class="flex items-center gap-1"><input type="checkbox" name="diasHorario" value="0" class="rounded border-outline-variant text-primary focus:ring-primary"> Dom</label>
+                </div>
+              </div>
+              <div>
+                <label class="form-label-custom" style="font-size:0.7rem;">Desde</label>
+                <input type="time" id="inpHorarioDesde" class="form-control-custom w-32" value="08:00">
+              </div>
+              <div>
+                <label class="form-label-custom" style="font-size:0.7rem;">Hasta</label>
+                <input type="time" id="inpHorarioHasta" class="form-control-custom w-32" value="20:00">
+              </div>
+              <button type="button" id="btnAgregarHorario" class="bg-primary text-white font-semibold py-2 px-4 rounded-md hover:bg-secondary transition-colors text-sm flex items-center gap-2 h-[42px]">
+                <i class="fa-solid fa-plus"></i> Agregar
+              </button>
+            </div>
+            <p id="horariosError" class="text-error text-xs mt-2 hidden">Debes agregar al menos un horario de disponibilidad válido.</p>
+          </div>
+
+          <hr class="form-divider">
+
+          <!-- Instrucciones y Seguridad (Mejora Vida Real) -->
+          <div class="form-group">
+            <label class="form-label-custom">
+              <i class="fa-solid fa-shield-halved"></i> Acceso y Seguridad
+            </label>
+            <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">
+              Información crucial para el conductor al llegar al sitio.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label for="inpNivelSeguridad" class="form-label-custom" style="font-size:0.7rem;">Nivel de Seguridad</label>
+                <select class="form-control-custom" id="inpNivelSeguridad">
+                  <option value="Básico">Básico (Solo candado/llave)</option>
+                  <option value="Estándar" selected>Estándar (Vigilancia parcial)</option>
+                  <option value="Premium">Premium (CCTV + Seguridad 24/7)</option>
+                </select>
+              </div>
+              <div>
+                <label for="inpMetodoAcceso" class="form-label-custom" style="font-size:0.7rem;">Método de Entrada</label>
+                <select class="form-control-custom" id="inpMetodoAcceso">
+                  <option value="Manual">Manual (El anfitrión abre)</option>
+                  <option value="Código">Código Digital</option>
+                  <option value="QR" selected>Escaneo de QR (Auto Check-in)</option>
+                </select>
+              </div>
+            </div>
+            <div class="mt-3">
+              <label for="inpInstrucciones" class="form-label-custom" style="font-size:0.7rem;">Instrucciones de Acceso</label>
+              <textarea class="form-control-custom" id="inpInstrucciones" 
+                        placeholder="Ej: El código de la puerta es 1234. Llame al timbre 2B al llegar." rows="2"></textarea>
+            </div>
+          </div>
+
+          <hr class="form-divider">
+
+          <!-- Configurador Visual de Espacios (Filas x Columnas) -->
           <div class="form-group" id="espacioBuilderSection">
             <label class="form-label-custom">
-              <i class="fa-solid fa-grip"></i> ¿Cuántos espacios tiene tu parqueo?
+              <i class="fa-solid fa-grip"></i> Constructor del Layout de tu Parqueo
             </label>
             <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:16px;">
-              Usa los botones para elegir la cantidad y toca cada espacio para cambiar el tipo de vehículo.
+              Ingresa las filas y columnas de tu terreno para generar el mapa. Luego toca cada espacio para cambiar el tipo de vehículo.
             </p>
 
-            <!-- Selector de Cantidad -->
-            <div class="cantidad-selector">
-              <button type="button" class="cantidad-btn menos" id="btnMenos" title="Quitar espacio">
-                <i class="fa-solid fa-minus"></i>
-              </button>
-              <div class="cantidad-display">
-                <span class="cantidad-numero" id="cantidadNumero">0</span>
-                <span class="cantidad-texto">espacios</span>
+            <!-- Selector de Filas y Columnas -->
+            <div class="layout-dimension-selector">
+              <div class="dimension-input-group">
+                <label for="inpFilas" class="form-label-custom" style="font-size:0.7rem;">Filas</label>
+                <input type="number" class="form-control-custom" id="inpFilas" min="1" max="10" value="2" style="text-align:center;">
               </div>
-              <button type="button" class="cantidad-btn mas" id="btnMas" title="Agregar espacio">
-                <i class="fa-solid fa-plus"></i>
+              <span class="dimension-x">×</span>
+              <div class="dimension-input-group">
+                <label for="inpColumnas" class="form-label-custom" style="font-size:0.7rem;">Columnas</label>
+                <input type="number" class="form-control-custom" id="inpColumnas" min="1" max="10" value="4" style="text-align:center;">
+              </div>
+              <button type="button" class="btn-generar-mapa" id="btnGenerarMapa">
+                <i class="fa-solid fa-table-cells-large"></i> Generar Mapa
               </button>
+            </div>
+
+            <!-- Cantidad display -->
+            <div class="cantidad-display" style="margin:12px 0;">
+              <span class="cantidad-numero" id="cantidadNumero">0</span>
+              <span class="cantidad-texto">espacios</span>
             </div>
 
             <!-- Leyenda -->
@@ -184,11 +269,34 @@
                 <span class="leyenda-tipo"><i class="fa-solid fa-car"></i> Auto</span>
                 <span class="leyenda-tipo"><i class="fa-solid fa-motorcycle"></i> Moto</span>
                 <span class="leyenda-tipo"><i class="fa-solid fa-truck-pickup"></i> SUV</span>
+                <span class="leyenda-tipo" style="color: #10b981"><i class="fa-solid fa-warehouse"></i> Techado</span>
               </div>
             </div>
 
             <!-- Mapa Visual de Espacios -->
             <div id="mapaBuilder" class="mapa-builder-grid"></div>
+          </div>
+
+          <hr class="form-divider">
+
+          <!-- Comodidades y Reglas -->
+          <div class="form-group">
+            <label class="form-label-custom">
+              <i class="fa-solid fa-tags"></i> Comodidades y Características
+            </label>
+            <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">
+              Selecciona las comodidades que ofrece tu parqueo.
+            </p>
+            <div class="comodidades-grid" id="comodidadesGrid">
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="techado"><i class="fa-solid fa-warehouse"></i> Techado</label>
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="cctv"><i class="fa-solid fa-video"></i> CCTV</label>
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="vigilancia"><i class="fa-solid fa-shield-halved"></i> Vigilancia 24/7</label>
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="iluminado"><i class="fa-solid fa-lightbulb"></i> Iluminado</label>
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="acceso_24h"><i class="fa-solid fa-clock"></i> Acceso 24h</label>
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="cargador_ev"><i class="fa-solid fa-charging-station"></i> Cargador EV</label>
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="lavado"><i class="fa-solid fa-droplet"></i> Lavado</label>
+              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="acceso_discapacidad"><i class="fa-solid fa-wheelchair"></i> Accesible</label>
+            </div>
           </div>
 
           <hr class="form-divider">

@@ -1,0 +1,137 @@
+/* ============================================================
+   EstAirbnb — panel-mantenimiento.css
+   Estilos para el Panel de Mantenimiento de Espacios
+   ============================================================ */
+
+:root {
+  --maint-libre: #22c55e;
+  --maint-libre-bg: rgba(34, 197, 94, 0.08);
+  --maint-libre-border: rgba(34, 197, 94, 0.4);
+  --maint-ocupado: #ef4444;
+  --maint-ocupado-bg: rgba(239, 68, 68, 0.08);
+  --maint-ocupado-border: rgba(239, 68, 68, 0.4);
+  --maint-warn: #f59e0b;
+  --maint-warn-bg: rgba(245, 158, 11, 0.1);
+  --maint-warn-border: rgba(245, 158, 11, 0.5);
+}
+
+/* Toast */
+.toast-container { z-index: 9999; }
+.toast.toast-success { background: #d4edda; border-left: 4px solid #28a745; color: #155724; }
+.toast.toast-error { background: #f8d7da; border-left: 4px solid #dc3545; color: #721c24; }
+.toast .toast-body { font-family: inherit; font-size: 0.9rem; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+
+/* Grid Map */
+.mapa-panel-grid {
+  display: grid;
+  gap: 12px;
+  padding: 8px 0;
+}
+
+/* Individual Slot */
+.panel-slot {
+  aspect-ratio: 1;
+  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  border: 2.5px solid transparent;
+  transition: all 0.3s ease;
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+  min-height: 90px;
+}
+
+.panel-slot:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 20px rgba(0,0,0,0.1);
+}
+
+.panel-slot:active {
+  transform: scale(0.95);
+}
+
+/* States */
+.panel-slot.libre {
+  border-color: var(--maint-libre-border);
+  background: var(--maint-libre-bg);
+  color: var(--maint-libre);
+  cursor: pointer;
+}
+
+.panel-slot.libre:hover {
+  background: rgba(34, 197, 94, 0.15);
+  box-shadow: 0 6px 20px rgba(34, 197, 94, 0.2);
+}
+
+.panel-slot.ocupado {
+  border-color: var(--maint-ocupado-border);
+  background: var(--maint-ocupado-bg);
+  color: var(--maint-ocupado);
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.panel-slot.mantenimiento {
+  border-color: var(--maint-warn-border);
+  background: var(--maint-warn-bg);
+  color: var(--maint-warn);
+  cursor: pointer;
+}
+
+.panel-slot.mantenimiento:hover {
+  background: rgba(245, 158, 11, 0.18);
+  box-shadow: 0 6px 20px rgba(245, 158, 11, 0.2);
+}
+
+/* Slot content */
+.panel-slot-name {
+  font-size: 0.9rem;
+  font-weight: 900;
+  letter-spacing: 1px;
+  color: inherit;
+}
+
+.panel-slot-status {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  opacity: 0.8;
+}
+
+/* Status icons */
+.status-icon-maint {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 0.7rem;
+  color: var(--maint-warn);
+  animation: pulse-maint 2s infinite;
+}
+
+.status-icon-locked {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  font-size: 0.65rem;
+  color: var(--maint-ocupado);
+}
+
+@keyframes pulse-maint {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* Responsive */
+@media (max-width: 576px) {
+  .panel-slot {
+    min-height: 70px;
+  }
+  .panel-slot-name {
+    font-size: 0.75rem;
+  }
+}
