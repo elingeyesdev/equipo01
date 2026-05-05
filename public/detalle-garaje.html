@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
 <link href="/css/dark-theme.css" rel="stylesheet">
+<link href="/css/globals.css" rel="stylesheet">
 <script id="tailwind-config">
 tailwind.config = {
   darkMode: "class",
@@ -88,26 +89,32 @@ body { font-family: 'Inter', sans-serif; }
 </style>
 </head>
 <body class="bg-background text-on-background antialiased min-h-screen">
-<!-- TopNavBar (Generated from JSON) -->
-<nav class="bg-white/70 backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm" id="topNavbar">
-<div class="flex justify-between items-center w-full px-6 py-4 max-w-screen-2xl mx-auto">
-<!-- Brand -->
-<div class="flex items-center gap-4">
-<span class="text-xl font-black tracking-tighter text-[#002542]">EstAirbnb</span>
-</div>
-<!-- Links (Desktop) -->
-<div class="hidden md:flex items-center gap-8 font-['Inter'] font-medium tracking-tight">
-<a class="text-slate-500 hover:text-slate-800 transition-colors px-2 py-1" href="/explorar.html">Explorar</a>
-<a class="text-slate-500 hover:text-slate-800 transition-colors px-2 py-1" href="/mis-reservas.html">Mis Reservas</a>
-<a class="text-slate-500 hover:text-slate-800 transition-colors px-2 py-1" href="/configuracion.html">Mi Perfil</a>
-</div>
-<!-- Trailing Actions -->
-<div class="flex items-center gap-4">
-<button class="hover:bg-slate-100/50 p-2 rounded-full transition-colors" id="btnThemeToggle">
-<span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
-</button>
-</div>
-</div>
+<!-- Navbar -->
+<nav class="app-navbar" id="topNavbar">
+  <div class="nav-inner">
+    <div style="display:flex;align-items:center;">
+      <a href="/" class="nav-brand">
+        <span class="brand-icon"><span class="material-symbols-outlined">local_parking</span></span>
+        EstAirbnb
+      </a>
+      <div class="nav-links">
+        <a href="/explorar.html" class="nav-link" id="linkExplorar">Explorar</a>
+        <a href="/mis-reservas.html" class="nav-link" id="linkMisReservas">Mis Reservas</a>
+        <a href="/configuracion.html" class="nav-link" id="linkMiPerfil">Mi Perfil</a>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <button class="nav-icon-btn" id="btnThemeToggle" title="Cambiar tema">
+        <span class="material-symbols-outlined" id="themeIcon" style="font-size:20px;">dark_mode</span>
+      </button>
+      <button class="nav-icon-btn nav-danger" id="btnLogout" title="Cerrar sesión">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </button>
+      <div class="nav-avatar" id="userAvatar" onclick="window.location.href='/configuracion.html'" title="Mi perfil">
+        <span id="navInitials">?</span>
+      </div>
+    </div>
+  </div>
 </nav>
 
 <!-- Initial loading state -->
@@ -121,16 +128,30 @@ body { font-family: 'Inter', sans-serif; }
 <!-- Header Section -->
 <header class="mb-8">
 <h1 class="text-4xl md:text-5xl font-headline font-bold text-primary tracking-tighter mb-4 leading-tight" id="garajeTitulo"> Cargando... </h1>
-<div class="flex flex-wrap items-center gap-6 text-on-surface-variant font-body">
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-secondary">location_on</span>
-<span class="font-medium" id="garajeDireccion">Cargando... </span>
-</div>
-<div class="flex items-center gap-2">
-<span class="material-symbols-outlined text-secondary">shield_lock</span>
-<span class="font-medium" id="garajeTipo">Cargando... </span>
-</div>
-</div>
+  <div class="flex flex-wrap items-center gap-6 text-on-surface-variant font-body mb-6">
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-secondary">location_on</span>
+      <span class="font-medium" id="garajeDireccion">Cargando... </span>
+    </div>
+    <div class="flex items-center gap-2">
+      <span class="material-symbols-outlined text-secondary">shield_lock</span>
+      <span class="font-medium" id="garajeTipo">Cargando... </span>
+    </div>
+  </div>
+
+  <!-- Card del Anfitrión -->
+  <div class="flex items-center gap-4 p-4 bg-surface-container-low rounded-xl border border-outline-variant/10 w-fit">
+    <div class="w-12 h-12 rounded-full bg-primary-container flex items-center justify-center text-on-primary-container overflow-hidden" id="anfitrionFoto">
+      <span class="material-symbols-outlined">person</span>
+    </div>
+    <div>
+      <div class="flex items-center gap-2">
+        <span class="font-headline font-bold text-primary" id="anfitrionNombre">Cargando anfitrión...</span>
+        <span class="material-symbols-outlined text-secondary text-base hidden" id="badgeVerificado" style="font-variation-settings: 'FILL' 1;">shield_check</span>
+      </div>
+      <p class="text-xs text-on-surface-variant font-label uppercase tracking-widest">Anfitrión en EstAirbnb</p>
+    </div>
+  </div>
 </header>
 <!-- Visual Section (Bento Grid Gallery) -->
 <div class="grid grid-cols-1 md:grid-cols-4 grid-rows-2 gap-4 h-[300px] md:h-[500px] mb-16" id="carouselSection">
@@ -163,6 +184,50 @@ body { font-family: 'Inter', sans-serif; }
   <i class="fa-solid fa-square-check"></i> Espacio seleccionado: <strong id="espacioSeleccionadoLabel">--</strong>
 </div>
 </div>
+</section>
+
+<!-- Sección: Conoce lo que reservas -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-outline-variant/10">
+  <div class="space-y-6">
+    <h3 class="text-xl font-headline font-bold text-primary tracking-tight flex items-center gap-2">
+      <span class="material-symbols-outlined text-secondary">straighten</span>
+      Dimensiones y Reglas
+    </h3>
+    <div class="bg-surface-container-low p-6 rounded-xl space-y-4">
+      <div>
+        <span class="text-[10px] font-label uppercase text-on-surface-variant tracking-widest block mb-1">Tamaño Máximo</span>
+        <p class="font-body text-primary font-bold" id="garajeDimensiones">No especificadas</p>
+      </div>
+      <div>
+        <span class="text-[10px] font-label uppercase text-on-surface-variant tracking-widest block mb-1">Reglas de la casa</span>
+        <p class="font-body text-on-surface-variant text-sm italic" id="garajeReglas">Cargando reglas...</p>
+      </div>
+    </div>
+  </div>
+  <div class="space-y-6">
+    <h3 class="text-xl font-headline font-bold text-primary tracking-tight flex items-center gap-2">
+      <span class="material-symbols-outlined text-secondary">policy</span>
+      Políticas de Reserva
+    </h3>
+    <div class="bg-surface-container-low p-6 rounded-xl">
+      <span class="text-[10px] font-label uppercase text-on-surface-variant tracking-widest block mb-1">Cancelación</span>
+      <p class="font-body text-on-surface-variant text-sm" id="garajePolitica">Cargando políticas...</p>
+    </div>
+  </div>
+</section>
+
+<!-- Sección: Comentarios -->
+<section class="pt-12 border-t border-outline-variant/10">
+  <div class="flex items-center justify-between mb-8">
+    <h2 class="text-2xl font-headline font-bold text-primary tracking-tight">Comentarios de Conductores</h2>
+    <div class="flex items-center gap-2 text-secondary font-bold">
+      <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">star</span>
+      <span id="promedioResenas">0.0</span>
+    </div>
+  </div>
+  <div id="contenedor-resenas" class="grid grid-cols-1 gap-6">
+    <p class="text-on-surface-variant italic">Aún no hay reseñas para este espacio.</p>
+  </div>
 </section>
 </div>
 

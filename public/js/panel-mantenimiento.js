@@ -47,7 +47,8 @@
     }
 
     const btnThemeToggle = document.getElementById('btnThemeToggle');
-    if (btnThemeToggle) {
+    if (btnThemeToggle && !btnThemeToggle.dataset.bound) {
+      btnThemeToggle.dataset.bound = '1';
       btnThemeToggle.addEventListener('click', () => {
         const isDark = document.documentElement.classList.contains('dark');
         if (isDark) {
@@ -65,7 +66,8 @@
 
   // ─── Logout ───
   const btnLogout = document.getElementById('btnLogout');
-  if (btnLogout) {
+  if (btnLogout && !btnLogout.dataset.bound) {
+    btnLogout.dataset.bound = '1';
     btnLogout.addEventListener('click', () => {
       localStorage.removeItem(USUARIO_KEY);
       window.location.href = '/login.html';

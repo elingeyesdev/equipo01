@@ -33,6 +33,20 @@
   const garajePrecio     = document.getElementById('garajePrecio');
   const garajeTipo       = document.getElementById('garajeTipo');
   const garajeDescripcion = document.getElementById('garajeDescripcion');
+
+  // Datos del Anfitrión
+  const anfitrionNombre = document.getElementById('anfitrionNombre');
+  const anfitrionFoto   = document.getElementById('anfitrionFoto');
+  const badgeVerificado = document.getElementById('badgeVerificado');
+
+  // Datos de Confianza
+  const garajeDimensiones = document.getElementById('garajeDimensiones');
+  const garajeReglas      = document.getElementById('garajeReglas');
+  const garajePolitica    = document.getElementById('garajePolitica');
+
+  // Reseñas
+  const contenedorResenas = document.getElementById('contenedor-resenas');
+  const promedioResenas   = document.getElementById('promedioResenas');
   
   // Reserva elements
   const fechaEntrada     = document.getElementById('fechaEntrada');
@@ -82,7 +96,8 @@
     }
   }
 
-  if (btnThemeToggle) {
+  if (btnThemeToggle && !btnThemeToggle.dataset.bound) {
+    btnThemeToggle.dataset.bound = '1';
     btnThemeToggle.addEventListener('click', () => {
       const isDark = document.documentElement.classList.contains('dark');
       if (isDark) {
@@ -136,6 +151,21 @@
   function renderInfo(garaje) {
     if (garajeTitulo) garajeTitulo.textContent = garaje.direccion;
     if (garajeDireccion) garajeDireccion.textContent = garaje.direccion;
+
+    // Datos del Anfitrión
+    if (anfitrionNombre) anfitrionNombre.textContent = `${garaje.anfitrion_nombre} ${garaje.anfitrion_apellidos || ''}`;
+    if (anfitrionFoto && garaje.anfitrion_foto) {
+      anfitrionFoto.innerHTML = `<img src="${garaje.anfitrion_foto}" class="w-full h-full object-cover">`;
+    }
+    if (badgeVerificado) {
+      if (garaje.anfitrion_es_verificado) badgeVerificado.classList.remove('hidden');
+      else badgeVerificado.classList.add('hidden');
+    }
+
+    // Datos de Confianza
+    if (garajeDimensiones) garajeDimensiones.textContent = garaje.dimensiones || 'No especificadas';
+    if (garajeReglas) garajeReglas.textContent = garaje.reglas_casa || 'Sin reglas especiales.';
+    if (garajePolitica) garajePolitica.textContent = garaje.politica_cancelacion || 'Sujeto a las políticas estándar de la plataforma.';
 
     // Update page title
     document.title = `${garaje.direccion} · EstAirbnb`;
@@ -252,7 +282,7 @@
   }
 
   // ─── Render Mapa 2D de Espacios ───
-  async function cargarEspacios(garajeId) {
+  async function cargarEspacios(garajeId, layoutMapa) {
     if (!mapaParqueo) return;
     try {
       const res = await fetch(`/api/garajes/${garajeId}/espacios`);
@@ -263,18 +293,30 @@
         return;
       }
 
-      renderMapa(json.data);
+      renderMapa(json.data, layoutMapa || null);
     } catch (err) {
       console.error('Error al cargar espacios:', err);
       mapaParqueo.innerHTML = '<p class="text-error text-sm">Error de conexión al cargar espacios.</p>';
     }
   }
 
-  function renderMapa(espacios) {
+  function renderMapa(espacios, layoutMapa) {
     if (!mapaParqueo) return;
     mapaParqueo.innerHTML = '';
 
-    // Use the inline styles from the HTML (.mapa-grid / .espacio-btn classes)
+    // Try to render rich tilemap layout if available
+    if (layoutMapa) {
+      try {
+        const matriz = JSON.parse(layoutMapa);
+        if (!Array.isArray(matriz) || matriz.length === 0) throw new Error('invalid');
+        renderTilemap(matriz, espacios);
+        return;
+      } catch(e) {
+        // Fall through to legacy render
+      }
+    }
+
+    // Legacy: simple grid render
     const maxCol = Math.max(...espacios.map(e => e.columna || 1), 1);
     const cols = Math.min(maxCol, 5);
     mapaParqueo.className = 'mapa-grid';
@@ -282,30 +324,139 @@
 
     espacios.forEach(esp => {
       const slot = document.createElement('div');
-      // Use the CSS classes defined in the HTML <style> block
       let stateClass = 'espacio-btn';
       if (esp.estado === 'ocupado') stateClass += ' ocupado';
-
       slot.className = stateClass;
       slot.dataset.id = esp.id;
       slot.dataset.numero = esp.numero_espacio;
       slot.dataset.estado = esp.estado;
 
       const iconMap = { auto: 'fa-car', moto: 'fa-motorcycle', camioneta: 'fa-truck-pickup', techado: 'fa-warehouse' };
-      const iconClass = iconMap[esp.tipo_vehiculo] || 'fa-car';
-
       slot.innerHTML = `
-        <i class="fa-solid ${iconClass}" style="font-size:1.1rem;margin-bottom:2px;"></i>
+        <i class="fa-solid ${iconMap[esp.tipo_vehiculo] || 'fa-car'}" style="font-size:1.1rem;margin-bottom:2px;"></i>
         <div>${esp.numero_espacio}</div>
       `;
-
-      if (esp.estado === 'libre') {
-        slot.addEventListener('click', () => seleccionarEspacio(slot, esp));
-      }
-
+      if (esp.estado === 'libre') slot.addEventListener('click', () => seleccionarEspacio(slot, esp));
       mapaParqueo.appendChild(slot);
     });
   }
+
+  function renderTilemap(matriz, espacios) {
+    if (!mapaParqueo) return;
+
+    // Build a lookup from (fila,col) → espacio data
+    const espacioMap = {};
+    espacios.forEach(e => {
+      espacioMap[`${e.fila}-${e.columna}`] = e;
+    });
+
+    const filas = matriz.length;
+    const cols  = filas > 0 ? matriz[0].length : 0;
+
+    // Container styles — Blueprint dark theme
+    mapaParqueo.style.cssText = `
+      display: inline-grid;
+      grid-template-columns: repeat(${cols}, 1fr);
+      gap: 2px;
+      background: #0f172a;
+      padding: 14px;
+      border-radius: 12px;
+      width: 100%;
+      border: 1px solid #1e293b;
+    `;
+
+    const TILE_STYLES = {
+      empty:    { bg: '#111827', border: '#1f2937', html: '' },
+      wall:     { bg: '#334155', border: '#475569', html: '<span style="font-size:1rem">🧱</span>' },
+      entrance: { bg: '#78350f', border: '#92400e', html: '<span style="font-size:0.9rem">🚪</span><span style="font-size:0.5rem;color:#fde68a;font-weight:700;">ENT</span>' },
+      aisle:    { bg: '#0c4a6e', border: '#075985', html: '<span style="font-size:0.7rem;color:#7dd3fc;">↔</span>' },
+    };
+
+    for (let f = 0; f < filas; f++) {
+      for (let c = 0; c < cols; c++) {
+        const cellData = matriz[f][c] || { tile: 'empty', tipo_vehiculo: 'auto' };
+        const tile = cellData.tile || 'empty';
+        const key = `${f+1}-${c+1}`;
+        const espacio = espacioMap[key];
+
+        const cell = document.createElement('div');
+        cell.style.cssText = `
+          aspect-ratio: 1;
+          min-width: 32px; min-height: 32px;
+          border-radius: 4px;
+          display: flex; flex-direction: column; align-items: center; justify-content: center;
+          font-size: 0.55rem; font-weight: 700;
+          transition: transform 0.1s, box-shadow 0.1s;
+          position: relative;
+        `;
+
+        if (tile === 'parking' && espacio) {
+          const isLibre = espacio.estado === 'libre';
+          const vehicleIcons = { auto: '🚗', moto: '🏍️', camioneta: '🚙', techado: '🛖' };
+          const icon = vehicleIcons[espacio.tipo_vehiculo] || '🚗';
+          cell.style.background = isLibre ? '#14532d' : '#7f1d1d';
+          cell.style.border = `1px solid ${isLibre ? '#166534' : '#991b1b'}`;
+          cell.style.cursor = isLibre ? 'pointer' : 'not-allowed';
+          cell.innerHTML = `
+            <span style="font-size:1rem;line-height:1;">${icon}</span>
+            <span style="font-size:0.6rem;font-weight:800;color:${isLibre ? '#86efac' : '#fca5a5'};">${espacio.numero_espacio}</span>
+          `;
+          cell.title = isLibre ? `Espacio ${espacio.numero_espacio} — Libre` : `Espacio ${espacio.numero_espacio} — Ocupado`;
+
+          if (isLibre) {
+            cell.addEventListener('mouseenter', () => { cell.style.transform = 'scale(1.1)'; cell.style.boxShadow = '0 0 0 2px #22c55e'; });
+            cell.addEventListener('mouseleave', () => { cell.style.transform = 'scale(1)'; cell.style.boxShadow = 'none'; });
+            cell.addEventListener('click', () => {
+              // Deselect all
+              mapaParqueo.querySelectorAll('[data-selected="true"]').forEach(el => {
+                el.dataset.selected = 'false';
+                el.style.boxShadow = 'none';
+                el.style.transform = 'scale(1)';
+              });
+              cell.dataset.selected = 'true';
+              cell.style.boxShadow = '0 0 0 3px #22c55e, 0 0 12px rgba(34,197,94,0.4)';
+              seleccionarEspacio(cell, espacio);
+            });
+          }
+        } else if (tile === 'parking' && !espacio) {
+          // Parking tile but no DB espacio (shouldn't happen often)
+          cell.style.background = '#1c1c2e';
+          cell.style.border = '1px dashed #334155';
+          cell.innerHTML = `<span style="font-size:0.7rem;color:#4b5563;">?</span>`;
+        } else {
+          const tileStyle = TILE_STYLES[tile] || TILE_STYLES.empty;
+          cell.style.background = tileStyle.bg;
+          cell.style.border = `1px solid ${tileStyle.border}`;
+          cell.innerHTML = tileStyle.html;
+        }
+
+        mapaParqueo.appendChild(cell);
+      }
+    }
+
+    // Legend for the conductor
+    const legend = document.createElement('div');
+    legend.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;';
+    legend.innerHTML = `
+      <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:#64748b;font-weight:600;">
+        <span style="width:10px;height:10px;border-radius:2px;background:#14532d;display:inline-block;"></span>Libre
+      </span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:#64748b;font-weight:600;">
+        <span style="width:10px;height:10px;border-radius:2px;background:#7f1d1d;display:inline-block;"></span>Ocupado
+      </span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:#64748b;font-weight:600;">
+        <span style="width:10px;height:10px;border-radius:2px;background:#334155;display:inline-block;"></span>Pared
+      </span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:#64748b;font-weight:600;">
+        <span style="width:10px;height:10px;border-radius:2px;background:#0c4a6e;display:inline-block;"></span>Pasillo
+      </span>
+      <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:#64748b;font-weight:600;">
+        <span style="width:10px;height:10px;border-radius:2px;background:#78350f;display:inline-block;"></span>Entrada
+      </span>
+    `;
+    mapaParqueo.insertAdjacentElement('afterend', legend);
+  }
+
 
   function seleccionarEspacio(slotEl, espacio) {
     // Deseleccionar anterior
@@ -364,7 +515,10 @@
       if (detalleContent) detalleContent.style.display = '';
 
       // Cargar Mapa 2D de Espacios
-      await cargarEspacios(garaje.id);
+      await cargarEspacios(garaje.id, garaje.layout_mapa || null);
+
+      // Cargar Reseñas
+      await cargarResenas(garaje.id);
 
       // Verificar si ya tiene una reserva aquí
       await verificarReservaExistente();
@@ -554,6 +708,60 @@
         btnConfirmarReserva.disabled = false;
       }
     });
+  }
+
+  // ─── Lógica de Reseñas ───
+  async function cargarResenas(garajeId) {
+    if (!contenedorResenas) return;
+    try {
+      const res = await fetch(`/api/garajes/${garajeId}/resenas`);
+      const json = await res.json();
+      if (json.status === 'ok') {
+        renderResenas(json.data);
+      }
+    } catch (err) {
+      console.error('Error al cargar reseñas:', err);
+    }
+  }
+
+  function renderResenas(resenas) {
+    if (!contenedorResenas) return;
+    if (!resenas || resenas.length === 0) {
+      contenedorResenas.innerHTML = '<p class="text-on-surface-variant italic">Aún no hay reseñas para este espacio.</p>';
+      return;
+    }
+
+    let suma = 0;
+    const items = resenas.map(r => {
+      suma += r.calificacion;
+      const estrellas = Array(5).fill('').map((_, i) => 
+        `<span class="material-symbols-outlined text-sm ${i < r.calificacion ? 'text-amber-400' : 'text-outline-variant/30'}" style="font-variation-settings: 'FILL' 1;">star</span>`
+      ).join('');
+
+      const fecha = new Date(r.fecha_creacion).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+      const foto = r.conductor_foto ? `<img src="${r.conductor_foto}" class="w-full h-full object-cover">` : `<span class="material-symbols-outlined text-sm">person</span>`;
+
+      return `
+        <div class="bg-surface-container-low p-6 rounded-xl space-y-4 border border-outline-variant/5">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-full bg-secondary-container flex items-center justify-center text-on-secondary-container overflow-hidden">
+                ${foto}
+              </div>
+              <div>
+                <div class="font-headline font-bold text-primary text-sm">${r.conductor_nombre}</div>
+                <div class="text-[10px] text-on-surface-variant uppercase tracking-widest">${fecha}</div>
+              </div>
+            </div>
+            <div class="flex">${estrellas}</div>
+          </div>
+          <p class="text-on-surface-variant text-sm font-body leading-relaxed">${r.comentario || 'Sin comentario.'}</p>
+        </div>
+      `;
+    }).join('');
+
+    contenedorResenas.innerHTML = items;
+    if (promedioResenas) promedioResenas.textContent = (suma / resenas.length).toFixed(1);
   }
 
   // ─── Init ───

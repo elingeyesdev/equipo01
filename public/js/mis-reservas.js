@@ -47,7 +47,8 @@
     }
   }
 
-  if (btnThemeToggle) {
+  if (btnThemeToggle && !btnThemeToggle.dataset.bound) {
+    btnThemeToggle.dataset.bound = '1';
     btnThemeToggle.addEventListener('click', () => {
       const isDark = document.documentElement.classList.contains('dark');
       if (isDark) {
@@ -179,6 +180,14 @@
               </button>
             </div>
           `;
+        } else if (res.estado === 'confirmada') {
+          cardFooterHtml = `
+            <div class="card-footer-inner">
+              <button class="btn-action-card btn-confirmar" style="background: #64748b;" onclick="cambiarEstado(${res.id}, 'finalizada')">
+                <i class="fa-solid fa-flag-checkered"></i> Finalizar Estancia
+              </button>
+            </div>
+          `;
         }
 
       } else if (esConductor) {
@@ -207,6 +216,30 @@
               </button>
             </div>
           `;
+        }
+        
+        // Botón de Calificar para reservas finalizadas
+        if (res.estado === 'finalizada') {
+          if (res.ha_revisado) {
+            cardFooterHtml = `
+              <div class="card-footer-inner flex justify-center py-3">
+                <span class="text-xs font-bold text-secondary uppercase tracking-widest flex items-center gap-2">
+                  <i class="fa-solid fa-check-circle"></i> Reseña Publicada
+                </span>
+              </div>
+            `;
+          } else {
+            cardFooterHtml = `
+              <div class="card-footer-inner flex-col gap-2">
+                <button class="btn-action-card btn-confirmar w-full" onclick="abrirModalResena(${res.id}, ${res.garaje_id})">
+                  <i class="fa-solid fa-star"></i> Calificar Espacio
+                </button>
+                <div class="text-[10px] text-center text-on-surface-variant/70 uppercase">
+                  Para publicar otra reseña debe volver a usar el garaje
+                </div>
+              </div>
+            `;
+          }
         }
       }
 
@@ -315,6 +348,85 @@
       </div>
     `;
     document.body.insertAdjacentHTML('beforeend', modalHTML);
+  }
+
+  // ─── Lógica de Reseñas (Trust Module) ───
+  let ratingSeleccionado = 0;
+  const modalResena = document.getElementById('modalResena');
+  const starsContainer = document.getElementById('ratingStars');
+  const btnEnviarResena = document.getElementById('btnEnviarResena');
+
+  window.abrirModalResena = function(reservaId, garajeId) {
+    document.getElementById('hiddenReservaId').value = reservaId;
+    document.getElementById('hiddenGarajeId').value = garajeId;
+    document.getElementById('txtComentario').value = '';
+    ratingSeleccionado = 0;
+    actualizarEstrellas(0);
+    
+    const bootstrapModal = new bootstrap.Modal(modalResena);
+    bootstrapModal.show();
+  };
+
+  if (starsContainer) {
+    starsContainer.querySelectorAll('span').forEach(star => {
+      star.addEventListener('click', () => {
+        ratingSeleccionado = parseInt(star.dataset.value);
+        actualizarEstrellas(ratingSeleccionado);
+      });
+    });
+  }
+
+  function actualizarEstrellas(rating) {
+    starsContainer.querySelectorAll('span').forEach((star, i) => {
+      if (i < rating) {
+        star.classList.add('text-amber-400');
+        star.classList.remove('text-outline-variant');
+        star.style.fontVariationSettings = "'FILL' 1";
+      } else {
+        star.classList.remove('text-amber-400');
+        star.classList.add('text-outline-variant');
+        star.style.fontVariationSettings = "'FILL' 0";
+      }
+    });
+  }
+
+  if (btnEnviarResena) {
+    btnEnviarResena.addEventListener('click', async () => {
+      if (ratingSeleccionado === 0) {
+        alert('Por favor selecciona una calificación.');
+        return;
+      }
+
+      const reserva_id = document.getElementById('hiddenReservaId').value;
+      const garaje_id = document.getElementById('hiddenGarajeId').value;
+      const comentario = document.getElementById('txtComentario').value;
+
+      try {
+        const res = await fetch('/api/resenas', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            garaje_id,
+            reserva_id,
+            conductor_id: currentUser.id,
+            calificacion: ratingSeleccionado,
+            comentario
+          })
+        });
+
+        if (res.ok) {
+          const bootstrapModal = bootstrap.Modal.getInstance(modalResena);
+          bootstrapModal.hide();
+          alert('¡Gracias por tu reseña!');
+          cargarReservas();
+        } else {
+          alert('Error al enviar la reseña.');
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error de red.');
+      }
+    });
   }
 
   // ─── Iniciar ───

@@ -28,17 +28,22 @@ if (session.rol_id !== 1) {
 }
 
 // Mostrar nombre e iniciales en navbar
-document.getElementById('navUserName').textContent = session.nombre || '';
+const navUserNameEl = document.getElementById('navUserName');
+if (navUserNameEl) navUserNameEl.textContent = session.nombre || '';
 const initials = ((session.nombre || '?')[0] + (session.apellidos || '?')[0]).toUpperCase();
-// IMPORTANTE: usar el span interior, NO textContent del div (borraría el span hijo)
-document.getElementById('navInitials').textContent = initials;
+const navInitialsEl = document.getElementById('navInitials');
+if (navInitialsEl) navInitialsEl.textContent = initials;
 document.getElementById('avatarBigInitials').textContent = initials;
 
 // Cerrar sesión
-document.getElementById('btnLogout').addEventListener('click', () => {
-  localStorage.removeItem(USUARIO_KEY);
-  window.location.href = '/login.html';
-});
+const btnLogoutConf = document.getElementById('btnLogout');
+if (btnLogoutConf && !btnLogoutConf.dataset.bound) {
+  btnLogoutConf.dataset.bound = '1';
+  btnLogoutConf.addEventListener('click', () => {
+    localStorage.removeItem(USUARIO_KEY);
+    window.location.href = '/login.html';
+  });
+}
 
 
 // ============================================================
@@ -537,7 +542,8 @@ document.addEventListener('DOMContentLoaded', () => {
   }
 
   const btnThemeToggle = document.getElementById('btnThemeToggle');
-  if (btnThemeToggle) {
+  if (btnThemeToggle && !btnThemeToggle.dataset.bound) {
+    btnThemeToggle.dataset.bound = '1';
     btnThemeToggle.addEventListener('click', () => {
       const isDark = document.documentElement.classList.contains('dark');
       if (isDark) {

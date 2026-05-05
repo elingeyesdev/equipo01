@@ -1,0 +1,366 @@
+/* ============================================================
+   EstAirbnb · Global Design System
+   Importar en todas las páginas (excepto auth)
+   ============================================================ */
+
+/* ── Fuente base ─────────────────────────────────────────── */
+body { font-family: 'Inter', sans-serif; }
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+}
+
+/* ── Variables de color y espaciado ─────────────────────── */
+:root {
+  --c-primary:          #002542;
+  --c-primary-light:    #1b3b5a;
+  --c-secondary:        #006a62;
+  --c-secondary-dark:   #005049;
+  --c-bg:               #f7f9fb;
+  --c-surface:          #ffffff;
+  --c-surface-low:      #f2f4f6;
+  --c-surface-mid:      #eceef0;
+  --c-surface-high:     #e6e8ea;
+  --c-surface-highest:  #e0e3e5;
+  --c-on-surface:       #191c1e;
+  --c-on-muted:         #43474d;
+  --c-outline:          #73777e;
+  --c-outline-var:      #c3c6ce;
+  --c-error:            #ba1a1a;
+  --c-error-bg:         #ffdad6;
+  --nav-h:              64px;
+  --radius-xs:          6px;
+  --radius-sm:          8px;
+  --radius-md:          12px;
+  --radius-lg:          16px;
+  --radius-xl:          20px;
+  --radius-pill:        999px;
+  --shadow-xs: 0 1px 3px rgba(0,37,66,.05);
+  --shadow-sm: 0 2px 8px rgba(0,37,66,.07), 0 1px 3px rgba(0,37,66,.04);
+  --shadow-md: 0 4px 16px rgba(0,37,66,.09), 0 2px 6px rgba(0,37,66,.05);
+  --shadow-lg: 0 8px 28px rgba(0,37,66,.11), 0 4px 10px rgba(0,37,66,.06);
+  --shadow-xl: 0 16px 48px rgba(0,37,66,.13), 0 6px 16px rgba(0,37,66,.07);
+}
+
+/* ── Navbar principal ────────────────────────────────────── */
+.app-navbar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  height: var(--nav-h);
+  display: flex;
+  align-items: center;
+  background: rgba(247, 249, 251, 0.88);
+  backdrop-filter: blur(20px) saturate(1.6);
+  -webkit-backdrop-filter: blur(20px) saturate(1.6);
+  border-bottom: 1px solid rgba(195, 198, 206, 0.45);
+  transition: background 0.2s;
+}
+
+.nav-inner {
+  width: 100%;
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+/* ── Marca / Logo ──────────────────────────────────────── */
+.nav-brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  text-decoration: none !important;
+  color: var(--c-primary) !important;
+  font-weight: 900;
+  font-size: 1.1rem;
+  letter-spacing: -0.04em;
+  flex-shrink: 0;
+  transition: opacity 0.15s;
+}
+.nav-brand:hover { opacity: 0.75; }
+
+.brand-icon {
+  width: 30px;
+  height: 30px;
+  background: var(--c-primary);
+  border-radius: 7px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  flex-shrink: 0;
+}
+.brand-icon .material-symbols-outlined {
+  font-size: 17px;
+  font-variation-settings: 'FILL' 1;
+}
+
+/* ── Links de navegación ─────────────────────────────────── */
+.nav-links {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  margin-left: 24px;
+}
+
+/* Clase base de link — usada tanto por el HTML estático
+   como por el link dinámico inyectado por navbar-badge.js  */
+.nav-link,
+.nav-link-custom {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 13px;
+  border-radius: var(--radius-sm);
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--c-on-muted);
+  text-decoration: none !important;
+  transition: background 0.14s, color 0.14s;
+  position: relative;
+  white-space: nowrap;
+  line-height: 1.4;
+}
+.nav-link:hover,
+.nav-link-custom:hover {
+  background: var(--c-surface-mid);
+  color: var(--c-on-surface);
+  text-decoration: none;
+}
+.nav-link.active {
+  background: var(--c-primary);
+  color: #ffffff;
+  font-weight: 600;
+}
+
+/* ── Acciones de la navbar (botones + avatar) ────────────── */
+.nav-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.nav-icon-btn {
+  width: 36px;
+  height: 36px;
+  border: none;
+  outline: none;
+  background: transparent;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--c-on-muted);
+  cursor: pointer;
+  transition: background 0.14s, color 0.14s;
+  flex-shrink: 0;
+  font-size: 14px;
+}
+.nav-icon-btn:hover { background: var(--c-surface-mid); }
+.nav-danger { color: var(--c-error) !important; }
+.nav-danger:hover { background: var(--c-error-bg) !important; }
+
+.nav-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--c-secondary);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 0.82rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  flex-shrink: 0;
+  border: 2px solid transparent;
+  transition: border-color 0.14s, transform 0.14s;
+  user-select: none;
+}
+.nav-avatar:hover {
+  border-color: var(--c-secondary);
+  transform: scale(1.06);
+}
+.nav-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+/* ── Contenedor de página (max-width compartido) ─────────── */
+.page-wrap {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 40px 24px 64px;
+}
+
+/* ── Cabecera de página ──────────────────────────────────── */
+.page-header {
+  margin-bottom: 40px;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.page-header-text h1 {
+  font-size: clamp(1.7rem, 4vw, 2.6rem);
+  font-weight: 800;
+  color: var(--c-primary);
+  letter-spacing: -0.04em;
+  line-height: 1.15;
+  margin: 0 0 6px;
+}
+.page-header-text p {
+  font-size: 1rem;
+  color: var(--c-on-muted);
+  margin: 0;
+  line-height: 1.55;
+}
+
+/* ── Botones compartidos ─────────────────────────────────── */
+.btn-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 22px;
+  background: var(--c-primary);
+  color: #ffffff;
+  font-weight: 600;
+  font-size: 0.9rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  text-decoration: none;
+  transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+  white-space: nowrap;
+  font-family: inherit;
+  line-height: 1.4;
+}
+.btn-cta:hover {
+  background: var(--c-primary-light);
+  color: #ffffff;
+  text-decoration: none;
+  box-shadow: var(--shadow-md);
+}
+.btn-cta:active { transform: scale(0.98); }
+
+.btn-cta-secondary {
+  background: var(--c-secondary);
+}
+.btn-cta-secondary:hover { background: var(--c-secondary-dark); }
+
+/* ── Cards ───────────────────────────────────────────────── */
+.card-surface {
+  background: var(--c-surface);
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(195, 198, 206, 0.5);
+  box-shadow: var(--shadow-sm);
+  overflow: hidden;
+  transition: box-shadow 0.2s;
+}
+.card-surface:hover { box-shadow: var(--shadow-md); }
+
+/* ── Estado de carga ─────────────────────────────────────── */
+.loading-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 72px 24px;
+  gap: 14px;
+}
+.spinner-g {
+  width: 36px; height: 36px;
+  border: 3px solid var(--c-surface-highest);
+  border-top-color: var(--c-secondary);
+  border-radius: 50%;
+  animation: spin-g 0.65s linear infinite;
+}
+@keyframes spin-g { to { transform: rotate(360deg); } }
+.loading-state p {
+  color: var(--c-on-muted);
+  font-size: 0.9rem;
+  font-weight: 500;
+  margin: 0;
+}
+
+/* ── Estado vacío ────────────────────────────────────────── */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 64px 24px;
+  gap: 14px;
+  text-align: center;
+  background: var(--c-surface-low);
+  border: 2px dashed var(--c-outline-var);
+  border-radius: var(--radius-xl);
+}
+.empty-icon {
+  width: 68px; height: 68px;
+  background: var(--c-surface-high);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--c-outline);
+}
+.empty-state h3 {
+  font-size: 1.1rem; font-weight: 700;
+  color: var(--c-primary); margin: 0;
+}
+.empty-state p {
+  font-size: 0.9rem; color: var(--c-on-muted);
+  max-width: 360px; margin: 0; line-height: 1.55;
+}
+
+/* ── Badges de estado ────────────────────────────────────── */
+.sbadge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 3px 10px; border-radius: var(--radius-pill);
+  font-size: 0.7rem; font-weight: 700;
+  letter-spacing: 0.05em; text-transform: uppercase;
+  white-space: nowrap;
+}
+.sbadge-pendiente  { background: #fff7ed; color: #92400e; border: 1px solid #fde68a; }
+.sbadge-confirmada { background: #f0fdf4; color: #14532d; border: 1px solid #86efac; }
+.sbadge-rechazada  { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
+.sbadge-finalizada,
+.sbadge-cancelada  { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+.sbadge-activo     { background: #f0fdf4; color: #14532d; border: 1px solid #86efac; }
+.sbadge-inactivo   { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+/* ── Toasts ──────────────────────────────────────────────── */
+.toast-container { z-index: 9999 !important; }
+
+/* ── Modo oscuro ─────────────────────────────────────────── */
+html.dark .app-navbar {
+  background: rgba(13, 17, 23, 0.88);
+  border-bottom-color: rgba(48, 54, 61, 0.55);
+}
+html.dark .nav-brand  { color: #e6edf3 !important; }
+html.dark .nav-link,
+html.dark .nav-link-custom { color: #8b949e; }
+html.dark .nav-link:hover,
+html.dark .nav-link-custom:hover { background: #21262d; color: #e6edf3; }
+html.dark .nav-link.active { background: #1f6feb; color: #ffffff; }
+html.dark .nav-icon-btn { color: #8b949e; }
+html.dark .nav-icon-btn:hover { background: #21262d; }
+html.dark .nav-danger { color: #f85149 !important; }
+html.dark .nav-danger:hover { background: #3d1c1c !important; }
+html.dark .brand-icon { background: #1f6feb; }
+html.dark .card-surface { background: #161b22; border-color: #30363d; }
+html.dark .empty-state  { background: #161b22; border-color: #30363d; }
+html.dark .empty-icon   { background: #21262d; }
+html.dark .page-header-text h1 { color: #e6edf3; }
+
+/* ── Responsive ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+  .nav-links { display: none; }
+  .nav-inner { padding: 0 16px; }
+  .page-wrap { padding: 24px 16px 48px; }
+  .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+}

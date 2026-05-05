@@ -17,6 +17,7 @@
   <!-- Tailwind CSS & Configuration -->
   <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
   <link href="/css/dark-theme.css" rel="stylesheet">
+  <link href="/css/globals.css" rel="stylesheet">
   <script id="tailwind-config">
     tailwind.config = {
       darkMode: "class",
@@ -49,6 +50,319 @@
     /* Estilos preservados para Formularios Legados y Modales */
     .form-group { margin-bottom: 1.5rem; }
     .toast-container { z-index: 9999; }
+
+    /* ══════════════════════════════════════════════════════════
+       TILEMAP EDITOR — Premium Visual System
+    ══════════════════════════════════════════════════════════ */
+
+    /* ── Animated gradient border keyframes ── */
+    @keyframes tmBorderGlow {
+      0%, 100% { border-color: #334155; box-shadow: 0 0 20px rgba(56, 189, 248, 0.04); }
+      50%      { border-color: #475569; box-shadow: 0 0 30px rgba(56, 189, 248, 0.08); }
+    }
+    @keyframes tmPulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
+    @keyframes tmCellPop {
+      0%   { transform: scale(0.7); opacity: 0; }
+      60%  { transform: scale(1.12); }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    @keyframes tmScanline {
+      0%   { transform: translateY(-100%); }
+      100% { transform: translateY(100%); }
+    }
+    @keyframes tmShimmer {
+      0%   { background-position: -200% 0; }
+      100% { background-position: 200% 0; }
+    }
+    @keyframes tmRadarPing {
+      0%   { transform: scale(0.8); opacity: 0.8; }
+      100% { transform: scale(2.4); opacity: 0; }
+    }
+
+    /* ── Editor Wrapper ── */
+    .tm-editor-wrapper {
+      background: linear-gradient(145deg, #0a0f1a 0%, #0f172a 50%, #0a1628 100%);
+      border-radius: 20px;
+      padding: 0;
+      border: 1.5px solid #1e293b;
+      animation: tmBorderGlow 4s ease-in-out infinite;
+      position: relative;
+      overflow: hidden;
+    }
+    .tm-editor-wrapper::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: radial-gradient(ellipse at 30% 20%, rgba(56,189,248,0.03) 0%, transparent 50%),
+                  radial-gradient(ellipse at 70% 80%, rgba(34,197,94,0.03) 0%, transparent 50%);
+      pointer-events: none; z-index: 0;
+    }
+
+    /* ── Header bar ── */
+    .tm-header-bar {
+      display: flex; align-items: center; justify-content: space-between; gap: 12px;
+      padding: 16px 20px;
+      background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.9));
+      border-bottom: 1px solid #1e293b;
+      backdrop-filter: blur(12px);
+      position: relative; z-index: 1;
+    }
+    .tm-header-title {
+      display: flex; align-items: center; gap: 10px;
+      font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.08em; color: #38bdf8;
+    }
+    .tm-header-title i { font-size: 0.9rem; }
+    .tm-header-dot {
+      width: 8px; height: 8px; border-radius: 50%;
+      background: #22c55e;
+      box-shadow: 0 0 8px #22c55e88;
+      animation: tmPulse 2s ease-in-out infinite;
+    }
+
+    /* ── Grid size controls ── */
+    .tm-grid-controls {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(30,41,59,0.6);
+      border: 1px solid #334155;
+      border-radius: 12px; padding: 4px 6px;
+      backdrop-filter: blur(8px);
+    }
+    .tm-grid-controls label {
+      font-size: 0.65rem; color: #475569; font-weight: 700;
+      text-transform: uppercase; padding: 0 6px;
+    }
+    .tm-grid-controls input[type="number"] {
+      width: 40px; background: transparent; color: #e2e8f0;
+      border: none; outline: none; text-align: center;
+      font-size: 0.85rem; font-weight: 600; padding: 6px 2px;
+    }
+    .tm-grid-controls .tm-divider {
+      color: #334155; font-size: 0.9rem; padding: 0 2px; font-weight: 300;
+    }
+
+    /* ── Tool buttons (Brushes) ── */
+    .tm-tool-btn {
+      display: flex; align-items: center; gap: 7px;
+      padding: 8px 14px; border-radius: 10px;
+      border: 1.5px solid transparent;
+      background: rgba(30,41,59,0.7); color: #94a3b8;
+      font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      backdrop-filter: blur(4px);
+      position: relative; overflow: hidden;
+    }
+    .tm-tool-btn::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.03) 100%);
+      pointer-events: none;
+    }
+    .tm-tool-btn:hover {
+      background: var(--tool-bg); color: #e2e8f0;
+      border-color: var(--tool-color);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
+    }
+    .tm-tool-btn.active {
+      background: var(--tool-bg); color: var(--tool-color);
+      border-color: var(--tool-color);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--tool-color) 20%, transparent),
+                  0 4px 16px color-mix(in srgb, var(--tool-color) 15%, transparent),
+                  inset 0 1px 0 rgba(255,255,255,0.05);
+      transform: translateY(-1px);
+    }
+    .tm-tool-icon { font-size: 1.1rem; line-height: 1; filter: drop-shadow(0 0 2px rgba(255,255,255,0.1)); }
+
+    /* ── Preset buttons ── */
+    .tm-preset-btn {
+      background: rgba(30,41,59,0.7); color: #94a3b8;
+      border: 1px solid #334155; padding: 7px 14px;
+      border-radius: 10px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      display: flex; align-items: center; gap: 6px;
+      backdrop-filter: blur(4px);
+    }
+    .tm-preset-btn:hover {
+      background: rgba(51,65,85,0.8); color: #e2e8f0;
+      border-color: #64748b; transform: translateY(-1px);
+      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    }
+    .tm-preset-btn:active { transform: translateY(0) scale(0.97); }
+
+    /* ── Action buttons (Regenerate/Clear) ── */
+    .tm-action-btn {
+      background: rgba(51,65,85,0.5); color: #94a3b8;
+      border: 1px solid #334155; padding: 7px 14px;
+      border-radius: 10px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
+      transition: all 0.2s; display: flex; align-items: center; gap: 6px;
+    }
+    .tm-action-btn:hover { background: rgba(51,65,85,0.8); color: #e2e8f0; border-color: #64748b; }
+    .tm-action-btn.danger {
+      background: rgba(127,29,29,0.2); color: #f87171;
+      border-color: rgba(127,29,29,0.5);
+    }
+    .tm-action-btn.danger:hover {
+      background: rgba(127,29,29,0.35); border-color: rgba(220,38,38,0.5);
+      box-shadow: 0 0 12px rgba(239,68,68,0.1);
+    }
+
+    /* ── Toolbar section ── */
+    .tm-toolbar-section {
+      padding: 14px 20px;
+      border-bottom: 1px solid rgba(30,41,59,0.6);
+      position: relative; z-index: 1;
+    }
+    .tm-toolbar-label {
+      font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
+      letter-spacing: 0.12em; color: #475569; margin-bottom: 8px;
+      display: flex; align-items: center; gap: 6px;
+    }
+    .tm-toolbar-label::before {
+      content: ''; width: 3px; height: 12px; border-radius: 2px;
+      background: linear-gradient(to bottom, #38bdf8, #3b82f6);
+    }
+
+    /* ── Grid Canvas area ── */
+    .tm-canvas-area {
+      padding: 20px;
+      position: relative; z-index: 1;
+      display: flex; justify-content: center;
+    }
+    .tm-canvas-area::before {
+      content: '';
+      position: absolute; top: 0; left: 50%; width: 2px; height: 100%;
+      transform: translateX(-50%);
+      pointer-events: none; opacity: 0;
+    }
+
+    /* ── Grid Cells ── */
+    .tm-cell {
+      aspect-ratio: 1;
+      min-width: 38px; min-height: 38px;
+      border-radius: 8px;
+      background: rgba(15,23,42,0.6);
+      border: 1.5px solid rgba(30,41,59,0.8);
+      display: flex; flex-direction: column; align-items: center; justify-content: center;
+      font-size: 0.6rem; font-weight: 700; color: transparent;
+      cursor: crosshair;
+      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+      position: relative; overflow: hidden;
+      backdrop-filter: blur(2px);
+    }
+    .tm-cell::after {
+      content: '';
+      position: absolute; inset: 0;
+      background: linear-gradient(135deg, rgba(255,255,255,0.02), transparent);
+      pointer-events: none;
+    }
+    .tm-cell:hover {
+      transform: scale(1.1); z-index: 2;
+      border-color: #475569;
+      box-shadow: 0 0 12px rgba(56,189,248,0.08);
+    }
+
+    /* ── Painted cell types ── */
+    .tm-cell[data-tile="parking"] {
+      background: linear-gradient(145deg, #14532d, #166534);
+      border-color: #22c55e55;
+      color: #86efac;
+      box-shadow: 0 0 10px rgba(34,197,94,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
+      animation: tmCellPop 0.25s ease-out;
+    }
+    .tm-cell[data-tile="parking"]::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 30% 30%, rgba(34,197,94,0.15), transparent 60%);
+      pointer-events: none;
+    }
+    .tm-cell[data-tile="wall"] {
+      background: linear-gradient(145deg, #1e293b, #334155);
+      border-color: #47556955;
+      color: transparent;
+      box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
+    }
+    .tm-cell[data-tile="wall"]::before {
+      content: ''; position: absolute; inset: 0;
+      background: repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.02) 3px, rgba(255,255,255,0.02) 6px);
+      pointer-events: none;
+    }
+    .tm-cell[data-tile="entrance"] {
+      background: linear-gradient(145deg, #78350f, #92400e);
+      border-color: #f59e0b55;
+      color: #fde68a;
+      box-shadow: 0 0 12px rgba(245,158,11,0.15), inset 0 1px 0 rgba(255,255,255,0.08);
+      animation: tmCellPop 0.25s ease-out;
+    }
+    .tm-cell[data-tile="entrance"]::before {
+      content: ''; position: absolute; inset: 0;
+      background: radial-gradient(circle at 50% 50%, rgba(245,158,11,0.12), transparent 70%);
+      pointer-events: none;
+    }
+    .tm-cell[data-tile="aisle"] {
+      background: linear-gradient(145deg, #0c4a6e, #075985);
+      border-color: #38bdf855;
+      color: #bae6fd;
+      box-shadow: 0 0 8px rgba(56,189,248,0.1), inset 0 1px 0 rgba(255,255,255,0.05);
+      animation: tmCellPop 0.25s ease-out;
+    }
+    .tm-cell-label { font-size: 0.55rem; font-weight: 700; line-height: 1; margin-top: 1px; text-shadow: 0 0 4px currentColor; }
+    .tm-cell-num  { font-size: 0.65rem; font-weight: 800; text-shadow: 0 0 6px currentColor; }
+
+    /* ── Footer area ── */
+    .tm-footer-area {
+      padding: 14px 20px;
+      border-top: 1px solid rgba(30,41,59,0.8);
+      background: linear-gradient(135deg, rgba(15,23,42,0.5), rgba(30,41,59,0.3));
+      position: relative; z-index: 1;
+    }
+
+    /* ── Legend ── */
+    .tm-legend-item {
+      display: flex; align-items: center; gap: 6px;
+      font-size: 0.72rem; color: #64748b; font-weight: 600;
+    }
+    .tm-legend-dot {
+      width: 12px; height: 12px; border-radius: 4px;
+      background: var(--lc); flex-shrink: 0;
+      box-shadow: 0 0 6px color-mix(in srgb, var(--lc) 40%, transparent);
+      border: 1px solid color-mix(in srgb, var(--lc) 50%, transparent);
+    }
+
+    /* ── Stats cards ── */
+    .tm-stat-card {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(30,41,59,0.5);
+      border: 1px solid #1e293b;
+      border-radius: 10px; padding: 8px 14px;
+      backdrop-filter: blur(4px);
+    }
+    .tm-stat-card .tm-stat-icon {
+      width: 32px; height: 32px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 0.85rem;
+    }
+    .tm-stat-card .tm-stat-value {
+      font-size: 1.2rem; font-weight: 800; color: #f1f5f9; line-height: 1;
+    }
+    .tm-stat-card .tm-stat-label {
+      font-size: 0.6rem; font-weight: 600; text-transform: uppercase;
+      letter-spacing: 0.06em; color: #64748b;
+    }
+
+    /* ── Vehicle selector ── */
+    .tm-vehicle-selector {
+      display: flex; align-items: center; gap: 8px;
+      background: rgba(30,41,59,0.6);
+      padding: 6px 12px; border-radius: 10px;
+      border: 1px solid #334155;
+    }
+    .tm-vehicle-selector label {
+      font-size: 0.65rem; color: #64748b; font-weight: 700;
+      text-transform: uppercase; letter-spacing: 0.05em;
+    }
+    .tm-vehicle-selector select {
+      background: transparent; color: #e2e8f0; border: none; outline: none;
+      font-size: 0.8rem; cursor: pointer; font-weight: 500;
+    }
   </style>
 
   <!-- Mis Garajes Backend Styles -->
@@ -56,35 +370,31 @@
 </head>
 <body class="bg-background text-on-background min-h-screen">
 
-  <!-- ==============================
-       Top Navigation Bar
-  ============================== -->
-  <nav class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm transition-colors" id="topNavbar">
-    <div class="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
-      <div class="flex items-center gap-8">
-        <a class="flex items-center gap-2 text-xl font-black tracking-tighter text-[#002542] dark:text-slate-100 hover:opacity-80 transition-opacity" href="/">
-          <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">local_parking</span>
+  <!-- Navbar -->
+  <nav class="app-navbar" id="topNavbar">
+    <div class="nav-inner">
+      <div style="display:flex;align-items:center;">
+        <a href="/" class="nav-brand">
+          <span class="brand-icon"><span class="material-symbols-outlined">local_parking</span></span>
           EstAirbnb
         </a>
-        <div class="hidden md:flex gap-6">
-          <a class="font-['Inter'] font-medium tracking-tight text-[#002542] border-b-2 border-[#006a62] pb-1 px-3 py-2 rounded-md dark:text-slate-100 dark:border-teal-400" href="/mis-garajes.html" id="navLinkGarajes">Mis Garajes</a>
-          <a class="font-['Inter'] font-medium tracking-tight text-slate-500 hover:text-slate-800 transition-colors px-3 py-2 rounded-md dark:text-slate-400 dark:hover:text-slate-200" href="/configuracion.html" id="navLinkPerfil">Mi Perfil</a>
+        <div class="nav-links">
+          <a href="/mis-garajes.html" class="nav-link active" id="navLinkGarajes">Mis Garajes</a>
+          <a href="/configuracion.html" class="nav-link" id="navLinkPerfil">Mi Perfil</a>
         </div>
       </div>
-      <div class="flex items-center gap-4">
-        <span id="navUserName" class="hidden md:inline-block font-semibold text-sm text-surface-variant"></span>
-        <button class="text-slate-500 hover:bg-slate-100/50 p-2 rounded-full transition-colors flex items-center justify-center" id="btnThemeToggle" title="Cambiar tema">
-          <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+      <div class="nav-actions">
+        <button class="nav-icon-btn" id="btnThemeToggle" title="Cambiar tema">
+          <span class="material-symbols-outlined" id="themeIcon" style="font-size:20px;">dark_mode</span>
         </button>
-        <button class="text-error hover:bg-error-container/50 p-2 rounded-full transition-colors font-bold flex items-center justify-center" id="btnLogout" title="Cerrar sesión">
+        <button class="nav-icon-btn nav-danger" id="btnLogout" title="Cerrar sesión">
           <i class="fa-solid fa-right-from-bracket"></i>
         </button>
-        <div class="w-10 h-10 rounded-full bg-secondary text-white flex items-center justify-center font-bold text-lg shadow-sm border border-transparent hover:border-outline cursor-pointer overflow-hidden transition-all" id="userAvatar" title="Mi perfil" onclick="window.location.href='/configuracion.html'">
+        <div class="nav-avatar" id="userAvatar" onclick="window.location.href='/configuracion.html'" title="Mi perfil">
           <span id="navInitials">?</span>
         </div>
       </div>
     </div>
-    <div class="bg-gradient-to-b from-slate-200/50 to-transparent h-[1px] w-full absolute bottom-0 dark:from-slate-700/50"></div>
   </nav>
 
   <!-- ==============================
@@ -231,51 +541,183 @@
 
           <hr class="form-divider">
 
-          <!-- Configurador Visual de Espacios (Filas x Columnas) -->
+          <!-- ==============================
+               Sección de Confianza (Módulo Trust)
+          ============================== -->
+          <div class="form-group">
+            <label class="form-label-custom">
+              <i class="fa-solid fa-handshake-angle"></i> Información de Confianza y Reglas
+            </label>
+            <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">
+              Establece las expectativas claras para los conductores y mejora tu perfil como anfitrión.
+            </p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
+              <div>
+                <label for="inpDimensiones" class="form-label-custom" style="font-size:0.7rem;">Dimensiones máximas del vehículo</label>
+                <input type="text" class="form-control-custom" id="inpDimensiones" placeholder="Ej: Ancho 2.5m, Alto 2.2m, Largo 5m">
+              </div>
+              <div>
+                <label for="inpPolitica" class="form-label-custom" style="font-size:0.7rem;">Política de Cancelación</label>
+                <select class="form-control-custom" id="inpPolitica">
+                  <option value="Flexible: Reembolso total hasta 2h antes">Flexible: Reembolso total hasta 2h antes</option>
+                  <option value="Moderada: Reembolso 50% hasta 24h antes" selected>Moderada: Reembolso 50% hasta 24h antes</option>
+                  <option value="Estricta: Sin reembolso una vez confirmado">Estricta: Sin reembolso una vez confirmado</option>
+                </select>
+              </div>
+            </div>
+            <div class="mt-3">
+              <label for="inpReglas" class="form-label-custom" style="font-size:0.7rem;">Reglas de la casa</label>
+              <textarea class="form-control-custom" id="inpReglas" placeholder="Ej: Prohibido lavar el auto, no dejar basura, respetar el límite de velocidad a 10km/h." rows="2"></textarea>
+            </div>
+          </div>
+
+          <hr class="form-divider">
+
+          <!-- ==============================
+               Tilemap Editor 2D — Premium
+          ============================== -->
           <div class="form-group" id="espacioBuilderSection">
             <label class="form-label-custom">
-              <i class="fa-solid fa-grip"></i> Constructor del Layout de tu Parqueo
+              <i class="fa-solid fa-map"></i> Editor Visual de Plano 2D
             </label>
             <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:16px;">
-              Ingresa las filas y columnas de tu terreno para generar el mapa. Luego toca cada espacio para cambiar el tipo de vehículo.
+              Dibuja el plano real de tu garaje. Selecciona una herramienta y <strong>haz clic o arrastra</strong> sobre la cuadrícula para pintar. Define dónde están los parqueos, las paredes, el pasillo y la entrada.
             </p>
 
-            <!-- Selector de Filas y Columnas -->
-            <div class="layout-dimension-selector">
-              <div class="dimension-input-group">
-                <label for="inpFilas" class="form-label-custom" style="font-size:0.7rem;">Filas</label>
-                <input type="number" class="form-control-custom" id="inpFilas" min="1" max="10" value="2" style="text-align:center;">
+            <!-- ═══ Tilemap Editor Wrapper ═══ -->
+            <div id="tilemapEditor" class="tm-editor-wrapper">
+
+              <!-- ── Header Bar ── -->
+              <div class="tm-header-bar" style="flex-wrap:wrap;">
+                <div class="tm-header-title">
+                  <span class="tm-header-dot"></span>
+                  <i class="fa-solid fa-drafting-compass"></i>
+                  Garage Blueprint Editor
+                </div>
+
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <!-- Grid Size -->
+                  <div class="tm-grid-controls">
+                    <label>Filas</label>
+                    <input type="number" id="tmFilas" min="3" max="12" value="6">
+                    <span class="tm-divider">×</span>
+                    <input type="number" id="tmColumnas" min="3" max="12" value="8">
+                    <label>Cols</label>
+                  </div>
+                  <button type="button" id="btnTmGenerar" class="tm-action-btn">
+                    <i class="fa-solid fa-rotate"></i> Regenerar
+                  </button>
+                </div>
               </div>
-              <span class="dimension-x">×</span>
-              <div class="dimension-input-group">
-                <label for="inpColumnas" class="form-label-custom" style="font-size:0.7rem;">Columnas</label>
-                <input type="number" class="form-control-custom" id="inpColumnas" min="1" max="10" value="4" style="text-align:center;">
+
+              <!-- ── Presets Toolbar ── -->
+              <div class="tm-toolbar-section">
+                <div class="tm-toolbar-label">Plantillas Rápidas</div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                  <button type="button" class="tm-preset-btn" data-preset="linea" title="Línea recta de parqueos">
+                    <i class="fa-solid fa-grip-lines-vertical"></i> Línea
+                  </button>
+                  <button type="button" class="tm-preset-btn" data-preset="ele" title="Distribución en forma de L">
+                    <i class="fa-solid fa-angle-up" style="transform:rotate(-90deg);"></i> En L
+                  </button>
+                  <button type="button" class="tm-preset-btn" data-preset="patio" title="Patio cuadrado con pasillo central">
+                    <i class="fa-solid fa-border-all"></i> Patio
+                  </button>
+                  <div style="flex:1;"></div>
+                  <button type="button" id="btnTmLimpiar" class="tm-action-btn danger" title="Limpiar todo">
+                    <i class="fa-solid fa-broom"></i> Limpiar Todo
+                  </button>
+                </div>
               </div>
-              <button type="button" class="btn-generar-mapa" id="btnGenerarMapa">
-                <i class="fa-solid fa-table-cells-large"></i> Generar Mapa
-              </button>
+
+              <!-- ── Brushes Toolbar ── -->
+              <div class="tm-toolbar-section" style="border-bottom:none;">
+                <div class="tm-toolbar-label">Herramientas de Dibujo</div>
+                <div id="tmToolbar" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                  <button type="button" class="tm-tool-btn active" data-tool="parking"
+                          style="--tool-color:#22c55e; --tool-bg:rgba(20,83,45,0.35);">
+                    <span class="tm-tool-icon">🅿️</span>
+                    <span>Parqueo</span>
+                  </button>
+                  <button type="button" class="tm-tool-btn" data-tool="wall"
+                          style="--tool-color:#94a3b8; --tool-bg:rgba(30,41,59,0.6);">
+                    <span class="tm-tool-icon">🧱</span>
+                    <span>Pared</span>
+                  </button>
+                  <button type="button" class="tm-tool-btn" data-tool="entrance"
+                          style="--tool-color:#f59e0b; --tool-bg:rgba(120,53,15,0.35);">
+                    <span class="tm-tool-icon">🚪</span>
+                    <span>Entrada</span>
+                  </button>
+                  <button type="button" class="tm-tool-btn" data-tool="aisle"
+                          style="--tool-color:#38bdf8; --tool-bg:rgba(12,74,110,0.35);">
+                    <span class="tm-tool-icon">🛤️</span>
+                    <span>Pasillo</span>
+                  </button>
+                  <button type="button" class="tm-tool-btn" data-tool="eraser"
+                          style="--tool-color:#f43f5e; --tool-bg:rgba(76,5,25,0.45);">
+                    <span class="tm-tool-icon">🧹</span>
+                    <span>Borrar</span>
+                  </button>
+
+                  <!-- Vehicle type selector -->
+                  <div id="tmVehicleSelector" class="tm-vehicle-selector" style="margin-left:auto;">
+                    <label>Vehículo</label>
+                    <select id="tmTipoVehiculo">
+                      <option value="auto">🚗 Auto</option>
+                      <option value="moto">🏍️ Moto</option>
+                      <option value="camioneta">🚙 SUV</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ── Grid Canvas ── -->
+              <div class="tm-canvas-area">
+                <div id="tmGrid" style="display:inline-grid; gap:4px; cursor:crosshair; user-select:none; width:100%;">
+                  <!-- Cells generated by JS -->
+                </div>
+              </div>
+
+              <!-- ── Footer: Legend + Stats ── -->
+              <div class="tm-footer-area">
+                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;">
+                  <!-- Legend -->
+                  <div style="display:flex; flex-wrap:wrap; gap:12px;">
+                    <span class="tm-legend-item" style="--lc:#22c55e;"><span class="tm-legend-dot"></span>Parqueo</span>
+                    <span class="tm-legend-item" style="--lc:#64748b;"><span class="tm-legend-dot"></span>Pared</span>
+                    <span class="tm-legend-item" style="--lc:#f59e0b;"><span class="tm-legend-dot"></span>Entrada</span>
+                    <span class="tm-legend-item" style="--lc:#38bdf8;"><span class="tm-legend-dot"></span>Pasillo</span>
+                    <span class="tm-legend-item" style="--lc:#1e293b;"><span class="tm-legend-dot"></span>Vacío</span>
+                  </div>
+                  <!-- Stat cards -->
+                  <div style="display:flex; gap:10px; flex-wrap:wrap;">
+                    <div class="tm-stat-card">
+                      <div class="tm-stat-icon" style="background:rgba(20,83,45,0.4); color:#22c55e;">
+                        <i class="fa-solid fa-square-parking"></i>
+                      </div>
+                      <div>
+                        <div class="tm-stat-value" id="tmCountParking">0</div>
+                        <div class="tm-stat-label">Parqueos</div>
+                      </div>
+                    </div>
+                    <div class="tm-stat-card">
+                      <div class="tm-stat-icon" style="background:rgba(12,74,110,0.4); color:#38bdf8;">
+                        <i class="fa-solid fa-table-cells"></i>
+                      </div>
+                      <div>
+                        <div class="tm-stat-value" id="tmCountTotal">0</div>
+                        <div class="tm-stat-label">Pintadas</div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <!-- Cantidad display -->
-            <div class="cantidad-display" style="margin:12px 0;">
-              <span class="cantidad-numero" id="cantidadNumero">0</span>
-              <span class="cantidad-texto">espacios</span>
-            </div>
-
-            <!-- Leyenda -->
-            <div class="tipo-leyenda" id="tipoLeyenda" style="display:none;">
-              <span class="leyenda-hint"><i class="fa-solid fa-hand-pointer"></i> Toca un espacio para cambiar su tipo:</span>
-              <div class="leyenda-tipos">
-                <span class="leyenda-tipo"><i class="fa-solid fa-car"></i> Auto</span>
-                <span class="leyenda-tipo"><i class="fa-solid fa-motorcycle"></i> Moto</span>
-                <span class="leyenda-tipo"><i class="fa-solid fa-truck-pickup"></i> SUV</span>
-                <span class="leyenda-tipo" style="color: #10b981"><i class="fa-solid fa-warehouse"></i> Techado</span>
-              </div>
-            </div>
-
-            <!-- Mapa Visual de Espacios -->
-            <div id="mapaBuilder" class="mapa-builder-grid"></div>
+            <p id="tilemapError" class="text-error text-xs mt-2 hidden">Debes colocar al menos 1 espacio de parqueo (🟩) en el mapa.</p>
           </div>
+
 
           <hr class="form-divider">
 

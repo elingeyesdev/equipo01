@@ -64,7 +64,8 @@
     }
   }
 
-  if (btnThemeToggle) {
+  if (btnThemeToggle && !btnThemeToggle.dataset.bound) {
+    btnThemeToggle.dataset.bound = '1';
     btnThemeToggle.addEventListener('click', () => {
       const isDark = document.documentElement.classList.contains('dark');
       if (isDark) {
