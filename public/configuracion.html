@@ -9,6 +9,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
 <link href="/css/dark-theme.css" rel="stylesheet">
+<link href="/css/globals.css" rel="stylesheet">
 <script id="tailwind-config">
 tailwind.config = {
   darkMode: "class",
@@ -84,32 +85,33 @@ body { font-family: 'Inter', sans-serif; background-color: theme('colors.backgro
 </style>
 </head>
 <body class="bg-background text-on-background min-h-screen flex flex-col antialiased">
-<!-- TopNavBar -->
-<nav class="bg-white/70 backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm" id="topNavbar">
-<div class="flex justify-between items-center w-full px-6 py-4 max-w-screen-2xl mx-auto">
-<div class="flex items-center gap-8">
-<a class="text-xl font-black tracking-tighter text-[#002542]" href="/">EstAirbnb</a>
-<div class="hidden md:flex gap-6">
-<a class="font-['Inter'] font-medium tracking-tight text-slate-500 hover:text-slate-800 transition-colors px-3 py-2 rounded-md" href="/explorar.html" id="navLinkExplorar" style="display:none;">Explorar</a>
-<a class="font-['Inter'] font-medium tracking-tight text-slate-500 hover:text-slate-800 transition-colors px-3 py-2 rounded-md" href="/mis-garajes.html" id="navLinkGarajes" style="display:none;">Mis Garajes</a>
-<a class="font-['Inter'] font-medium tracking-tight text-[#002542] border-b-2 border-[#006a62] pb-1 px-3 py-2 rounded-md" href="/configuracion.html">Mi Perfil</a>
-</div>
-</div>
-<div class="flex items-center gap-4">
-<span id="navUserName" class="hidden md:inline-block font-semibold text-sm text-surface-variant"></span>
-<button class="text-slate-500 hover:bg-slate-100/50 p-2 rounded-full transition-colors" id="btnThemeToggle">
-<span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
-</button>
-<button class="text-error hover:bg-error-container/50 p-2 rounded-full transition-colors font-bold" id="btnLogout" title="Cerrar sesión">
-<i class="fa-solid fa-right-from-bracket"></i>
-</button>
-<div class="w-10 h-10 rounded-full bg-secondary text-white flex items-center justify-center font-bold text-lg shadow-sm border border-transparent hover:border-outline cursor-pointer overflow-hidden" id="userAvatar" onclick="document.getElementById('inputFoto').click()">
-<span id="navInitials">?</span>
-</div>
-<input type="file" id="inputFoto" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="onFotoSeleccionada(event)">
-</div>
-</div>
-<div class="bg-gradient-to-b from-slate-200/50 to-transparent h-[1px] w-full absolute bottom-0"></div>
+<!-- Navbar -->
+<nav class="app-navbar" id="topNavbar">
+  <div class="nav-inner">
+    <div style="display:flex;align-items:center;">
+      <a href="/" class="nav-brand">
+        <span class="brand-icon"><span class="material-symbols-outlined">local_parking</span></span>
+        EstAirbnb
+      </a>
+      <div class="nav-links">
+        <a href="/explorar.html" class="nav-link" id="navLinkExplorar" style="display:none;">Explorar</a>
+        <a href="/mis-garajes.html" class="nav-link" id="navLinkGarajes" style="display:none;">Mis Garajes</a>
+        <a href="/configuracion.html" class="nav-link active">Mi Perfil</a>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <button class="nav-icon-btn" id="btnThemeToggle" title="Cambiar tema">
+        <span class="material-symbols-outlined" id="themeIcon" style="font-size:20px;">dark_mode</span>
+      </button>
+      <button class="nav-icon-btn nav-danger" id="btnLogout" title="Cerrar sesión">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </button>
+      <div class="nav-avatar" id="userAvatar" onclick="document.getElementById('inputFoto').click()" title="Cambiar foto">
+        <span id="navInitials">?</span>
+      </div>
+      <input type="file" id="inputFoto" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="onFotoSeleccionada(event)">
+    </div>
+  </div>
 </nav>
 
 <!-- Toast Notification -->

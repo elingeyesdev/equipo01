@@ -1,266 +1,303 @@
 -- ============================================================
--- EstAirbnb — SETUP COMPLETO DE BASE DE DATOS
--- Ejecutar en SSMS para crear TODO lo necesario desde cero
--- Fecha: 2026-04-16
+-- EstAirbnb — SETUP COMPLETO DE BASE DE DATOS (v2)
+-- Compatible con server.js actual
+-- Idempotente: puedes ejecutarlo varias veces sin problema
 -- ============================================================
--- Este script crea todo lo que el server.js actual necesita.
--- Es idempotente (puedes ejecutarlo varias veces sin problema).
+--
+-- ANTES DE EJECUTAR:
+--   1. Abre este archivo en SSMS (SQL Server Management Studio)
+--   2. Si tu PC no se llama "ACHO", cambia la linea 66 de server.js:
+--        Server=ACHO  →  Server=<TU_NOMBRE_DE_PC>
+--      Para saber tu nombre ejecuta en CMD:  hostname
+--   3. Ejecuta TODO el script (Ctrl+A → F5)
+--
+-- DIAGRAMA DE TABLAS:
+--   Credenciales ──┬── UsuarioAnfitrion ──── Garajes ──┬── FotosGaraje
+--                  │                                    ├── Espacios ──── Reservas
+--                  │                                    └── ComodidadesGaraje
+--                  └── UsuarioConductor ────────────────────── Reservas
 -- ============================================================
 
--- ★★★ PASO 0: IMPORTANTE ★★★
--- Si tu servidor SQL NO se llama "ACHO", debes cambiar
--- la línea 66 de server.js:
---    Server=ACHO  →  Server=TU_NOMBRE_DE_PC
--- Para saber tu nombre, ejecuta en CMD: hostname
--- ============================================================
-
--- 1. Crear la base de datos (si no existe)
+-- ── 1. Base de datos ────────────────────────────────────────
 IF NOT EXISTS (SELECT name FROM sys.databases WHERE name = 'EstAirbnbDB')
 BEGIN
     CREATE DATABASE EstAirbnbDB;
-    PRINT '✅ Base de datos EstAirbnbDB creada.';
+    PRINT '+ Base de datos EstAirbnbDB creada.';
 END
 ELSE
-    PRINT 'ℹ️  EstAirbnbDB ya existe.';
+    PRINT 'i  EstAirbnbDB ya existe.';
 GO
 
 USE EstAirbnbDB;
 GO
 
--- ============================================================
--- 2. Tabla Usuarios (estructura base de init.sql)
--- ============================================================
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Usuarios]') AND type = 'U')
+-- ── 2. Credenciales (autenticacion) ─────────────────────────
+--    Reemplaza la antigua tabla Usuarios para auth.
+--    Columnas: id | email | password_hash | rol | fecha_registro
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.Credenciales') AND type = 'U')
 BEGIN
-    CREATE TABLE [dbo].[Usuarios] (
+    CREATE TABLE Credenciales (
         id              INT IDENTITY(1,1)   PRIMARY KEY,
-        nombre          NVARCHAR(100)       NOT NULL,
-        apellidos       NVARCHAR(100)       NOT NULL,
-        telefono        NVARCHAR(20)        NULL,
         email           NVARCHAR(150)       NOT NULL UNIQUE,
-        password        NVARCHAR(255)       NOT NULL,
-        fecha_registro  DATETIME            NOT NULL DEFAULT GETDATE()
+        password_hash   NVARCHAR(255)       NOT NULL,
+        rol             VARCHAR(50)         NOT NULL,
+        fecha_registro  DATETIME            NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT CK_Credenciales_Rol CHECK (rol IN ('anfitrion', 'conductor'))
     );
-    PRINT '✅ Tabla Usuarios creada.';
+    PRINT '+ Tabla Credenciales creada.';
 END
 ELSE
-    PRINT 'ℹ️  Tabla Usuarios ya existe.';
+    PRINT 'i  Tabla Credenciales ya existe.';
 GO
 
--- ============================================================
--- 3. Columna foto_url en Usuarios
---    (Usada por: POST /api/perfil/upload-foto, GET /api/auth/login)
--- ============================================================
-IF NOT EXISTS (
-    SELECT 1 FROM sys.columns
-    WHERE object_id = OBJECT_ID(N'[dbo].[Usuarios]') AND name = 'foto_url'
-)
+-- ── 3. UsuarioAnfitrion (perfil de anfitriones) ─────────────
+--    1:1 con Credenciales (mismo id).
+--    Columnas: id | nombre | apellidos | telefono | foto_url | priv_*
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.UsuarioAnfitrion') AND type = 'U')
 BEGIN
-    ALTER TABLE [dbo].[Usuarios] ADD foto_url NVARCHAR(255) NULL;
-    PRINT '✅ Columna foto_url agregada a Usuarios.';
-END
-ELSE
-    PRINT 'ℹ️  Columna foto_url ya existe.';
-GO
-
--- ============================================================
--- 4. Tabla Roles (catálogo de roles)
---    (Usada por: LOGIN, REGISTER, GET perfil - JOIN con Roles)
--- ============================================================
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Roles]') AND type = 'U')
-BEGIN
-    CREATE TABLE [dbo].[Roles] (
-        id      INT IDENTITY(1,1)   PRIMARY KEY,
-        nombre  VARCHAR(50)         NOT NULL UNIQUE
+    CREATE TABLE UsuarioAnfitrion (
+        id                  INT             PRIMARY KEY,
+        nombre              NVARCHAR(255)   NOT NULL,
+        apellidos           NVARCHAR(255)   NOT NULL,
+        telefono            NVARCHAR(20)    NULL,
+        foto_url            NVARCHAR(255)   NULL,
+        es_verificado       BIT             NOT NULL DEFAULT 0,
+        priv_telefono       BIT             NOT NULL DEFAULT 0,
+        priv_calificaciones BIT             NOT NULL DEFAULT 1,
+        priv_email          BIT             NOT NULL DEFAULT 0,
+        CONSTRAINT FK_Anfitrion_Credenciales
+            FOREIGN KEY (id) REFERENCES Credenciales(id) ON DELETE CASCADE
     );
-    PRINT '✅ Tabla Roles creada.';
+    PRINT '+ Tabla UsuarioAnfitrion creada.';
 END
 ELSE
-    PRINT 'ℹ️  Tabla Roles ya existe.';
-GO
-
--- Insertar roles base
-IF NOT EXISTS (SELECT 1 FROM [dbo].[Roles] WHERE nombre = 'anfitrion')
-    INSERT INTO [dbo].[Roles] (nombre) VALUES ('anfitrion');
-
-IF NOT EXISTS (SELECT 1 FROM [dbo].[Roles] WHERE nombre = 'conductor')
-    INSERT INTO [dbo].[Roles] (nombre) VALUES ('conductor');
-
-PRINT '✅ Roles insertados: anfitrion (1), conductor (2).';
-GO
-
--- ============================================================
--- 5. Columna rol_id en Usuarios (FK → Roles)
---    (Usada por: REGISTER, LOGIN, GET perfil, POST garajes)
--- ============================================================
-IF NOT EXISTS (
-    SELECT 1 FROM sys.columns
-    WHERE object_id = OBJECT_ID(N'[dbo].[Usuarios]') AND name = 'rol_id'
-)
 BEGIN
-    ALTER TABLE [dbo].[Usuarios] ADD rol_id INT NULL;
+    PRINT 'i  Tabla UsuarioAnfitrion ya existe.';
+    IF NOT EXISTS(SELECT * FROM sys.columns WHERE Name = N'es_verificado' AND Object_ID = Object_ID(N'dbo.UsuarioAnfitrion'))
+    BEGIN
+        ALTER TABLE UsuarioAnfitrion ADD es_verificado BIT NOT NULL DEFAULT 0;
+        PRINT '+ Columna es_verificado agregada a UsuarioAnfitrion.';
+    END
+END
+GO
 
-    -- Asignar conductor (2) a usuarios existentes sin rol
-    UPDATE [dbo].[Usuarios] SET rol_id = 2 WHERE rol_id IS NULL;
-
-    -- Crear la FK
-    ALTER TABLE [dbo].[Usuarios]
-        ADD CONSTRAINT FK_Usuarios_Roles
-        FOREIGN KEY (rol_id) REFERENCES [dbo].[Roles](id);
-
-    PRINT '✅ Columna rol_id agregada a Usuarios (FK → Roles).';
+-- ── 4. UsuarioConductor (perfil de conductores) ─────────────
+--    1:1 con Credenciales (mismo id).
+--    Columnas: id | nombre | apellidos | telefono | foto_url | priv_*
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.UsuarioConductor') AND type = 'U')
+BEGIN
+    CREATE TABLE UsuarioConductor (
+        id                  INT             PRIMARY KEY,
+        nombre              NVARCHAR(255)   NOT NULL,
+        apellidos           NVARCHAR(255)   NOT NULL,
+        telefono            NVARCHAR(20)    NULL,
+        foto_url            NVARCHAR(255)   NULL,
+        priv_telefono       BIT             NOT NULL DEFAULT 0,
+        priv_calificaciones BIT             NOT NULL DEFAULT 1,
+        priv_email          BIT             NOT NULL DEFAULT 0,
+        CONSTRAINT FK_Conductor_Credenciales
+            FOREIGN KEY (id) REFERENCES Credenciales(id) ON DELETE CASCADE
+    );
+    PRINT '+ Tabla UsuarioConductor creada.';
 END
 ELSE
-    PRINT 'ℹ️  Columna rol_id ya existe.';
+    PRINT 'i  Tabla UsuarioConductor ya existe.';
 GO
 
--- ============================================================
--- 6. Columnas de privacidad en Usuarios
---    (Usada por: GET/PUT /api/perfil/privacidad)
---    NOTA: El server.js maneja el caso donde no existan con
---    try/catch, pero es mejor tenerlas creadas.
--- ============================================================
-IF NOT EXISTS (
-    SELECT 1 FROM sys.columns
-    WHERE object_id = OBJECT_ID(N'[dbo].[Usuarios]') AND name = 'priv_telefono'
-)
+-- ── 5. Garajes (espacios de parqueo publicados) ──────────────
+--    Propietario: anfitrion_id → UsuarioAnfitrion.id
+--    Incluye horarios (fijos y flexibles), seguridad y layout 2D.
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.Garajes') AND type = 'U')
 BEGIN
-    ALTER TABLE [dbo].[Usuarios] ADD priv_telefono BIT NOT NULL DEFAULT 0;
-    PRINT '✅ Columna priv_telefono agregada.';
-END
-GO
+    CREATE TABLE Garajes (
+        id                  INT IDENTITY(1,1)   PRIMARY KEY,
+        anfitrion_id        INT                 NOT NULL,
+        direccion           NVARCHAR(255)       NOT NULL,
+        descripcion         NVARCHAR(500)       NULL,
+        precio_hora         DECIMAL(10,2)       NOT NULL,
+        tipo_vehiculo       VARCHAR(20)         NOT NULL DEFAULT 'auto',
+        estado_activo       BIT                 NOT NULL DEFAULT 1,
+        fecha_creacion      DATETIME            NOT NULL DEFAULT GETDATE(),
 
-IF NOT EXISTS (
-    SELECT 1 FROM sys.columns
-    WHERE object_id = OBJECT_ID(N'[dbo].[Usuarios]') AND name = 'priv_calificaciones'
-)
-BEGIN
-    ALTER TABLE [dbo].[Usuarios] ADD priv_calificaciones BIT NOT NULL DEFAULT 1;
-    PRINT '✅ Columna priv_calificaciones agregada.';
-END
-GO
+        -- Campos de Confianza y Detalle
+        dimensiones         VARCHAR(100)        NULL,
+        reglas_casa         NVARCHAR(MAX)       NULL,
+        politica_cancelacion NVARCHAR(MAX)      NULL,
 
-IF NOT EXISTS (
-    SELECT 1 FROM sys.columns
-    WHERE object_id = OBJECT_ID(N'[dbo].[Usuarios]') AND name = 'priv_email'
-)
-BEGIN
-    ALTER TABLE [dbo].[Usuarios] ADD priv_email BIT NOT NULL DEFAULT 0;
-    PRINT '✅ Columna priv_email agregada.';
-END
-GO
+        -- Horarios fijos (fallback si horarios_flexibles es NULL)
+        hora_apertura       VARCHAR(5)          NOT NULL DEFAULT '08:00',
+        hora_cierre         VARCHAR(5)          NOT NULL DEFAULT '22:00',
+        dias_operativos     VARCHAR(50)         NOT NULL DEFAULT 'L-D',
 
--- ============================================================
--- 7. Tabla Garajes
---    (Usada por: POST/GET/PUT /api/garajes/*, GET /api/explorar)
--- ============================================================
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Garajes]') AND type = 'U')
-BEGIN
-    CREATE TABLE [dbo].[Garajes] (
-        id              INT IDENTITY(1,1)   PRIMARY KEY,
-        usuario_id      INT                 NOT NULL,
-        direccion       NVARCHAR(255)       NOT NULL,
-        descripcion     NVARCHAR(500)       NULL,
-        precio_hora     DECIMAL(10,2)       NOT NULL,
-        tipo_vehiculo   VARCHAR(20)         NOT NULL,
-        estado_activo   BIT                 NOT NULL DEFAULT 1,
-        fecha_creacion  DATETIME            NOT NULL DEFAULT GETDATE(),
+        -- Horarios flexibles (JSON: [{dias:[0,1,...], inicio:"HH:MM", fin:"HH:MM"}])
+        horarios_flexibles  NVARCHAR(MAX)       NULL,
 
-        CONSTRAINT FK_Garajes_Usuarios
-            FOREIGN KEY (usuario_id) REFERENCES [dbo].[Usuarios](id),
+        -- Caracteristicas de seguridad y acceso
+        instrucciones_acceso NVARCHAR(MAX)      NULL,
+        nivel_seguridad     VARCHAR(50)         NOT NULL DEFAULT 'Estándar',
+        metodo_acceso       VARCHAR(50)         NOT NULL DEFAULT 'Manual',
 
+        -- Layout 2D dibujado por el anfitrion (JSON)
+        layout_mapa         NVARCHAR(MAX)       NULL,
+
+        CONSTRAINT FK_Garajes_Anfitrion
+            FOREIGN KEY (anfitrion_id) REFERENCES UsuarioAnfitrion(id),
         CONSTRAINT CK_Garajes_TipoVehiculo
-            CHECK (tipo_vehiculo IN ('auto', 'moto', 'camioneta'))
+            CHECK (tipo_vehiculo IN ('auto', 'moto', 'camioneta')),
+        CONSTRAINT CK_Garajes_NivelSeguridad
+            CHECK (nivel_seguridad IN ('Básico', 'Estándar', 'Premium')),
+        CONSTRAINT CK_Garajes_MetodoAcceso
+            CHECK (metodo_acceso IN ('Manual', 'Código', 'QR'))
     );
-    PRINT '✅ Tabla Garajes creada.';
+    PRINT '+ Tabla Garajes creada.';
 END
 ELSE
-    PRINT 'ℹ️  Tabla Garajes ya existe.';
+BEGIN
+    PRINT 'i  Tabla Garajes ya existe.';
+    IF NOT EXISTS(SELECT * FROM sys.columns WHERE Name = N'dimensiones' AND Object_ID = Object_ID(N'dbo.Garajes'))
+    BEGIN
+        ALTER TABLE Garajes ADD 
+            dimensiones VARCHAR(100) NULL,
+            reglas_casa NVARCHAR(MAX) NULL,
+            politica_cancelacion NVARCHAR(MAX) NULL;
+        PRINT '+ Columnas de confianza agregadas a Garajes.';
+    END
+END
 GO
 
--- ============================================================
--- 8. Tabla FotosGaraje
---    (Usada por: POST /api/garajes, GET mis-espacios, explorar)
--- ============================================================
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[FotosGaraje]') AND type = 'U')
+-- ── 6. FotosGaraje (fotos de portada y galeria) ─────────────
+--    Hasta 5 fotos por garaje (limite en server.js).
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.FotosGaraje') AND type = 'U')
 BEGIN
-    CREATE TABLE [dbo].[FotosGaraje] (
+    CREATE TABLE FotosGaraje (
         id          INT IDENTITY(1,1)   PRIMARY KEY,
         garaje_id   INT                 NOT NULL,
         foto_url    NVARCHAR(255)       NOT NULL,
-
         CONSTRAINT FK_FotosGaraje_Garajes
-            FOREIGN KEY (garaje_id) REFERENCES [dbo].[Garajes](id)
-            ON DELETE CASCADE
+            FOREIGN KEY (garaje_id) REFERENCES Garajes(id) ON DELETE CASCADE
     );
-    PRINT '✅ Tabla FotosGaraje creada.';
+    PRINT '+ Tabla FotosGaraje creada.';
 END
 ELSE
-    PRINT 'ℹ️  Tabla FotosGaraje ya existe.';
+    PRINT 'i  Tabla FotosGaraje ya existe.';
 GO
 
--- ============================================================
--- 9. Tabla Reservas  ← NUEVA (agregada por tu compañero)
---    (Usada por: POST/GET/PUT /api/reservas/*)
--- ============================================================
-IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'[dbo].[Reservas]') AND type = 'U')
+-- ── 7. Espacios (spots individuales dentro de un garaje) ─────
+--    Posicion en la grilla 2D: fila × columna.
+--    Estados: libre | ocupado | mantenimiento
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.Espacios') AND type = 'U')
 BEGIN
-    CREATE TABLE [dbo].[Reservas] (
+    CREATE TABLE Espacios (
         id              INT IDENTITY(1,1)   PRIMARY KEY,
         garaje_id       INT                 NOT NULL,
-        usuario_id      INT                 NOT NULL,
+        numero_espacio  VARCHAR(10)         NOT NULL,
+        estado          VARCHAR(20)         NOT NULL DEFAULT 'libre',
+        fila            INT                 NOT NULL DEFAULT 1,
+        columna         INT                 NOT NULL DEFAULT 1,
+        tipo_vehiculo   VARCHAR(20)         NOT NULL DEFAULT 'auto',
+        CONSTRAINT FK_Espacios_Garajes
+            FOREIGN KEY (garaje_id) REFERENCES Garajes(id) ON DELETE CASCADE,
+        CONSTRAINT CK_Espacios_Estado
+            CHECK (estado IN ('libre', 'ocupado', 'mantenimiento')),
+        CONSTRAINT CK_Espacios_TipoVehiculo
+            CHECK (tipo_vehiculo IN ('auto', 'moto', 'camioneta', 'techado'))
+    );
+    PRINT '+ Tabla Espacios creada.';
+END
+ELSE
+    PRINT 'i  Tabla Espacios ya existe.';
+GO
+
+-- ── 8. ComodidadesGaraje (amenidades por garaje) ────────────
+--    Cada fila es una clave de comodidad (ej. 'camaras', 'techado').
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.ComodidadesGaraje') AND type = 'U')
+BEGIN
+    CREATE TABLE ComodidadesGaraje (
+        id          INT IDENTITY(1,1)   PRIMARY KEY,
+        garaje_id   INT                 NOT NULL,
+        clave       VARCHAR(50)         NOT NULL,
+        CONSTRAINT FK_Comodidades_Garajes
+            FOREIGN KEY (garaje_id) REFERENCES Garajes(id) ON DELETE CASCADE
+    );
+    PRINT '+ Tabla ComodidadesGaraje creada.';
+END
+ELSE
+    PRINT 'i  Tabla ComodidadesGaraje ya existe.';
+GO
+
+-- ── 9. Reservas ──────────────────────────────────────────────
+--    espacio_id  → Espacios.id
+--    conductor_id → UsuarioConductor.id
+--    Buffer de 30 minutos entre reservas validado en server.js.
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.Reservas') AND type = 'U')
+BEGIN
+    CREATE TABLE Reservas (
+        id              INT IDENTITY(1,1)   PRIMARY KEY,
+        espacio_id      INT                 NOT NULL,
+        conductor_id    INT                 NOT NULL,
         fecha_inicio    DATETIME            NOT NULL,
         fecha_fin       DATETIME            NOT NULL,
         precio_total    DECIMAL(10,2)       NOT NULL,
+        tarifa_servicio DECIMAL(10,2)       NOT NULL DEFAULT 0,
         estado          VARCHAR(20)         NOT NULL DEFAULT 'pendiente',
         fecha_creacion  DATETIME            NOT NULL DEFAULT GETDATE(),
-
-        CONSTRAINT FK_Reservas_Garajes
-            FOREIGN KEY (garaje_id) REFERENCES [dbo].[Garajes](id),
-
-        CONSTRAINT FK_Reservas_Usuarios
-            FOREIGN KEY (usuario_id) REFERENCES [dbo].[Usuarios](id),
-
+        CONSTRAINT FK_Reservas_Espacio
+            FOREIGN KEY (espacio_id) REFERENCES Espacios(id),
+        CONSTRAINT FK_Reservas_Conductor
+            FOREIGN KEY (conductor_id) REFERENCES UsuarioConductor(id),
         CONSTRAINT CK_Reservas_Estado
-            CHECK (estado IN ('pendiente', 'confirmada', 'rechazada', 'finalizada'))
+            CHECK (estado IN ('pendiente', 'confirmada', 'rechazada', 'finalizada', 'cancelada'))
     );
-    PRINT '✅ Tabla Reservas creada.';
+    PRINT '+ Tabla Reservas creada.';
 END
 ELSE
-    PRINT 'ℹ️  Tabla Reservas ya existe.';
+    PRINT 'i  Tabla Reservas ya existe.';
 GO
 
--- ============================================================
--- 10. Columna tarifa_servicio en Reservas
---     (Calcula la comisión de EstAirbnb)
--- ============================================================
-IF NOT EXISTS (
-    SELECT 1 FROM sys.columns
-    WHERE object_id = OBJECT_ID(N'[dbo].[Reservas]') AND name = 'tarifa_servicio'
-)
+-- ── 10. Resenas (calificaciones de conductores) ──────────────
+IF NOT EXISTS (SELECT * FROM sys.objects WHERE object_id = OBJECT_ID(N'dbo.Resenas') AND type = 'U')
 BEGIN
-    ALTER TABLE [dbo].[Reservas] ADD tarifa_servicio DECIMAL(10,2) NOT NULL DEFAULT 0;
-    PRINT '✅ Columna tarifa_servicio agregada a Reservas.';
+    CREATE TABLE Resenas (
+        id              INT IDENTITY(1,1)   PRIMARY KEY,
+        garaje_id       INT                 NOT NULL,
+        conductor_id    INT                 NOT NULL,
+        reserva_id      INT                 NOT NULL,
+        calificacion    INT                 NOT NULL,
+        comentario      NVARCHAR(MAX)       NULL,
+        fecha_creacion  DATETIME            NOT NULL DEFAULT GETDATE(),
+        CONSTRAINT FK_Resenas_Garaje
+            FOREIGN KEY (garaje_id) REFERENCES Garajes(id) ON DELETE CASCADE,
+        CONSTRAINT FK_Resenas_Conductor
+            FOREIGN KEY (conductor_id) REFERENCES UsuarioConductor(id),
+        CONSTRAINT FK_Resenas_Reserva
+            FOREIGN KEY (reserva_id) REFERENCES Reservas(id),
+        CONSTRAINT CK_Resenas_Calificacion
+            CHECK (calificacion >= 1 AND calificacion <= 5)
+    );
+    PRINT '+ Tabla Resenas creada.';
 END
 ELSE
-    PRINT 'ℹ️  Columna tarifa_servicio ya existe.';
+    PRINT 'i  Tabla Resenas ya existe.';
 GO
 
 -- ============================================================
--- RESUMEN FINAL
+-- RESUMEN
 -- ============================================================
 PRINT '';
-PRINT '══════════════════════════════════════════════════════';
-PRINT '🚗 EstAirbnb — Base de datos lista. Resumen:';
+PRINT '============================================================';
+PRINT 'EstAirbnb — Base de datos lista. Tablas creadas/verificadas:';
 PRINT '';
-PRINT '  TABLAS:';
-PRINT '    ✅ Usuarios    (con foto_url, rol_id, priv_*)';
-PRINT '    ✅ Roles       (anfitrion=1, conductor=2)';
-PRINT '    ✅ Garajes     (espacios de parqueo)';
-PRINT '    ✅ FotosGaraje (fotos de cada garaje)';
-PRINT '    ✅ Reservas    (reservas de conductores)';
+PRINT '  Credenciales       (autenticacion: email + password_hash + rol)';
+PRINT '  UsuarioAnfitrion   (perfil de anfitriones, 1:1 con Credenciales)';
+PRINT '  UsuarioConductor   (perfil de conductores, 1:1 con Credenciales)';
+PRINT '  Garajes            (espacios publicados por anfitriones)';
+PRINT '  FotosGaraje        (galeria de fotos por garaje)';
+PRINT '  Espacios           (spots individuales en grilla 2D)';
+PRINT '  ComodidadesGaraje  (amenidades: camaras, techado, etc.)';
+PRINT '  Reservas           (reservas de conductores con tarifa 10%)';
+PRINT '  Resenas            (calificaciones de conductores 1-5 estrellas)';
 PRINT '';
-PRINT '  RECUERDA: Si tu PC no se llama "ACHO",';
-PRINT '  cambia Server=ACHO en la linea 66 de server.js';
-PRINT '══════════════════════════════════════════════════════';
+PRINT '  RECUERDA: cambia Server=ACHO en server.js (linea 66)';
+PRINT '  si tu PC tiene otro nombre  →  ejecuta: hostname';
+PRINT '============================================================';
 GO

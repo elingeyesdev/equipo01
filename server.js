@@ -203,9 +203,10 @@ app.post('/api/auth/login', async (req, res) => {
       .input('email', sql.NVarChar(150), email.toLowerCase().trim())
       .query(`
         SELECT c.id, c.email, c.password_hash AS password, c.rol AS rol_nombre,
-               ISNULL(a.nombre, u.nombre) AS nombre,
-               ISNULL(a.apellidos, u.apellidos) AS apellidos,
-               ISNULL(a.telefono, u.telefono) AS telefono
+               ISNULL(a.nombre, u.nombre)         AS nombre,
+               ISNULL(a.apellidos, u.apellidos)   AS apellidos,
+               ISNULL(a.telefono, u.telefono)     AS telefono,
+               ISNULL(a.foto_url, u.foto_url)     AS foto_url
         FROM Credenciales c
         LEFT JOIN UsuarioAnfitrion a ON c.id = a.id AND c.rol = 'anfitrion'
         LEFT JOIN UsuarioConductor u ON c.id = u.id AND c.rol = 'conductor'
@@ -237,7 +238,7 @@ app.post('/api/auth/login', async (req, res) => {
         apellidos: user.apellidos || '',
         email: user.email,
         telefono: user.telefono || '',
-        foto_url: null, // Ya no existe directamente en la DB actual
+        foto_url: user.foto_url || null,
         rol_id: mapped_rol_id,
         rol_nombre: user.rol_nombre
       }
@@ -268,9 +269,10 @@ app.get('/api/perfil/general', async (req, res) => {
       .input('usuario_id', sql.Int, usuario_id)
       .query(`
         SELECT c.id, c.email, c.rol AS rol_nombre,
-               ISNULL(a.nombre, u.nombre) AS nombre,
-               ISNULL(a.apellidos, u.apellidos) AS apellidos,
-               ISNULL(a.telefono, u.telefono) AS telefono
+               ISNULL(a.nombre, u.nombre)         AS nombre,
+               ISNULL(a.apellidos, u.apellidos)   AS apellidos,
+               ISNULL(a.telefono, u.telefono)     AS telefono,
+               ISNULL(a.foto_url, u.foto_url)     AS foto_url
         FROM Credenciales c
         LEFT JOIN UsuarioAnfitrion a ON c.id = a.id AND c.rol = 'anfitrion'
         LEFT JOIN UsuarioConductor u ON c.id = u.id AND c.rol = 'conductor'
@@ -283,7 +285,6 @@ app.get('/api/perfil/general', async (req, res) => {
 
     const row = result.recordset[0];
     row.rol_id = row.rol_nombre === 'anfitrion' ? 1 : 2;
-    row.foto_url = null;
 
     console.log('✅ Perfil cargado:', row);
     return res.json({ status: 'ok', data: row });
@@ -378,10 +379,22 @@ app.post('/api/perfil/upload-foto', (req, res) => {
     try {
       const db = await getPool();
 
+      // Determinar en qué subtabla vive la foto del usuario
+      const credRow = await db.request()
+        .input('id', sql.Int, usuario_id)
+        .query('SELECT rol FROM Credenciales WHERE id = @id');
+
+      if (credRow.recordset.length === 0) {
+        fs.unlinkSync(req.file.path);
+        return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
+      }
+
+      const tabla = credRow.recordset[0].rol === 'anfitrion' ? 'UsuarioAnfitrion' : 'UsuarioConductor';
+
       // Obtener foto anterior para borrarla del disco
       const prev = await db.request()
         .input('id', sql.Int, usuario_id)
-        .query('SELECT foto_url FROM Usuarios WHERE id = @id');
+        .query(`SELECT foto_url FROM ${tabla} WHERE id = @id`);
 
       const prevUrl = prev.recordset[0]?.foto_url;
       if (prevUrl) {
@@ -393,7 +406,7 @@ app.post('/api/perfil/upload-foto', (req, res) => {
       await db.request()
         .input('foto_url', sql.NVarChar(255), foto_url)
         .input('usuario_id', sql.Int, usuario_id)
-        .query('UPDATE Usuarios SET foto_url = @foto_url WHERE id = @usuario_id');
+        .query(`UPDATE ${tabla} SET foto_url = @foto_url WHERE id = @usuario_id`);
 
       console.log('✅ foto_url guardada en BD:', foto_url);
       return res.json({ status: 'ok', message: '¡Foto actualizada!', foto_url });
@@ -478,25 +491,25 @@ app.get('/api/perfil/privacidad', async (req, res) => {
   try {
     const db = await getPool();
 
-    // Intentar leer columnas de privacidad (pueden no existir todavía)
-    try {
-      const result = await db.request()
-        .input('id', sql.Int, usuario_id)
-        .query('SELECT priv_telefono, priv_calificaciones, priv_email FROM Usuarios WHERE id = @id');
+    const credRow = await db.request()
+      .input('id', sql.Int, usuario_id)
+      .query('SELECT rol FROM Credenciales WHERE id = @id');
 
-      if (result.recordset.length === 0)
-        return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
+    if (credRow.recordset.length === 0)
+      return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
 
-      console.log('✅ Privacidad cargada:', result.recordset[0]);
-      return res.json({ status: 'ok', data: result.recordset[0] });
-    } catch (innerErr) {
-      // Columnas aún no existen → devolver valores por defecto sin romper
-      console.log('ℹ️  Columnas de privacidad no existen aún, devolviendo defaults.');
-      return res.json({
-        status: 'ok',
-        data: { priv_telefono: false, priv_calificaciones: true, priv_email: false }
-      });
-    }
+    const tabla = credRow.recordset[0].rol === 'anfitrion' ? 'UsuarioAnfitrion' : 'UsuarioConductor';
+
+    const result = await db.request()
+      .input('id', sql.Int, usuario_id)
+      .query(`SELECT priv_telefono, priv_calificaciones, priv_email FROM ${tabla} WHERE id = @id`);
+
+    if (result.recordset.length === 0)
+      return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
+
+    console.log('✅ Privacidad cargada:', result.recordset[0]);
+    return res.json({ status: 'ok', data: result.recordset[0] });
+
   } catch (err) {
     console.error('❌ Error al cargar privacidad:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno.' });
@@ -518,27 +531,31 @@ app.put('/api/perfil/privacidad', async (req, res) => {
   try {
     const db = await getPool();
 
-    try {
-      await db.request()
-        .input('priv_telefono', sql.Bit, priv_telefono ? 1 : 0)
-        .input('priv_calificaciones', sql.Bit, priv_calificaciones ? 1 : 0)
-        .input('priv_email', sql.Bit, priv_email ? 1 : 0)
-        .input('id', sql.Int, parseInt(usuario_id, 10))
-        .query(`
-          UPDATE Usuarios
-          SET priv_telefono = @priv_telefono,
-              priv_calificaciones = @priv_calificaciones,
-              priv_email = @priv_email
-          WHERE id = @id
-        `);
+    const credRow = await db.request()
+      .input('id', sql.Int, parseInt(usuario_id, 10))
+      .query('SELECT rol FROM Credenciales WHERE id = @id');
 
-      console.log('✅ Privacidad actualizada para usuario:', usuario_id);
-      return res.json({ status: 'ok', message: '¡Preferencias de privacidad guardadas!' });
-    } catch (innerErr) {
-      // Columnas aún no existen
-      console.log('ℹ️  Columnas de privacidad no existen aún, operación omitida.');
-      return res.json({ status: 'ok', message: '¡Preferencias guardadas! (columnas pendientes de migración)' });
-    }
+    if (credRow.recordset.length === 0)
+      return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
+
+    const tabla = credRow.recordset[0].rol === 'anfitrion' ? 'UsuarioAnfitrion' : 'UsuarioConductor';
+
+    await db.request()
+      .input('priv_telefono', sql.Bit, priv_telefono ? 1 : 0)
+      .input('priv_calificaciones', sql.Bit, priv_calificaciones ? 1 : 0)
+      .input('priv_email', sql.Bit, priv_email ? 1 : 0)
+      .input('id', sql.Int, parseInt(usuario_id, 10))
+      .query(`
+        UPDATE ${tabla}
+        SET priv_telefono       = @priv_telefono,
+            priv_calificaciones = @priv_calificaciones,
+            priv_email          = @priv_email
+        WHERE id = @id
+      `);
+
+    console.log('✅ Privacidad actualizada para usuario:', usuario_id);
+    return res.json({ status: 'ok', message: '¡Preferencias de privacidad guardadas!' });
+
   } catch (err) {
     console.error('❌ Error al guardar privacidad:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al guardar la privacidad.' });
@@ -564,19 +581,13 @@ app.post('/api/garajes', (req, res) => {
       return res.status(400).json({ status: 'error', message: msg });
     }
 
-    const { usuario_id, direccion, descripcion, precio_hora, hora_apertura, hora_cierre, dias_operativos, instrucciones_acceso, nivel_seguridad, metodo_acceso, horarios_flexibles } = req.body;
+    const { usuario_id, direccion, descripcion, precio_hora, hora_apertura, hora_cierre, dias_operativos, instrucciones_acceso, nivel_seguridad, metodo_acceso, horarios_flexibles, dimensiones, reglas_casa, politica_cancelacion } = req.body;
     let espacios = [];
-    try {
-      espacios = JSON.parse(req.body.espacios || '[]');
-    } catch (_) {
-      espacios = [];
-    }
+    try { espacios = JSON.parse(req.body.espacios || '[]'); } catch (_) { espacios = []; }
     let comodidades = [];
-    try {
-      comodidades = JSON.parse(req.body.comodidades || '[]');
-    } catch (_) {
-      comodidades = [];
-    }
+    try { comodidades = JSON.parse(req.body.comodidades || '[]'); } catch (_) { comodidades = []; }
+    let layout_mapa = null;
+    try { layout_mapa = req.body.layout_mapa || null; } catch (_) { layout_mapa = null; }
 
     // Validaciones
     if (!usuario_id)
@@ -586,9 +597,9 @@ app.post('/api/garajes', (req, res) => {
     if (!precio_hora || isNaN(precio_hora) || Number(precio_hora) <= 0)
       return res.status(400).json({ status: 'error', message: 'El precio por hora debe ser un número positivo.' });
     if (!espacios || espacios.length === 0)
-      return res.status(400).json({ status: 'error', message: 'Debes configurar al menos 1 espacio de parqueo.' });
-    if (espacios.length > 10)
-      return res.status(400).json({ status: 'error', message: 'Máximo 10 espacios por garaje.' });
+      return res.status(400).json({ status: 'error', message: 'Debes configurar al menos 1 espacio de parqueo en el mapa.' });
+    if (espacios.length > 200)
+      return res.status(400).json({ status: 'error', message: 'Máximo 200 espacios por garaje.' });
 
     // Determinar tipo_vehiculo principal (el más frecuente entre los espacios)
     const tipos = espacios.map(e => e.tipo_vehiculo).filter(Boolean);
@@ -628,9 +639,13 @@ app.post('/api/garajes', (req, res) => {
         .input('nivel_seg', sql.VarChar(50), nivel_seguridad || 'Estándar')
         .input('metodo', sql.VarChar(50), metodo_acceso || 'Manual')
         .input('horarios_flex', sql.NVarChar(sql.MAX), horarios_flexibles || null)
+        .input('layout_mapa', sql.NVarChar(sql.MAX), layout_mapa || null)
+        .input('dimensiones', sql.VarChar(100), dimensiones || null)
+        .input('reglas_casa', sql.NVarChar(sql.MAX), reglas_casa || null)
+        .input('politica_cancelacion', sql.NVarChar(sql.MAX), politica_cancelacion || null)
         .query(`
-          INSERT INTO Garajes (anfitrion_id, direccion, descripcion, precio_hora, tipo_vehiculo, hora_apertura, hora_cierre, dias_operativos, instrucciones_acceso, nivel_seguridad, metodo_acceso, horarios_flexibles)
-          VALUES (@anfitrion_id, @direccion, @descripcion, @precio_hora, @tipo_vehiculo, @hora_apertura, @hora_cierre, @dias_operativos, @instrucciones, @nivel_seg, @metodo, @horarios_flex);
+          INSERT INTO Garajes (anfitrion_id, direccion, descripcion, precio_hora, tipo_vehiculo, hora_apertura, hora_cierre, dias_operativos, instrucciones_acceso, nivel_seguridad, metodo_acceso, horarios_flexibles, layout_mapa, dimensiones, reglas_casa, politica_cancelacion)
+          VALUES (@anfitrion_id, @direccion, @descripcion, @precio_hora, @tipo_vehiculo, @hora_apertura, @hora_cierre, @dias_operativos, @instrucciones, @nivel_seg, @metodo, @horarios_flex, @layout_mapa, @dimensiones, @reglas_casa, @politica_cancelacion);
           SELECT SCOPE_IDENTITY() AS nuevoId;
         `);
 
@@ -941,7 +956,7 @@ app.get('/api/explorar/:id', async (req, res) => {
   try {
     const db = await getPool();
 
-    // Get garage data
+    // Get garage data with Host info
     const garajeResult = await db.request()
       .input('id', sql.Int, garaje_id)
       .query(`
@@ -959,8 +974,19 @@ app.get('/api/explorar/:id', async (req, res) => {
           g.instrucciones_acceso,
           g.nivel_seguridad,
           g.metodo_acceso,
-          g.horarios_flexibles
+          g.horarios_flexibles,
+          g.layout_mapa,
+          -- Nuevos campos de Fase 1
+          g.dimensiones,
+          g.reglas_casa,
+          g.politica_cancelacion,
+          -- Datos del Anfitrión
+          ua.nombre AS anfitrion_nombre,
+          ua.apellidos AS anfitrion_apellidos,
+          ua.foto_url AS anfitrion_foto,
+          ua.es_verificado AS anfitrion_es_verificado
         FROM Garajes g
+        LEFT JOIN UsuarioAnfitrion ua ON g.anfitrion_id = ua.id
         WHERE g.id = @id AND g.estado_activo = 1
       `);
 
@@ -987,7 +1013,7 @@ app.get('/api/explorar/:id', async (req, res) => {
       .query('SELECT clave FROM ComodidadesGaraje WHERE garaje_id = @garaje_id2');
     garaje.comodidades = comodidadesResult.recordset.map(c => c.clave);
 
-    console.log(`   ✅ Garaje ${garaje_id} cargado con ${garaje.fotos.length} foto(s) y ${garaje.comodidades.length} comodidad(es).`);
+    console.log(`   ✅ Garaje ${garaje_id} cargado con Host: ${garaje.anfitrion_nombre}, ${garaje.fotos.length} foto(s) y ${garaje.comodidades.length} comodidad(es).`);
     return res.json({ status: 'ok', data: garaje });
 
   } catch (err) {
@@ -1027,6 +1053,62 @@ app.get('/api/garajes/:id/espacios', async (req, res) => {
   } catch (err) {
     console.error('❌ Error al listar espacios:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al cargar los espacios.' });
+  }
+});
+
+// ============================================================
+// RESEÑAS — Listar reseñas de un garaje
+// GET /api/garajes/:id/resenas
+// ============================================================
+app.get('/api/garajes/:id/resenas', async (req, res) => {
+  const garaje_id = parseInt(req.params.id, 10);
+  console.log(`\n💬 [GET /api/garajes/${garaje_id}/resenas]`);
+  try {
+    const db = await getPool();
+    const result = await db.request()
+      .input('gid', sql.Int, garaje_id)
+      .query(`
+        SELECT r.id, r.calificacion, r.comentario, r.fecha_creacion,
+               uc.nombre + ' ' + uc.apellidos AS conductor_nombre,
+               uc.foto_url AS conductor_foto
+        FROM Resenas r
+        JOIN UsuarioConductor uc ON r.conductor_id = uc.id
+        WHERE r.garaje_id = @gid
+        ORDER BY r.fecha_creacion DESC
+      `);
+    return res.json({ status: 'ok', data: result.recordset });
+  } catch (err) {
+    console.error('❌ Error al obtener reseñas:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al obtener las reseñas.' });
+  }
+});
+
+// ============================================================
+// RESEÑAS — Publicar una reseña
+// POST /api/resenas
+// ============================================================
+app.post('/api/resenas', async (req, res) => {
+  console.log('\n💬 [POST /api/resenas]');
+  const { garaje_id, reserva_id, conductor_id, calificacion, comentario } = req.body;
+  if (!garaje_id || !reserva_id || !conductor_id || !calificacion) {
+    return res.status(400).json({ status: 'error', message: 'Faltan campos obligatorios.' });
+  }
+  try {
+    const db = await getPool();
+    await db.request()
+      .input('gid', sql.Int, garaje_id)
+      .input('rid', sql.Int, reserva_id)
+      .input('cid', sql.Int, conductor_id)
+      .input('cal', sql.Int, calificacion)
+      .input('com', sql.NVarChar(sql.MAX), comentario)
+      .query(`
+        INSERT INTO Resenas (garaje_id, reserva_id, conductor_id, calificacion, comentario)
+        VALUES (@gid, @rid, @cid, @cal, @com)
+      `);
+    return res.json({ status: 'ok', message: 'Reseña publicada exitosamente.' });
+  } catch (err) {
+    console.error('❌ Error al publicar reseña:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al publicar la reseña.' });
   }
 });
 
@@ -1211,8 +1293,9 @@ app.get('/api/reservas/mis-reservas', async (req, res) => {
       query = `
         SELECT 
           r.id, r.fecha_inicio, r.fecha_fin, r.estado, r.precio_total,
-          g.direccion as garaje_direccion, g.tipo_vehiculo, g.instrucciones_acceso, g.metodo_acceso,
-          e.numero_espacio
+          g.id as garaje_id, g.direccion as garaje_direccion, g.tipo_vehiculo, g.instrucciones_acceso, g.metodo_acceso,
+          e.numero_espacio,
+          CAST(CASE WHEN EXISTS (SELECT 1 FROM Resenas res WHERE res.reserva_id = r.id) THEN 1 ELSE 0 END AS BIT) as ha_revisado
         FROM Reservas r
         JOIN Espacios e ON r.espacio_id = e.id
         JOIN Garajes g ON e.garaje_id = g.id
@@ -1224,7 +1307,7 @@ app.get('/api/reservas/mis-reservas', async (req, res) => {
       query = `
         SELECT 
           r.id, r.fecha_inicio, r.fecha_fin, r.estado, r.precio_total,
-          g.direccion as garaje_direccion,
+          g.id as garaje_id, g.direccion as garaje_direccion,
           e.numero_espacio,
           uc.nombre + ' ' + uc.apellidos as conductor_nombre, uc.telefono as conductor_telefono
         FROM Reservas r

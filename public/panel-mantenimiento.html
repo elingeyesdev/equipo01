@@ -43,36 +43,37 @@
     }
   </script>
   
+  <link href="/css/globals.css" rel="stylesheet">
   <link href="/css/panel-mantenimiento.css" rel="stylesheet">
 </head>
 <body class="bg-background text-on-background min-h-screen">
 
-  <!-- ==============================
-       Top Navigation Bar
-  ============================== -->
-  <nav class="bg-white/70 dark:bg-slate-900/70 backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm transition-colors" id="topNavbar">
-    <div class="flex justify-between items-center w-full px-6 py-4 max-w-7xl mx-auto">
-      <div class="flex items-center gap-8">
-        <a class="flex items-center gap-2 text-xl font-black tracking-tighter text-[#002542] dark:text-slate-100 hover:opacity-80 transition-opacity" href="/">
-          <span class="material-symbols-outlined text-secondary" style="font-variation-settings: 'FILL' 1;">local_parking</span>
+  <!-- Navbar -->
+  <nav class="app-navbar" id="topNavbar">
+    <div class="nav-inner">
+      <div style="display:flex;align-items:center;">
+        <a href="/" class="nav-brand">
+          <span class="brand-icon"><span class="material-symbols-outlined">local_parking</span></span>
           EstAirbnb
         </a>
-        <div class="hidden md:flex gap-6">
-          <a class="font-['Inter'] font-medium tracking-tight text-slate-500 hover:text-slate-800 transition-colors px-3 py-2 rounded-md dark:text-slate-400 dark:hover:text-slate-200" href="/mis-garajes.html" id="navLinkGarajes">Mis Garajes</a>
-          <a class="font-['Inter'] font-medium tracking-tight text-[#002542] border-b-2 border-[#006a62] pb-1 px-3 py-2 rounded-md dark:text-slate-100 dark:border-teal-400" href="#">Panel de Mantenimiento</a>
-          <a class="font-['Inter'] font-medium tracking-tight text-slate-500 hover:text-slate-800 transition-colors px-3 py-2 rounded-md dark:text-slate-400 dark:hover:text-slate-200" href="/configuracion.html" id="navLinkPerfil">Mi Perfil</a>
+        <div class="nav-links">
+          <a href="/mis-garajes.html" class="nav-link" id="navLinkGarajes">Mis Garajes</a>
+          <a href="#" class="nav-link active">Mantenimiento</a>
+          <a href="/configuracion.html" class="nav-link" id="navLinkPerfil">Mi Perfil</a>
         </div>
       </div>
-      <div class="flex items-center gap-4">
-        <button class="text-slate-500 hover:bg-slate-100/50 p-2 rounded-full transition-colors flex items-center justify-center" id="btnThemeToggle" title="Cambiar tema">
-          <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+      <div class="nav-actions">
+        <button class="nav-icon-btn" id="btnThemeToggle" title="Cambiar tema">
+          <span class="material-symbols-outlined" id="themeIcon" style="font-size:20px;">dark_mode</span>
         </button>
-        <button class="text-error hover:bg-error-container/50 p-2 rounded-full transition-colors font-bold flex items-center justify-center" id="btnLogout" title="Cerrar sesión">
+        <button class="nav-icon-btn nav-danger" id="btnLogout" title="Cerrar sesión">
           <i class="fa-solid fa-right-from-bracket"></i>
         </button>
+        <div class="nav-avatar" id="userAvatar" onclick="window.location.href='/configuracion.html'" title="Mi perfil">
+          <span id="navInitials">?</span>
+        </div>
       </div>
     </div>
-    <div class="bg-gradient-to-b from-slate-200/50 to-transparent h-[1px] w-full absolute bottom-0 dark:from-slate-700/50"></div>
   </nav>
 
   <!-- ==============================
@@ -146,5 +147,7 @@
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <!-- Panel Mantenimiento Logic -->
   <script src="/js/panel-mantenimiento.js"></script>
+  <!-- Navbar shared logic -->
+  <script src="/js/navbar-badge.js"></script>
 </body>
 </html>

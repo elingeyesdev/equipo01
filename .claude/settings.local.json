@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\" -Recurse -Force)",
+      "Bash(Select-Object FullName, PSIsContainer)",
+      "Bash(Sort-Object FullName)",
+      "Bash(Format-Table -AutoSize)",
+      "PowerShell(Get-ChildItem -Path \"C:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\" -Recurse -Force | Select-Object FullName, @{Name=\"Type\";Expression={if\\($_.PSIsContainer\\){\"DIR\"}else{\"FILE\"}}} | Sort-Object FullName)",
+      "PowerShell(head *)",
+      "Bash(Remove-Item test.js, create_table.js, inject.js, migrate_modulo_garajes.js, update_schema.js, update_schema_horarios.js, update_schema_real_life.js -Force)",
+      "Bash(Remove-Item database\\\\init.sql, database\\\\garajes_module.sql -Force)",
+      "PowerShell(cd \"C:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\"; Get-ChildItem -Recurse -Exclude node_modules,.git | Where-Object { $_.FullName -notmatch 'node_modules|\\\\.git' } | Select-Object -ExpandProperty FullName | ForEach-Object { $_.Replace\\(\"C:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\\\\\", \"\"\\) } | Sort-Object)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\\\\public\" -Recurse -Include \"*.html\", \"*.css\")",
+      "Bash(Select-Object FullName)"
+    ]
+  }
+}

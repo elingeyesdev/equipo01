@@ -1,49 +1,108 @@
 // ============================================================
 // navbar-badge.js
-// Lógica compartida para revisar e inyectar Reservas de Anfitrión/Conductor en Navbar
+// Gestión centralizada de la navbar para todas las páginas.
+// Maneja: avatar, logout, tema, y badge de reservas pendientes.
 // ============================================================
-document.addEventListener('DOMContentLoaded', async () => {
-  const currentUser = JSON.parse(localStorage.getItem('estairbnb_user') || 'null');
-  
-  if (!currentUser) return; // No login, no reservas
-  
-  // Buscar o crear el contenedor the nav-links
-  const navLinks = document.querySelector('.nav-links');
-  if (!navLinks) return;
-  
-  // No duplicar si ya existe
-  if (document.getElementById('linkGlobalReservas')) return;
-  
-  // Crear el A link de Reservas
-  const a = document.createElement('a');
-  a.href = '/mis-reservas.html';
-  a.className = 'nav-link-custom';
-  a.id = 'linkGlobalReservas';
-  a.innerHTML = '<i class="fa-solid fa-calendar-days"></i> Reservas' + 
-    '<span id="reservasBadge" class="badge bg-danger rounded-circle" style="display:none; font-size: 0.65rem; position: absolute; margin-top: -5px; margin-left: 2px;">0</span>';
-  
-  // Insertar The Reservas nav link después del Explorar o al inicio si no existe explorar
-  const linkExplorar = document.querySelector('a[href="/explorar.html"]');
-  if (linkExplorar) {
-    linkExplorar.insertAdjacentElement('afterend', a);
-  } else {
-    navLinks.prepend(a);
+document.addEventListener('DOMContentLoaded', () => {
+  const USUARIO_KEY  = 'estairbnb_user';
+  const THEME_KEY    = 'estairbnb_theme';
+  const currentUser  = JSON.parse(localStorage.getItem(USUARIO_KEY) || 'null');
+
+  // ── Tema ──────────────────────────────────────────────────
+  const btnTheme  = document.getElementById('btnThemeToggle');
+  const themeIcon = document.getElementById('themeIcon');
+
+  function applyTheme(dark) {
+    if (dark) {
+      document.documentElement.classList.add('dark');
+      if (themeIcon) themeIcon.textContent = 'light_mode';
+    } else {
+      document.documentElement.classList.remove('dark');
+      if (themeIcon) themeIcon.textContent = 'dark_mode';
+    }
   }
 
-  // Lógica del Badge solo para Anfitriones
-  if (currentUser.rol_id === 1) {
-    try {
-      const res = await fetch('/api/reservas/pendientes-count?usuario_id=' + currentUser.id);
-      const data = await res.json();
-      if (res.ok && data.status === 'ok' && data.count > 0) {
-        const badge = document.getElementById('reservasBadge');
-        if (badge) {
-          badge.textContent = data.count > 9 ? '+9' : data.count;
-          badge.style.display = 'inline-block';
-        }
-      }
-    } catch (e) {
-      console.error('Error fetching pendientes-count:', e);
+  // Aplicar tema guardado (solo si la página no lo hizo ya)
+  if (!document.documentElement.classList.contains('dark')) {
+    applyTheme(localStorage.getItem(THEME_KEY) === 'dark');
+  }
+
+  if (btnTheme && !btnTheme.dataset.bound) {
+    btnTheme.dataset.bound = '1';
+    btnTheme.addEventListener('click', () => {
+      const isDark = document.documentElement.classList.contains('dark');
+      applyTheme(!isDark);
+      localStorage.setItem(THEME_KEY, isDark ? 'light' : 'dark');
+    });
+  }
+
+  // ── Sin sesión: no seguir ─────────────────────────────────
+  if (!currentUser) return;
+
+  // ── Avatar / iniciales ────────────────────────────────────
+  const avatarEl   = document.getElementById('userAvatar');
+  const initialsEl = document.getElementById('navInitials');
+
+  if (initialsEl && initialsEl.textContent === '?') {
+    const first  = (currentUser.nombre   || '?')[0].toUpperCase();
+    const second = (currentUser.apellidos || '?')[0].toUpperCase();
+    initialsEl.textContent = first + second;
+  }
+
+  if (avatarEl && currentUser.foto_url) {
+    const img = avatarEl.querySelector('img');
+    if (!img) {
+      if (initialsEl) initialsEl.style.display = 'none';
+      avatarEl.style.backgroundImage   = `url('${currentUser.foto_url}')`;
+      avatarEl.style.backgroundSize    = 'cover';
+      avatarEl.style.backgroundPosition = 'center';
     }
+  }
+
+  // ── Logout ────────────────────────────────────────────────
+  const btnLogout = document.getElementById('btnLogout');
+  if (btnLogout && !btnLogout.dataset.bound) {
+    btnLogout.dataset.bound = '1';
+    btnLogout.addEventListener('click', () => {
+      localStorage.removeItem(USUARIO_KEY);
+      window.location.href = '/login.html';
+    });
+  }
+
+  // ── Badge de pendientes (solo anfitriones) ────────────────
+  if (currentUser.rol_id === 1) {
+    // Buscar el enlace de Mis Garajes para ponerle el badge ahí
+    const linkGarajes = document.getElementById('navLinkGarajes');
+    if (linkGarajes) {
+      linkGarajes.style.position = 'relative';
+      const badge = document.createElement('span');
+      badge.id = 'reservasBadge';
+      badge.className = 'badge bg-danger rounded-circle';
+      badge.style.display = 'none';
+      badge.style.fontSize = '0.6rem';
+      badge.style.position = 'absolute';
+      badge.style.top = '2px';
+      badge.style.right = '-8px';
+      badge.style.minWidth = '16px';
+      badge.style.height = '16px';
+      badge.style.padding = '0 4px';
+      badge.style.lineHeight = '16px';
+      badge.style.textAlign = 'center';
+      badge.textContent = '0';
+      linkGarajes.appendChild(badge);
+    }
+
+    fetch(`/api/reservas/pendientes-count?usuario_id=${currentUser.id}`)
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'ok' && data.count > 0) {
+          const badge = document.getElementById('reservasBadge');
+          if (badge) {
+            badge.textContent  = data.count > 9 ? '+9' : data.count;
+            badge.style.display = 'inline-block';
+          }
+        }
+      })
+      .catch(() => {});
   }
 });

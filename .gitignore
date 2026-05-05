@@ -1,1 +1,20 @@
+# Dependencias
 node_modules/
+
+# Variables de entorno (nunca subir al repo)
+.env
+.env.local
+
+# Archivos subidos por usuarios
+public/uploads/garajes/*
+public/uploads/perfiles/*
+!public/uploads/garajes/.gitkeep
+!public/uploads/perfiles/.gitkeep
+
+# Logs
+*.log
+npm-debug.log*
+
+# Sistema operativo
+.DS_Store
+Thumbs.db

@@ -35,15 +35,31 @@ const emptyState        = document.getElementById('emptyState');
 const statsBar          = document.getElementById('statsBar');
 const contadorGarajes   = document.getElementById('contadorGarajes');
 
-// Visual builder elements
-const inpFilas        = document.getElementById('inpFilas');
-const inpColumnas     = document.getElementById('inpColumnas');
-const btnGenerarMapa  = document.getElementById('btnGenerarMapa');
-const cantidadNumero  = document.getElementById('cantidadNumero');
-const mapaBuilder     = document.getElementById('mapaBuilder');
-const tipoLeyenda     = document.getElementById('tipoLeyenda');
+// Visual builder elements — TILEMAP 2D
+const tmGrid     = document.getElementById('tmGrid');
+const tmFilas    = document.getElementById('tmFilas');
+const tmColumnas = document.getElementById('tmColumnas');
+const btnTmGenerar = document.getElementById('btnTmGenerar');
+const btnTmLimpiar = document.getElementById('btnTmLimpiar');
+const tmCountParking = document.getElementById('tmCountParking');
+const tmCountTotal   = document.getElementById('tmCountTotal');
+const tilemapError   = document.getElementById('tilemapError');
 
-// Horarios Flexibles Elements
+// Tilemap State
+let tmFilasVal = 6;
+let tmColsVal  = 8;
+let tmMatriz   = [];  // 2D array: tmMatriz[fila][col] = { tile, tipo_vehiculo }
+let tmPincel   = 'parking'; // herramienta activa
+let tmIsPainting = false;   // drag detection
+
+// Vehicle type cycle (kept for legacy compatibility)
+const TIPOS = ['auto', 'moto', 'camioneta', 'techado'];
+const TIPO_CONFIG = {
+  auto:      { icon: 'fa-car',          emoji: '🚗', label: 'Auto',    color: '#3b82f6' },
+  moto:      { icon: 'fa-motorcycle',   emoji: '🏍‍', label: 'Moto',    color: '#f59e0b' },
+  camioneta: { icon: 'fa-truck-pickup', emoji: '🚙', label: 'SUV',     color: '#8b5cf6' },
+  techado:   { icon: 'fa-warehouse',    emoji: '🛖', label: 'Techado', color: '#10b981' }
+};
 const btnAgregarHorario = document.getElementById('btnAgregarHorario');
 const horariosContainer = document.getElementById('horariosContainer');
 const inpHorarioDesde = document.getElementById('inpHorarioDesde');
@@ -55,16 +71,7 @@ const inpNivelSeguridad = document.getElementById('inpNivelSeguridad');
 const inpMetodoAcceso   = document.getElementById('inpMetodoAcceso');
 const inpInstrucciones  = document.getElementById('inpInstrucciones');
 
-let espaciosConfigurados = []; // Array de { numero_espacio, tipo_vehiculo, fila, columna }
-
-// Vehicle type cycle
-const TIPOS = ['auto', 'moto', 'camioneta', 'techado'];
-const TIPO_CONFIG = {
-  auto:      { icon: 'fa-car',          emoji: '🚗', label: 'Auto',    color: '#3b82f6' },
-  moto:      { icon: 'fa-motorcycle',   emoji: '🏍️', label: 'Moto',    color: '#f59e0b' },
-  camioneta: { icon: 'fa-truck-pickup', emoji: '🚙', label: 'SUV',     color: '#8b5cf6' },
-  techado:   { icon: 'fa-warehouse',    emoji: '🛖', label: 'Techado', color: '#10b981' }
-};
+let espaciosConfigurados = []; // derived from tilemap on submit
 
 // ============================================================
 // Navbar — User info & avatar
@@ -75,15 +82,15 @@ function initNavbar() {
   const initialsEl = document.getElementById('navInitials');
 
   if (currentUser.nombre) {
-    nameEl.textContent = currentUser.nombre;
+    if (nameEl) nameEl.textContent = currentUser.nombre;
     const initials = (currentUser.nombre[0] || '') + (currentUser.apellidos?.[0] || '');
-    initialsEl.textContent = initials.toUpperCase();
+    if (initialsEl) initialsEl.textContent = initials.toUpperCase();
   }
 
   // Si tiene foto de perfil
-  if (currentUser.foto_url) {
+  if (currentUser.foto_url && avatarEl) {
     avatarEl.style.backgroundImage = `url('${currentUser.foto_url}')`;
-    initialsEl.style.display = 'none';
+    if (initialsEl) initialsEl.style.display = 'none';
   }
 }
 
@@ -99,7 +106,8 @@ function initTheme() {
   }
 
   const btnThemeToggle = document.getElementById('btnThemeToggle');
-  if (btnThemeToggle) {
+  if (btnThemeToggle && !btnThemeToggle.dataset.bound) {
+    btnThemeToggle.dataset.bound = '1';
     btnThemeToggle.addEventListener('click', () => {
       const isDark = document.documentElement.classList.contains('dark');
       if (isDark) {
@@ -118,10 +126,14 @@ function initTheme() {
 // ============================================================
 // Logout
 // ============================================================
-document.getElementById('btnLogout').addEventListener('click', () => {
-  localStorage.removeItem(USUARIO_KEY);
-  window.location.href = '/login.html';
-});
+const btnLogoutGarajes = document.getElementById('btnLogout');
+if (btnLogoutGarajes && !btnLogoutGarajes.dataset.bound) {
+  btnLogoutGarajes.dataset.bound = '1';
+  btnLogoutGarajes.addEventListener('click', () => {
+    localStorage.removeItem(USUARIO_KEY);
+    window.location.href = '/login.html';
+  });
+}
 
 // ============================================================
 // Toast Notifications
@@ -217,83 +229,223 @@ function renderPreviews() {
 }
 
 // ============================================================
-// Visual Espacio Builder — +/- & tap-to-cycle
+// TILEMAP 2D EDITOR ENGINE
 // ============================================================
-function initEspacioBuilder() {
-  btnGenerarMapa.addEventListener('click', () => {
-    const filas = Math.min(Math.max(parseInt(inpFilas.value, 10) || 1, 1), 10);
-    const columnas = Math.min(Math.max(parseInt(inpColumnas.value, 10) || 1, 1), 10);
+function initTilemap() {
+  tmGenerarGrilla(tmFilasVal, tmColsVal);
 
-    if (filas * columnas > 100) {
-      showToast('Máximo 100 espacios por garaje (10x10).', 'error');
-      return;
+  // Tool selection
+  document.querySelectorAll('.tm-tool-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.tm-tool-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      tmPincel = btn.dataset.tool;
+      // Show vehicle selector only when painting parking
+      const sel = document.getElementById('tmVehicleSelector');
+      if (sel) sel.style.opacity = tmPincel === 'parking' ? '1' : '0.4';
+    });
+  });
+
+  // Regenerate grid
+  if (btnTmGenerar) {
+    btnTmGenerar.addEventListener('click', () => {
+      const f = Math.min(Math.max(parseInt(tmFilas.value, 10) || 6, 3), 12);
+      const c = Math.min(Math.max(parseInt(tmColumnas.value, 10) || 8, 3), 12);
+      tmFilasVal = f; tmColsVal = c;
+      tmGenerarGrilla(f, c);
+    });
+  }
+
+  // Clear all
+  if (btnTmLimpiar) {
+    btnTmLimpiar.addEventListener('click', () => {
+      tmMatriz = tmMatriz.map(fila => fila.map(() => ({ tile: 'empty', tipo_vehiculo: 'auto' })));
+      tmRenderGrilla();
+      tmActualizarStats();
+    });
+  }
+
+  // Presets
+  document.querySelectorAll('.tm-preset-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const f = Math.min(Math.max(parseInt(tmFilas.value, 10) || 6, 3), 12);
+      const c = Math.min(Math.max(parseInt(tmColumnas.value, 10) || 8, 3), 12);
+      tmFilasVal = f; tmColsVal = c;
+      tmAplicarPreset(btn.dataset.preset, f, c);
+    });
+  });
+
+  // Drag painting
+  document.addEventListener('mouseup', () => { tmIsPainting = false; });
+  document.addEventListener('touchend', () => { tmIsPainting = false; });
+}
+
+function tmGenerarGrilla(filas, cols) {
+  // Initialize empty matrix
+  tmMatriz = [];
+  for (let f = 0; f < filas; f++) {
+    tmMatriz[f] = [];
+    for (let c = 0; c < cols; c++) {
+      tmMatriz[f][c] = { tile: 'empty', tipo_vehiculo: 'auto' };
     }
+  }
+  tmRenderGrilla();
+  tmActualizarStats();
+}
 
-    // Regenerar todo el array de espacios
-    espaciosConfigurados = [];
-    const letras = 'ABCDEFGHIJ';
+function tmRenderGrilla() {
+  if (!tmGrid) return;
+  tmGrid.innerHTML = '';
+  const filas = tmMatriz.length;
+  const cols  = filas > 0 ? tmMatriz[0].length : 0;
 
-    for (let f = 1; f <= filas; f++) {
-      for (let c = 1; c <= columnas; c++) {
-        const letra = letras[f - 1] || 'X';
-        // Alternar entre los diferentes tipos para que haya variedad de techados, SUV, etc.
-        const idx = (f + c) % TIPOS.length;
-        espaciosConfigurados.push({
-          numero_espacio: `${letra}${c}`,
-          tipo_vehiculo: TIPOS[idx],
-          fila: f,
-          columna: c
-        });
+  tmGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+
+  let parkingCounter = 1;
+
+  for (let f = 0; f < filas; f++) {
+    for (let c = 0; c < cols; c++) {
+      const cell = document.createElement('div');
+      cell.className = 'tm-cell';
+      cell.dataset.fila = f;
+      cell.dataset.col  = c;
+
+      const cellData = tmMatriz[f][c];
+      cell.dataset.tile = cellData.tile;
+
+      // Cell content
+      if (cellData.tile === 'parking') {
+        const num = parkingCounter++;
+        const vehicleIcons = { auto: '🚗', moto: '🏍️', camioneta: '🚙' };
+        cell.innerHTML = `
+          <span style="font-size:1rem;line-height:1;">${vehicleIcons[cellData.tipo_vehiculo] || '🚗'}</span>
+          <span class="tm-cell-num">A${num}</span>
+        `;
+      } else if (cellData.tile === 'wall') {
+        cell.innerHTML = `<span style="font-size:1.1rem">🧱</span>`;
+      } else if (cellData.tile === 'entrance') {
+        cell.innerHTML = `<span style="font-size:1rem">🚪</span><span class="tm-cell-label">ENT</span>`;
+      } else if (cellData.tile === 'aisle') {
+        cell.innerHTML = `<span style="font-size:0.8rem;color:#38bdf8;">↔</span>`;
+      }
+
+      // Paint events
+      cell.addEventListener('mousedown', (e) => {
+        e.preventDefault();
+        tmIsPainting = true;
+        tmPintarCelda(f, c);
+      });
+      cell.addEventListener('mouseover', () => {
+        if (tmIsPainting) tmPintarCelda(f, c);
+      });
+      cell.addEventListener('touchstart', (e) => {
+        e.preventDefault();
+        tmIsPainting = true;
+        tmPintarCelda(f, c);
+      }, { passive: false });
+      cell.addEventListener('touchmove', (e) => {
+        e.preventDefault();
+        const touch = e.touches[0];
+        const el = document.elementFromPoint(touch.clientX, touch.clientY);
+        if (el && el.dataset.fila !== undefined) {
+          tmPintarCelda(parseInt(el.dataset.fila), parseInt(el.dataset.col));
+        }
+      }, { passive: false });
+
+      tmGrid.appendChild(cell);
+    }
+  }
+}
+
+function tmPintarCelda(f, c) {
+  const tipoVehiculo = document.getElementById('tmTipoVehiculo')?.value || 'auto';
+  if (tmPincel === 'eraser') {
+    tmMatriz[f][c] = { tile: 'empty', tipo_vehiculo: 'auto' };
+  } else {
+    tmMatriz[f][c] = { tile: tmPincel, tipo_vehiculo: tipoVehiculo };
+  }
+  tmRenderGrilla();
+  tmActualizarStats();
+  if (tilemapError) tilemapError.classList.add('hidden');
+}
+
+function tmActualizarStats() {
+  let parkCount = 0; let total = 0;
+  tmMatriz.forEach(fila => fila.forEach(cell => {
+    if (cell.tile !== 'empty') total++;
+    if (cell.tile === 'parking') parkCount++;
+  }));
+  if (tmCountParking) tmCountParking.textContent = parkCount;
+  if (tmCountTotal) tmCountTotal.textContent = total;
+}
+
+function tmAplicarPreset(preset, filas, cols) {
+  tmMatriz = [];
+  for (let f = 0; f < filas; f++) {
+    tmMatriz[f] = [];
+    for (let c = 0; c < cols; c++) tmMatriz[f][c] = { tile: 'empty', tipo_vehiculo: 'auto' };
+  }
+
+  const halfway = Math.floor(cols / 2);
+
+  if (preset === 'linea') {
+    // Walls top/bottom, aisle in middle, parking rows
+    for (let c = 0; c < cols; c++) { tmMatriz[0][c].tile = 'wall'; tmMatriz[filas-1][c].tile = 'wall'; }
+    const midF = Math.floor(filas / 2);
+    for (let f = 1; f < filas-1; f++) {
+      for (let c = 0; c < cols; c++) {
+        tmMatriz[f][c].tile = f === midF ? 'aisle' : 'parking';
       }
     }
+    tmMatriz[1][0].tile = 'entrance';
+  } else if (preset === 'ele') {
+    // L-shape: left column + bottom row are parking, rest walls/aisle
+    for (let f = 0; f < filas; f++) {
+      for (let c = 0; c < cols; c++) {
+        if (c === 0) { tmMatriz[f][c].tile = 'wall'; }
+        else if (f === filas-1) { tmMatriz[f][c].tile = 'parking'; }
+        else if (c === 1) { tmMatriz[f][c].tile = 'aisle'; }
+        else { tmMatriz[f][c].tile = f < filas-2 ? 'parking' : 'aisle'; }
+      }
+    }
+    tmMatriz[0][0].tile = 'entrance';
+  } else if (preset === 'patio') {
+    // Outer wall, aisle strip in center, parking filling left/right
+    for (let f = 0; f < filas; f++) {
+      for (let c = 0; c < cols; c++) {
+        if (f === 0 || f === filas-1 || c === 0 || c === cols-1) {
+          tmMatriz[f][c].tile = 'wall';
+        } else if (c === halfway) {
+          tmMatriz[f][c].tile = 'aisle';
+        } else {
+          tmMatriz[f][c].tile = 'parking';
+        }
+      }
+    }
+    tmMatriz[0][halfway].tile = 'entrance';
+  }
 
-    renderMapaBuilder();
-    showToast(`Mapa de ${filas}×${columnas} generado (${espaciosConfigurados.length} espacios).`);
-  });
+  tmRenderGrilla();
+  tmActualizarStats();
 }
 
-// addEspacioVisual is no longer used — spaces are generated via the matrix
-
-function cycleType(index) {
-  const esp = espaciosConfigurados[index];
-  const currentIdx = TIPOS.indexOf(esp.tipo_vehiculo);
-  esp.tipo_vehiculo = TIPOS[(currentIdx + 1) % TIPOS.length];
-  renderMapaBuilder();
-}
-
-function renderMapaBuilder() {
-  mapaBuilder.innerHTML = '';
-  cantidadNumero.textContent = espaciosConfigurados.length;
-
-  // Show/hide legend
-  tipoLeyenda.style.display = espaciosConfigurados.length > 0 ? 'block' : 'none';
-
-  // Determine columns from data
-  const maxCol = espaciosConfigurados.length > 0
-    ? Math.max(...espaciosConfigurados.map(e => e.columna))
-    : 5;
-  mapaBuilder.style.gridTemplateColumns = `repeat(${maxCol}, 1fr)`;
-
-  espaciosConfigurados.forEach((esp, idx) => {
-    const conf = TIPO_CONFIG[esp.tipo_vehiculo];
-    const card = document.createElement('div');
-    card.className = 'builder-slot';
-    card.style.setProperty('--slot-color', conf.color);
-    card.title = `Toca para cambiar tipo (ahora: ${conf.label})`;
-    card.innerHTML = `
-      <div class="builder-slot-icon">
-        <i class="fa-solid ${conf.icon}"></i>
-      </div>
-      <div class="builder-slot-name">${esp.numero_espacio}</div>
-      <div class="builder-slot-type">${conf.label}</div>
-    `;
-    card.addEventListener('click', () => cycleType(idx));
-
-    // Entrance animation
-    card.style.animation = `fadeInScale 0.25s ease ${idx * 0.04}s both`;
-
-    mapaBuilder.appendChild(card);
+function exportarMapa() {
+  // Returns { matriz: tmMatriz, espacios: [...] }
+  const espacios = [];
+  let parkNum = 1;
+  tmMatriz.forEach((fila, f) => {
+    fila.forEach((cell, c) => {
+      if (cell.tile === 'parking') {
+        espacios.push({
+          numero_espacio: `A${parkNum++}`,
+          tipo_vehiculo: cell.tipo_vehiculo || 'auto',
+          fila: f + 1,
+          columna: c + 1
+        });
+      }
+    });
   });
+  return { matriz: tmMatriz, espacios };
 }
 
 // ============================================================
@@ -347,6 +499,25 @@ function initHorariosBuilder() {
         return;
       }
 
+      // Validar superposiciones
+      let superposicion = false;
+      for (const h of horariosConfigurados) {
+        // Verificar si tienen días en común
+        const diasEnComun = dias.filter(d => h.dias.includes(d));
+        if (diasEnComun.length > 0) {
+          // Verificar superposición de horas: (StartA < EndB) and (EndA > StartB)
+          if (inicio < h.fin && fin > h.inicio) {
+            superposicion = true;
+            break;
+          }
+        }
+      }
+
+      if (superposicion) {
+        showToast('El horario seleccionado se superpone con un horario ya existente para esos días.', 'error');
+        return;
+      }
+
       horariosConfigurados.push({ dias, inicio, fin });
       
       // Clear checkboxes for next input
@@ -378,10 +549,18 @@ formGaraje.addEventListener('submit', async (e) => {
     inpPrecio.focus();
     return;
   }
+  // Collect data from Tilemap
+  const { matriz, espacios } = exportarMapa();
+  espaciosConfigurados = espacios;
+
   if (espaciosConfigurados.length === 0) {
-    showToast('Debes agregar al menos un espacio de parqueo.', 'error');
+    if (tilemapError) tilemapError.classList.remove('hidden');
+    showToast('Debes colocar al menos un espacio de parqueo (🟩) en el mapa.', 'error');
+    document.getElementById('espacioBuilderSection')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
+  if (tilemapError) tilemapError.classList.add('hidden');
+
   if (horariosConfigurados.length === 0) {
     horariosError.classList.remove('hidden');
     showToast('Debes agregar al menos un horario de disponibilidad.', 'error');
@@ -402,11 +581,17 @@ formGaraje.addEventListener('submit', async (e) => {
   formData.append('hora_cierre', horariosConfigurados[0]?.fin || '23:59');
   formData.append('dias_operativos', 'Flexible');
   formData.append('horarios_flexibles', JSON.stringify(horariosConfigurados));
+  formData.append('layout_mapa', JSON.stringify(matriz));
   formData.append('nivel_seguridad', inpNivelSeguridad.value || 'Estándar');
   formData.append('metodo_acceso', inpMetodoAcceso.value || 'Manual');
   formData.append('instrucciones_acceso', inpInstrucciones.value || '');
   formData.append('espacios', JSON.stringify(espaciosConfigurados));
   formData.append('comodidades', JSON.stringify(comodidades));
+
+  // Datos de Confianza
+  formData.append('dimensiones', document.getElementById('inpDimensiones')?.value || '');
+  formData.append('reglas_casa', document.getElementById('inpReglas')?.value || '');
+  formData.append('politica_cancelacion', document.getElementById('inpPolitica')?.value || '');
 
   // Adjuntar archivos
   selectedFiles.forEach(file => {
@@ -434,7 +619,10 @@ formGaraje.addEventListener('submit', async (e) => {
       selectedFiles = [];
       photoPreviewGrid.innerHTML = '';
       espaciosConfigurados = [];
-      renderMapaBuilder();
+      // Reset Tilemap
+      tmGenerarGrilla(6, 8);
+      if (tmFilas) tmFilas.value = 6;
+      if (tmColumnas) tmColumnas.value = 8;
 
       // Recargar lista de garajes
       await cargarMisGarajes();
@@ -673,16 +861,26 @@ async function cargarReservasRecibidas() {
               finalizada: '<span class="reserva-badge finalizada"><i class="fa-solid fa-flag-checkered"></i> Finalizada</span>',
             };
 
-            const acciones = r.estado === 'pendiente'
-              ? `<div class="reserva-acciones">
-                   <button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)" title="Confirmar">
-                     <i class="fa-solid fa-check"></i> Confirmar
-                   </button>
-                   <button class="btn-reserva rechazar" onclick="cambiarEstadoReserva(${r.id}, 'rechazada', this)" title="Rechazar">
-                     <i class="fa-solid fa-xmark"></i> Rechazar
-                   </button>
-                 </div>`
-              : '<span style="font-size:0.78rem;color:var(--text-secondary);">—</span>';
+            let acciones = '<span style="font-size:0.78rem;color:var(--text-secondary);">—</span>';
+            
+            if (r.estado === 'pendiente') {
+              acciones = `
+                <div class="reserva-acciones">
+                  <button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)" title="Confirmar">
+                    <i class="fa-solid fa-check"></i> Confirmar
+                  </button>
+                  <button class="btn-reserva rechazar" onclick="cambiarEstadoReserva(${r.id}, 'rechazada', this)" title="Rechazar">
+                    <i class="fa-solid fa-xmark"></i> Rechazar
+                  </button>
+                </div>`;
+            } else if (r.estado === 'confirmada') {
+              acciones = `
+                <div class="reserva-acciones">
+                  <button class="btn-reserva" style="background:#64748b; color:white; border:none; padding:5px 10px; border-radius:6px; font-size:0.7rem; font-weight:700;" onclick="cambiarEstadoReserva(${r.id}, 'finalizada', this)" title="Finalizar Estancia">
+                    <i class="fa-solid fa-flag-checkered"></i> Finalizar
+                  </button>
+                </div>`;
+            }
 
             return `
               <tr>
@@ -784,8 +982,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initTheme();
   initFileUpload();
   initHorariosBuilder();
-  initEspacioBuilder();
-  renderMapaBuilder(); // render initial state (0 spaces)
+  initTilemap();
   cargarMisGarajes();
   cargarReservasRecibidas();
 });

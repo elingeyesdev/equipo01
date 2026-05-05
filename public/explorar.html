@@ -10,6 +10,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
 <link href="/css/dark-theme.css" rel="stylesheet">
+<link href="/css/globals.css" rel="stylesheet">
 <script id="tailwind-config">
 tailwind.config = {
     darkMode: "class",
@@ -100,24 +101,32 @@ tailwind.config = {
 </style>
 </head>
 <body class="bg-background text-on-background font-body antialiased selection:bg-secondary-container selection:text-on-secondary-container flex flex-col min-h-screen">
-<!-- TopNavBar -->
-<nav class="bg-white/70 backdrop-blur-xl font-['Inter'] font-medium tracking-tight docked full-width top-0 sticky z-50 shadow-sm transition-all" id="topNavbar">
-<div class="flex justify-between items-center w-full px-6 py-4 max-w-screen-2xl mx-auto">
-<div class="flex items-center gap-8">
-<a class="text-xl font-black tracking-tighter text-[#002542]" href="/">EstAirbnb</a>
-<div class="hidden md:flex items-center gap-6">
-<a class="text-[#002542] border-b-2 border-[#006a62] pb-1 transition-all" href="/explorar.html" id="linkExplorar">Explorar</a>
-<a class="text-slate-500 hover:text-slate-800 pb-1" href="/mis-reservas.html" id="linkMisGarajes">Mis Reservas</a>
-<a class="text-slate-500 hover:text-slate-800 pb-1" href="/configuracion.html" id="linkMiPerfil">Mi Perfil</a>
-</div>
-</div>
-<div class="flex items-center gap-4">
-<button class="p-2 rounded-full text-slate-500 hover:bg-slate-100/50 transition-all" id="btnThemeToggle">
-<span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
-</button>
-</div>
-</div>
-<div class="bg-gradient-to-b from-slate-200/50 to-transparent h-[1px]"></div>
+<!-- Navbar -->
+<nav class="app-navbar" id="topNavbar">
+  <div class="nav-inner">
+    <div style="display:flex;align-items:center;">
+      <a href="/" class="nav-brand">
+        <span class="brand-icon"><span class="material-symbols-outlined">local_parking</span></span>
+        EstAirbnb
+      </a>
+      <div class="nav-links">
+        <a href="/explorar.html" class="nav-link active" id="linkExplorar">Explorar</a>
+        <a href="/mis-reservas.html" class="nav-link" id="linkMisReservas">Mis Reservas</a>
+        <a href="/configuracion.html" class="nav-link" id="linkMiPerfil">Mi Perfil</a>
+      </div>
+    </div>
+    <div class="nav-actions">
+      <button class="nav-icon-btn" id="btnThemeToggle" title="Cambiar tema">
+        <span class="material-symbols-outlined" id="themeIcon" style="font-size:20px;">dark_mode</span>
+      </button>
+      <button class="nav-icon-btn nav-danger" id="btnLogout" title="Cerrar sesión">
+        <i class="fa-solid fa-right-from-bracket"></i>
+      </button>
+      <div class="nav-avatar" id="userAvatar" onclick="window.location.href='/configuracion.html'" title="Mi perfil">
+        <span id="navInitials">?</span>
+      </div>
+    </div>
+  </div>
 </nav>
 
 <div class="flex-1 flex flex-col md:flex-row w-full max-w-screen-2xl mx-auto">
