@@ -2,7 +2,7 @@
 // EstAirbnb - Plataforma de Alquiler de Parqueos
 // server.js — Servidor principal Express
 // ============================================================
-
+console.log("🔥 ESTE ES MI SERVER NUEVO 🔥");
 const express = require('express');
 const path = require('path');
 const sql = require('mssql/msnodesqlv8');
@@ -63,7 +63,7 @@ const uploadGarajes = multer({
 // ------------------------------------------------------------
 const CONNECTION_STRING =
   'Driver={ODBC Driver 17 for SQL Server};' +
-  'Server=ACHO;' +
+  'Server=DESKTOP-56G7UA1\\SQLEXPRESS;' +
   'Database=EstAirbnbDB;' +
   'Trusted_Connection=yes;';
 
@@ -146,10 +146,10 @@ app.post('/api/auth/register', async (req, res) => {
 
     // Insertar Perfil (Subtabla)
     const reqProfile = db.request()
-        .input('id', sql.Int, newId)
-        .input('nombre', sql.VarChar(255), nombre.trim())
-        .input('apellidos', sql.VarChar(255), apellidos.trim())
-        .input('telefono', sql.VarChar(20), telefono ? telefono.trim() : null);
+      .input('id', sql.Int, newId)
+      .input('nombre', sql.VarChar(255), nombre.trim())
+      .input('apellidos', sql.VarChar(255), apellidos.trim())
+      .input('telefono', sql.VarChar(20), telefono ? telefono.trim() : null);
 
     if (rol === 'conductor') {
       await reqProfile.query(`
@@ -270,7 +270,9 @@ app.get('/api/perfil/general', async (req, res) => {
         SELECT c.id, c.email, c.rol AS rol_nombre,
                ISNULL(a.nombre, u.nombre) AS nombre,
                ISNULL(a.apellidos, u.apellidos) AS apellidos,
-               ISNULL(a.telefono, u.telefono) AS telefono
+               ISNULL(a.telefono, u.telefono) AS telefono,
+               u.tipo_vehiculo_defecto,
+               u.zona_preferencia
         FROM Credenciales c
         LEFT JOIN UsuarioAnfitrion a ON c.id = a.id AND c.rol = 'anfitrion'
         LEFT JOIN UsuarioConductor u ON c.id = u.id AND c.rol = 'conductor'
@@ -343,6 +345,146 @@ app.put('/api/perfil/general', async (req, res) => {
   } catch (err) {
     console.error('❌ Error al actualizar:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al actualizar el perfil.' });
+  }
+});
+
+// ============================================================
+// PERFIL — Actualizar Preferencias (Solo Conductores)
+// PUT /api/perfil/preferencias
+// Body: { usuario_id, tipo_vehiculo_defecto, zona_preferencia }
+// ============================================================
+app.put('/api/perfil/preferencias', async (req, res) => {
+  console.log('\n📩 [PUT /api/perfil/preferencias]');
+  const { usuario_id, tipo_vehiculo_defecto, zona_preferencia } = req.body;
+
+  if (!usuario_id) return res.status(400).json({ status: 'error', message: 'usuario_id requerido.' });
+
+  try {
+    const db = await getPool();
+
+    // Check if conductor
+    const cred = await db.request()
+      .input('id', sql.Int, parseInt(usuario_id, 10))
+      .query('SELECT rol FROM Credenciales WHERE id = @id');
+
+    console.log("🔍 RESULTADO ROL:", cred.recordset); // 👈 AQUÍ
+
+    if (cred.recordset.length === 0 || cred.recordset[0].rol !== 'conductor') {
+      return res.status(403).json({
+        status: 'error',
+        message: 'Opción válida solo para conductores.'
+      });
+    }
+
+    await db.request()
+      .input('tipo', sql.VarChar(20), tipo_vehiculo_defecto || null)
+      .input('zona', sql.NVarChar(255), zona_preferencia ? String(zona_preferencia).trim() : null)
+      .input('id', sql.Int, parseInt(usuario_id, 10))
+      .query(`
+        UPDATE UsuarioConductor
+        SET tipo_vehiculo_defecto = @tipo, zona_preferencia = @zona
+        WHERE id = @id
+      `);
+
+    return res.json({ status: 'ok', message: '¡Preferencias actualizadas correctamente!' });
+  } catch (err) {
+    console.error('❌ Error preferencias:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al actualizar preferencias.' });
+  }
+});
+
+// ============================================================
+// FAVORITOS — Toggle (Añadir/Eliminar)
+// POST /api/favoritos/toggle
+// Body: { conductor_id, garaje_id }
+// ============================================================
+app.post('/api/favoritos/toggle', async (req, res) => {
+  console.log('\n❤️ [POST /api/favoritos/toggle]');
+  console.log("📦 BODY:", req.body); // 👈 AQUÍ MISMO
+
+  const { conductor_id, garaje_id } = req.body;
+
+  if (!conductor_id || !garaje_id)
+    return res.status(400).json({ status: 'error', message: 'conductor_id y garaje_id requeridos.' });
+
+  try {
+    const db = await getPool();
+
+    // Validar que sea un conductor
+    const cred = await db.request().input('id', sql.Int, parseInt(conductor_id, 10)).query('SELECT rol FROM Credenciales WHERE id = @id');
+    // ✅ DEBUG CLAVE
+    console.log("🔍 RESULTADO ROL:", cred.recordset);
+
+    if (cred.recordset.length === 0 || cred.recordset[0].rol !== 'conductor')
+      return res.status(403).json({ status: 'error', message: 'Solo los conductores pueden guardar favoritos.' });
+
+    // Determinar si ya existe
+    const exists = await db.request()
+      .input('c_id', sql.Int, parseInt(conductor_id, 10))
+      .input('g_id', sql.Int, parseInt(garaje_id, 10))
+      .query('SELECT * FROM Favoritos WHERE conductor_id = @c_id AND garaje_id = @g_id');
+
+    if (exists.recordset.length > 0) {
+      // Remover
+      await db.request()
+        .input('c_id', sql.Int, parseInt(conductor_id, 10))
+        .input('g_id', sql.Int, parseInt(garaje_id, 10))
+        .query('DELETE FROM Favoritos WHERE conductor_id = @c_id AND garaje_id = @g_id');
+
+      console.log(`💔 REMOVIDO favorito | Conductor: ${conductor_id} | Garaje: ${garaje_id}`);
+
+      return res.json({ status: 'ok', message: 'Garaje removido de favoritos.', action: 'removed' });
+
+    } else {
+      // Añadir
+      await db.request()
+        .input('c_id', sql.Int, parseInt(conductor_id, 10))
+        .input('g_id', sql.Int, parseInt(garaje_id, 10))
+        .query('INSERT INTO Favoritos (conductor_id, garaje_id) VALUES (@c_id, @g_id)');
+
+      console.log(`❤️ AGREGADO favorito | Conductor: ${conductor_id} | Garaje: ${garaje_id}`);
+
+      return res.json({ status: 'ok', message: 'Garaje añadido a favoritos.', action: 'added' });
+    }
+  } catch (err) {
+    console.error('❌ Error toggle favorito:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno.' });
+  }
+});
+
+// ============================================================
+// FAVORITOS — Obtener mis favoritos
+// GET /api/favoritos?conductor_id=X
+// ============================================================
+app.get('/api/favoritos', async (req, res) => {
+  const conductor_id = parseInt(req.query.conductor_id, 10);
+  console.log(`\n❤️ [GET /api/favoritos] Conductor: ${conductor_id}`);
+
+  if (!conductor_id)
+    return res.status(400).json({ status: 'error', message: 'conductor_id requerido.' });
+
+  try {
+    const db = await getPool();
+
+    const result = await db.request()
+      .input('c_id', sql.Int, conductor_id)
+      .query(`
+        SELECT 
+          g.id, g.direccion, g.precio_hora, g.tipo_vehiculo,
+          ISNULL(f_img.foto_url, '') AS foto_principal
+        FROM Favoritos f
+        JOIN Garajes g ON f.garaje_id = g.id
+        OUTER APPLY (
+          SELECT TOP 1 foto_url FROM FotosGaraje WHERE garaje_id = g.id ORDER BY id ASC
+        ) f_img
+        WHERE f.conductor_id = @c_id
+        ORDER BY f.fecha_agregado DESC
+      `);
+
+    return res.json({ status: 'ok', data: result.recordset });
+  } catch (err) {
+    console.error('❌ Error obtener favoritos:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno.' });
   }
 });
 
@@ -568,7 +710,7 @@ app.post('/api/garajes', (req, res) => {
     let espacios = [];
     try {
       espacios = JSON.parse(req.body.espacios || '[]');
-    } catch(_) {
+    } catch (_) {
       espacios = [];
     }
 
@@ -777,25 +919,43 @@ app.put('/api/garajes/:id/estado', async (req, res) => {
 // ============================================================
 app.get('/api/explorar', async (req, res) => {
   console.log('\n🔍 [GET /api/explorar]');
-  let { precio_min, precio_max, tipo_vehiculo, busqueda, page, limit, fecha_entrada, fecha_salida } = req.query;
 
-  // Parámetros de paginación por defecto
+  let { precio_min, precio_max, tipo_vehiculo, busqueda, page, limit, fecha_entrada, fecha_salida, usuario_id } = req.query;
+
   const currentPage = parseInt(page, 10) || 1;
   const currentLimit = parseInt(limit, 10) || 10;
   const offset = (currentPage - 1) * currentLimit;
 
+  // 🔥 Usuario seguro
+  const usuarioId = parseInt(usuario_id, 10) || 2;
+
   try {
     const db = await getPool();
+
+    // 🔥 1. OBTENER PREFERENCIAS
+    const prefResult = await db.request()
+      .input('id', sql.Int, usuarioId)
+      .query(`
+        SELECT tipo_vehiculo_defecto, zona_preferencia
+        FROM UsuarioConductor
+        WHERE id = @id
+      `);
+
+    const tipoPref = prefResult.recordset[0]?.tipo_vehiculo_defecto || '';
+    const zonaPref = prefResult.recordset[0]?.zona_preferencia || '';
+
+    // 🔥 2. REQUEST PRINCIPAL
     const request = db.request();
 
-    // Paginación a los parámetros de la consulta
+    request.input('tipoPref', sql.VarChar(20), tipoPref);
+    request.input('zonaPref', sql.NVarChar(255), zonaPref);
     request.input('offset', sql.Int, offset);
     request.input('limit', sql.Int, currentLimit);
+    request.input('usuarioId', sql.Int, usuarioId);
 
-    // Build dynamic WHERE clause
     let conditions = ['g.estado_activo = 1'];
 
-    // 1. Filtro de Disponibilidad por Fechas (Previene solapamiento)
+    // 📅 DISPONIBILIDAD
     if (fecha_entrada && fecha_salida) {
       request.input('fecha_entrada', sql.DateTime, new Date(fecha_entrada));
       request.input('fecha_salida', sql.DateTime, new Date(fecha_salida));
@@ -812,12 +972,13 @@ app.get('/api/explorar', async (req, res) => {
       `);
     }
 
-    // 2. Filtro de Búsqueda de Texto (Zona/Dirección)
-    if (busqueda && typeof busqueda === 'string' && busqueda.trim().length > 0) {
-      request.input('busqueda', sql.NVarChar(255), '%' + busqueda.trim() + '%');
+    // 🔍 BÚSQUEDA
+    if (busqueda && busqueda.trim()) {
+      request.input('busqueda', sql.NVarChar(255), `%${busqueda.trim()}%`);
       conditions.push('g.direccion LIKE @busqueda');
     }
 
+    // 💰 PRECIO
     if (precio_min && !isNaN(precio_min)) {
       request.input('precio_min', sql.Decimal(10, 2), parseFloat(precio_min));
       conditions.push('g.precio_hora >= @precio_min');
@@ -828,6 +989,7 @@ app.get('/api/explorar', async (req, res) => {
       conditions.push('g.precio_hora <= @precio_max');
     }
 
+    // 🚗 TIPO VEHÍCULO (filtro manual del usuario)
     if (tipo_vehiculo && ['auto', 'moto', 'camioneta'].includes(tipo_vehiculo)) {
       request.input('tipo_vehiculo', sql.VarChar(20), tipo_vehiculo);
       conditions.push('g.tipo_vehiculo = @tipo_vehiculo');
@@ -835,6 +997,7 @@ app.get('/api/explorar', async (req, res) => {
 
     const whereClause = conditions.join(' AND ');
 
+    // 🔥 QUERY FINAL CON RECOMENDACIÓN REAL
     const result = await request.query(`
       SELECT
         COUNT(*) OVER() AS total_registros,
@@ -844,7 +1007,8 @@ app.get('/api/explorar', async (req, res) => {
         g.precio_hora,
         g.tipo_vehiculo,
         g.fecha_creacion,
-        fp.foto_url AS foto_portada
+        fp.foto_url AS foto_portada,
+        CAST(CASE WHEN f.garaje_id IS NOT NULL THEN 1 ELSE 0 END AS BIT) AS es_favorito
       FROM Garajes g
       OUTER APPLY (
         SELECT TOP 1 foto_url
@@ -852,20 +1016,54 @@ app.get('/api/explorar', async (req, res) => {
         WHERE garaje_id = g.id
         ORDER BY id ASC
       ) fp
+      LEFT JOIN Favoritos f ON f.garaje_id = g.id AND f.conductor_id = @usuarioId
       WHERE ${whereClause}
-      ORDER BY g.fecha_creacion DESC
+
+      ORDER BY
+        (
+          -- 🎯 MATCH TIPO VEHÍCULO (peso alto)
+          CASE 
+            WHEN @tipoPref <> '' AND g.tipo_vehiculo = @tipoPref THEN 3 
+            ELSE 0 
+          END
+
+          +
+
+          -- 📍 MATCH ZONA
+          CASE 
+            WHEN @zonaPref <> '' AND g.direccion LIKE '%' + @zonaPref + '%' THEN 2 
+            ELSE 0 
+          END
+
+          +
+
+          -- 💰 PRECIO BAJO
+          CASE 
+            WHEN g.precio_hora <= 10 THEN 1 
+            ELSE 0 
+          END
+
+          +
+
+          -- 🆕 NUEVOS
+          CASE 
+            WHEN DATEDIFF(DAY, g.fecha_creacion, GETDATE()) < 7 THEN 1 
+            ELSE 0 
+          END
+        ) DESC,
+
+        g.fecha_creacion DESC
+
       OFFSET @offset ROWS FETCH NEXT @limit ROWS ONLY
     `);
 
-    // Calcular metadatos de paginación
     const garajes = result.recordset;
     const totalRegistros = garajes.length > 0 ? garajes[0].total_registros : 0;
     const totalPaginas = Math.ceil(totalRegistros / currentLimit);
 
-    // Limpiar total_registros del array final enviado al frontend (opcional pero limpio)
     garajes.forEach(g => delete g.total_registros);
 
-    console.log(`   ✅ Explorar: página ${currentPage}/${totalPaginas} (${garajes.length} registros devueltos de ${totalRegistros} en total).`);
+    console.log(`   ✅ Explorar: página ${currentPage}/${totalPaginas} (${garajes.length} registros)`);
 
     return res.json({
       status: 'ok',

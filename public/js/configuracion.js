@@ -7,7 +7,7 @@
 // 1. SESIÓN — Leer usuario del localStorage
 // ============================================================
 const USUARIO_KEY = 'estairbnb_user';
-const session     = JSON.parse(localStorage.getItem(USUARIO_KEY));
+const session = JSON.parse(localStorage.getItem(USUARIO_KEY));
 
 // Protección de ruta: si no hay sesión, redirigir a login
 if (!session || !session.id) {
@@ -45,8 +45,8 @@ document.getElementById('btnLogout').addEventListener('click', () => {
 // 2. TOAST — Notificaciones
 // ============================================================
 function showToast(message, type = 'success') {
-  const toastEl   = document.getElementById('toastNotification');
-  const toastBody = document.getElementById('toastBody');
+  const toastEl = document.getElementById('toastNotification');
+  const toastBody = document.getElementById('toastMessage');
   toastEl.classList.remove('toast-success', 'toast-error');
   toastEl.classList.add(type === 'success' ? 'toast-success' : 'toast-error');
   const icon = type === 'success'
@@ -73,15 +73,15 @@ function toggleEdit(field) {
     // Entrar en modo edición
     inp.value = val.textContent === '—' ? '' : val.textContent;
     val.style.display = 'none';
-    inp.style.display  = 'block';
+    inp.style.display = 'block';
     inp.focus();
     btn.textContent = 'Cancelar';
     btn.classList.add('cancel-mode');
     editState[field] = true;
   } else {
     // Cancelar edición de este campo
-    val.style.display  = '';
-    inp.style.display  = 'none';
+    val.style.display = '';
+    inp.style.display = 'none';
     btn.textContent = 'Editar';
     btn.classList.remove('cancel-mode');
     editState[field] = false;
@@ -111,9 +111,9 @@ async function guardarCambios() {
   const btn = document.getElementById('btnGuardar');
 
   // Recolectar valores: si en edición toma el input, si no toma el span
-  const nombre    = editState.Nombre    ? document.getElementById('inpNombre').value.trim()    : document.getElementById('valNombre').textContent;
+  const nombre = editState.Nombre ? document.getElementById('inpNombre').value.trim() : document.getElementById('valNombre').textContent;
   const apellidos = editState.Apellidos ? document.getElementById('inpApellidos').value.trim() : document.getElementById('valApellidos').textContent;
-  const telefono  = editState.Telefono  ? document.getElementById('inpTelefono').value.trim()  : document.getElementById('valTelefono').textContent;
+  const telefono = editState.Telefono ? document.getElementById('inpTelefono').value.trim() : document.getElementById('valTelefono').textContent;
 
   // Validaciones rápidas
   if (!nombre || nombre.length < 2) {
@@ -134,18 +134,18 @@ async function guardarCambios() {
 
   try {
     const response = await fetch('/api/perfil/general', {
-      method:  'PUT',
+      method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body:    JSON.stringify({ usuario_id: USUARIO_ID, nombre, apellidos, telefono }),
+      body: JSON.stringify({ usuario_id: USUARIO_ID, nombre, apellidos, telefono }),
     });
 
     const data = await response.json();
 
     if (response.ok && data.status === 'ok') {
       // Actualizar los spans con los nuevos valores
-      document.getElementById('valNombre').textContent    = nombre;
+      document.getElementById('valNombre').textContent = nombre;
       document.getElementById('valApellidos').textContent = apellidos;
-      document.getElementById('valTelefono').textContent  = telefono || '—';
+      document.getElementById('valTelefono').textContent = telefono || '—';
 
       // Cerrar todos los modos de edición
       cancelarTodo();
@@ -174,10 +174,10 @@ async function cargarPerfil() {
 
     if (res.ok && data.status === 'ok') {
       const u = data.data;
-      document.getElementById('valNombre').textContent    = u.nombre    || '—';
+      document.getElementById('valNombre').textContent = u.nombre || '—';
       document.getElementById('valApellidos').textContent = u.apellidos || '—';
-      document.getElementById('valTelefono').textContent  = u.telefono  || '—';
-      document.getElementById('valEmail').textContent     = u.email     || '—';
+      document.getElementById('valTelefono').textContent = u.telefono || '—';
+      document.getElementById('valEmail').textContent = u.email || '—';
 
       if (u.foto_url) {
         actualizarAvatares(u.foto_url);
@@ -213,7 +213,7 @@ async function cargarPerfil() {
     console.error('Error al cargar perfil:', err);
     showToast('Error de conexión al cargar el perfil.', 'error');
   } finally {
-    document.getElementById('loadingState').style.display  = 'none';
+    document.getElementById('loadingState').style.display = 'none';
     document.getElementById('fieldsContainer').style.display = 'block';
   }
 }
@@ -275,9 +275,10 @@ async function onFotoSeleccionada(event) {
 // 7. NAVEGACIÓN — Sidebar Section Switching
 // ============================================================
 const SECTIONS = {
-  general:    'sectionGeneral',
-  seguridad:  'sectionSeguridad',
+  general: 'sectionGeneral',
+  seguridad: 'sectionSeguridad',
   privacidad: 'sectionPrivacidad',
+  preferencias: 'sectionPreferencias',
 };
 
 function showSection(sectionKey) {
@@ -314,7 +315,7 @@ function applyTheme(theme) {
 // 9. SEGURIDAD — Cambiar Contraseña
 // ============================================================
 function togglePwField(inputId, btn) {
-  const inp  = document.getElementById(inputId);
+  const inp = document.getElementById(inputId);
   const icon = btn.querySelector('i');
   const show = inp.type === 'password';
   inp.type = show ? 'text' : 'password';
@@ -322,19 +323,19 @@ function togglePwField(inputId, btn) {
 }
 
 function showPwAlert(msg, type = 'error') {
-  const box  = document.getElementById('pwAlertBox');
+  const box = document.getElementById('pwAlertBox');
   const icon = document.getElementById('pwAlertIcon');
   box.style.display = 'flex';
   if (type === 'error') {
     box.style.background = '#fff2f3';
-    box.style.color      = '#c0392b';
-    box.style.border     = '1.5px solid #f5c6cb';
-    icon.className       = 'fa-solid fa-circle-exclamation';
+    box.style.color = '#c0392b';
+    box.style.border = '1.5px solid #f5c6cb';
+    icon.className = 'fa-solid fa-circle-exclamation';
   } else {
     box.style.background = '#f0faf4';
-    box.style.color      = '#1a7a42';
-    box.style.border     = '1.5px solid #b7dfcb';
-    icon.className       = 'fa-solid fa-circle-check';
+    box.style.color = '#1a7a42';
+    box.style.border = '1.5px solid #b7dfcb';
+    icon.className = 'fa-solid fa-circle-check';
   }
   document.getElementById('pwAlertMsg').textContent = msg;
 }
@@ -343,8 +344,8 @@ async function cambiarPassword() {
   document.getElementById('pwAlertBox').style.display = 'none';
 
   const passwordActual = document.getElementById('pwActual').value;
-  const passwordNueva  = document.getElementById('pwNueva').value;
-  const confirmacion   = document.getElementById('pwConfirmar').value;
+  const passwordNueva = document.getElementById('pwNueva').value;
+  const confirmacion = document.getElementById('pwConfirmar').value;
 
   if (!passwordActual) {
     showPwAlert('Ingresa tu contraseña actual.');
@@ -383,8 +384,8 @@ async function cambiarPassword() {
     if (res.ok && data.status === 'ok') {
       showPwAlert('¡Contraseña actualizada correctamente!', 'success');
       showToast('¡Contraseña cambiada con éxito!', 'success');
-      document.getElementById('pwActual').value    = '';
-      document.getElementById('pwNueva').value     = '';
+      document.getElementById('pwActual').value = '';
+      document.getElementById('pwNueva').value = '';
       document.getElementById('pwConfirmar').value = '';
       document.getElementById('pwStrengthFill').style.width = '0%';
       document.getElementById('pwStrengthLabel').textContent = '';
@@ -405,19 +406,19 @@ async function cambiarPassword() {
 // 10. PRIVACIDAD — Cargar y Guardar preferencias
 // ============================================================
 function showPrivAlert(msg, type = 'success') {
-  const box  = document.getElementById('privAlertBox');
+  const box = document.getElementById('privAlertBox');
   const icon = document.getElementById('privAlertIcon');
   box.style.display = 'flex';
   if (type === 'error') {
     box.style.background = '#fff2f3';
-    box.style.color      = '#c0392b';
-    box.style.border     = '1.5px solid #f5c6cb';
-    icon.className       = 'fa-solid fa-circle-exclamation';
+    box.style.color = '#c0392b';
+    box.style.border = '1.5px solid #f5c6cb';
+    icon.className = 'fa-solid fa-circle-exclamation';
   } else {
     box.style.background = '#f0faf4';
-    box.style.color      = '#1a7a42';
-    box.style.border     = '1.5px solid #b7dfcb';
-    icon.className       = 'fa-solid fa-circle-check';
+    box.style.color = '#1a7a42';
+    box.style.border = '1.5px solid #b7dfcb';
+    icon.className = 'fa-solid fa-circle-check';
   }
   document.getElementById('privAlertMsg').textContent = msg;
 }
@@ -428,9 +429,9 @@ async function cargarPrivacidad() {
     const data = await res.json();
     if (res.ok && data.status === 'ok') {
       const p = data.data;
-      document.getElementById('switchTelefono').checked      = !!p.priv_telefono;
+      document.getElementById('switchTelefono').checked = !!p.priv_telefono;
       document.getElementById('switchCalificaciones').checked = !!p.priv_calificaciones;
-      document.getElementById('switchEmail').checked          = !!p.priv_email;
+      document.getElementById('switchEmail').checked = !!p.priv_email;
     }
   } catch (err) {
     console.error('Error al cargar privacidad:', err);
@@ -445,9 +446,9 @@ async function guardarPrivacidad() {
 
   const body = {
     usuario_id: USUARIO_ID,
-    priv_telefono:       document.getElementById('switchTelefono').checked,
+    priv_telefono: document.getElementById('switchTelefono').checked,
     priv_calificaciones: document.getElementById('switchCalificaciones').checked,
-    priv_email:          document.getElementById('switchEmail').checked,
+    priv_email: document.getElementById('switchEmail').checked,
   };
 
   try {
@@ -472,14 +473,67 @@ async function guardarPrivacidad() {
     btn.innerHTML = origHTML;
   }
 }
+// ============================================================
+// 11. PREFERENCIAS — Cargar preferencias de búsqueda
+// ============================================================
+async function cargarPreferencias() {
+  try {
+    const res = await fetch(`/api/perfil/general?usuario_id=${USUARIO_ID}`);
+    const data = await res.json();
+
+    if (res.ok && data.status === 'ok') {
+      const u = data.data;
+
+      document.getElementById('prefTipo').value = u.tipo_vehiculo_defecto || '';
+      document.getElementById('prefZona').value = u.zona_preferencia || '';
+    }
+
+  } catch (err) {
+    console.error('Error cargando preferencias:', err);
+  }
+}
+async function guardarPreferencias() {
+  const tipo = document.getElementById('prefTipo').value;
+  const zona = document.getElementById('prefZona').value;
+
+  try {
+    const res = await fetch('/api/perfil/preferencias', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        usuario_id: USUARIO_ID,
+        tipo_vehiculo_defecto: tipo,
+        zona_preferencia: zona
+      })
+    });
+
+    const data = await res.json();
+
+    if (data.status === 'ok') {
+      showToast('Preferencias guardadas correctamente', 'success');
+    }
+
+  } catch (err) {
+    console.error(err);
+    showToast('Error al guardar preferencias', 'error');
+  }
+}
+
 
 
 // ============================================================
-// 11. DOMContentLoaded — Inicialización principal
+// . DOMContentLoaded — Inicialización principal
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   // Cargar datos del servidor al iniciar
   cargarPerfil();
+  cargarPreferencias();
+
+  const btnPref = document.getElementById('btnGuardarPreferencias');
+  if (btnPref) {
+    btnPref.addEventListener('click', guardarPreferencias);
+  }
+
 
   // Sidebar navigation
   const navLinks = document.querySelectorAll('#sidebarNav a');
@@ -508,29 +562,29 @@ document.addEventListener('DOMContentLoaded', () => {
   // Password strength indicator
   const pwNueva = document.getElementById('pwNueva');
   if (pwNueva) {
-    pwNueva.addEventListener('input', function() {
+    pwNueva.addEventListener('input', function () {
       const v = this.value;
       let score = 0;
-      if (v.length >= 6)  score++;
+      if (v.length >= 6) score++;
       if (v.length >= 10) score++;
       if (/[A-Z]/.test(v)) score++;
       if (/[0-9]/.test(v)) score++;
       if (/[^A-Za-z0-9]/.test(v)) score++;
 
-      const fill   = document.getElementById('pwStrengthFill');
-      const label  = document.getElementById('pwStrengthLabel');
-      const colors = ['#dc3545','#fd7e14','#ffc107','#28a745','#1a7a42'];
-      const labels = ['Muy débil','Débil','Aceptable','Fuerte','Muy fuerte'];
-      fill.style.width      = `${(score / 5) * 100}%`;
+      const fill = document.getElementById('pwStrengthFill');
+      const label = document.getElementById('pwStrengthLabel');
+      const colors = ['#dc3545', '#fd7e14', '#ffc107', '#28a745', '#1a7a42'];
+      const labels = ['Muy débil', 'Débil', 'Aceptable', 'Fuerte', 'Muy fuerte'];
+      fill.style.width = `${(score / 5) * 100}%`;
       fill.style.background = colors[score - 1] || '#e4e6eb';
-      label.textContent     = score > 0 ? labels[score - 1] : '';
+      label.textContent = score > 0 ? labels[score - 1] : '';
     });
   }
 
   // Dark Mode Toggle
   const themeIcon = document.getElementById('themeIcon');
   const savedTheme = localStorage.getItem('estairbnb_theme');
-  
+
   if (savedTheme === 'dark') {
     document.documentElement.classList.add('dark');
     if (themeIcon) themeIcon.textContent = 'light_mode';

@@ -1,321 +1,465 @@
 <!DOCTYPE html>
-<html class="light" lang="es"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Configuración - EstAirbnb</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap" rel="stylesheet"/>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-<link href="/css/dark-theme.css" rel="stylesheet">
-<script id="tailwind-config">
-tailwind.config = {
-  darkMode: "class",
-  theme: {
-    extend: {
-      "colors": {
-        "tertiary-fixed": "#52f9fc",
-        "tertiary-container": "#004041",
-        "primary-container": "#1b3b5a",
-        "on-secondary-container": "#007168",
-        "error-container": "#ffdad6",
-        "on-surface-variant": "#43474d",
-        "inverse-primary": "#abc9ef",
-        "on-error-container": "#93000a",
-        "surface-dim": "#d8dadc",
-        "surface-bright": "#f7f9fb",
-        "surface-container-high": "#e6e8ea",
-        "outline-variant": "#c3c6ce",
-        "on-secondary-fixed": "#00201d",
-        "surface-container-lowest": "#ffffff",
-        "on-primary": "#ffffff",
-        "background": "#f7f9fb",
-        "on-background": "#191c1e",
-        "inverse-surface": "#2d3133",
-        "on-tertiary-fixed-variant": "#004f51",
-        "secondary": "#006a62",
-        "surface-variant": "#e0e3e5",
-        "surface-container-highest": "#e0e3e5",
-        "on-tertiary-container": "#00b4b8",
-        "outline": "#73777e",
-        "on-secondary": "#ffffff",
-        "tertiary": "#002829",
-        "surface-container-low": "#f2f4f6",
-        "on-tertiary": "#ffffff",
-        "tertiary-fixed-dim": "#1edce0",
-        "on-error": "#ffffff",
-        "on-primary-container": "#87a5ca",
-        "secondary-container": "#57fae9",
-        "surface-tint": "#436182",
-        "on-secondary-fixed-variant": "#005049",
-        "surface-container": "#eceef0",
-        "error": "#ba1a1a",
-        "surface": "#f7f9fb",
-        "on-surface": "#191c1e",
-        "inverse-on-surface": "#eff1f3",
-        "secondary-fixed": "#57fae9",
-        "on-tertiary-fixed": "#002021",
-        "primary-fixed": "#d1e4ff",
-        "secondary-fixed-dim": "#2addcd",
-        "primary-fixed-dim": "#abc9ef",
-        "on-primary-fixed": "#001d35",
-        "primary": "#002542",
-        "on-primary-fixed-variant": "#2a4968"
-      },
-      "borderRadius": {
-        "DEFAULT": "0.125rem",
-        "lg": "0.25rem",
-        "xl": "0.5rem",
-        "full": "0.75rem"
-      },
-      "fontFamily": {
-        "headline": ["Inter"],
-        "body": ["Inter"],
-        "label": ["Inter"]
-      }
-    },
-  },
-}
-</script>
-<style>
-body { font-family: 'Inter', sans-serif; background-color: theme('colors.background'); color: theme('colors.on-background'); }
-.toast-container { z-index: 9999; }
-</style>
-</head>
-<body class="bg-background text-on-background min-h-screen flex flex-col antialiased">
-<!-- TopNavBar -->
-<nav class="bg-white/70 backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm" id="topNavbar">
-<div class="flex justify-between items-center w-full px-6 py-4 max-w-screen-2xl mx-auto">
-<div class="flex items-center gap-8">
-<a class="text-xl font-black tracking-tighter text-[#002542]" href="/">EstAirbnb</a>
-<div class="hidden md:flex gap-6">
-<a class="font-['Inter'] font-medium tracking-tight text-slate-500 hover:text-slate-800 transition-colors px-3 py-2 rounded-md" href="/explorar.html" id="navLinkExplorar" style="display:none;">Explorar</a>
-<a class="font-['Inter'] font-medium tracking-tight text-slate-500 hover:text-slate-800 transition-colors px-3 py-2 rounded-md" href="/mis-garajes.html" id="navLinkGarajes" style="display:none;">Mis Garajes</a>
-<a class="font-['Inter'] font-medium tracking-tight text-[#002542] border-b-2 border-[#006a62] pb-1 px-3 py-2 rounded-md" href="/configuracion.html">Mi Perfil</a>
-</div>
-</div>
-<div class="flex items-center gap-4">
-<span id="navUserName" class="hidden md:inline-block font-semibold text-sm text-surface-variant"></span>
-<button class="text-slate-500 hover:bg-slate-100/50 p-2 rounded-full transition-colors" id="btnThemeToggle">
-<span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
-</button>
-<button class="text-error hover:bg-error-container/50 p-2 rounded-full transition-colors font-bold" id="btnLogout" title="Cerrar sesión">
-<i class="fa-solid fa-right-from-bracket"></i>
-</button>
-<div class="w-10 h-10 rounded-full bg-secondary text-white flex items-center justify-center font-bold text-lg shadow-sm border border-transparent hover:border-outline cursor-pointer overflow-hidden" id="userAvatar" onclick="document.getElementById('inputFoto').click()">
-<span id="navInitials">?</span>
-</div>
-<input type="file" id="inputFoto" accept="image/jpeg,image/png,image/webp" style="display:none;" onchange="onFotoSeleccionada(event)">
-</div>
-</div>
-<div class="bg-gradient-to-b from-slate-200/50 to-transparent h-[1px] w-full absolute bottom-0"></div>
-</nav>
+<html class="light" lang="es">
 
-<!-- Toast Notification -->
-<div class="toast-container position-fixed top-0 end-0 p-3">
-  <div id="toastNotification" class="toast align-items-center text-white bg-[#006a62] border-0" role="alert" aria-live="assertive" aria-atomic="true">
-    <div class="d-flex">
-      <div class="toast-body" id="toastMessage">Mensaje</div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+<head>
+  <meta charset="utf-8" />
+  <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+  <title>Configuración - EstAirbnb</title>
+  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link
+    href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+    rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;900&amp;display=swap"
+    rel="stylesheet" />
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <link href="/css/dark-theme.css" rel="stylesheet">
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          "colors": {
+            "tertiary-fixed": "#52f9fc",
+            "tertiary-container": "#004041",
+            "primary-container": "#1b3b5a",
+            "on-secondary-container": "#007168",
+            "error-container": "#ffdad6",
+            "on-surface-variant": "#43474d",
+            "inverse-primary": "#abc9ef",
+            "on-error-container": "#93000a",
+            "surface-dim": "#d8dadc",
+            "surface-bright": "#f7f9fb",
+            "surface-container-high": "#e6e8ea",
+            "outline-variant": "#c3c6ce",
+            "on-secondary-fixed": "#00201d",
+            "surface-container-lowest": "#ffffff",
+            "on-primary": "#ffffff",
+            "background": "#f7f9fb",
+            "on-background": "#191c1e",
+            "inverse-surface": "#2d3133",
+            "on-tertiary-fixed-variant": "#004f51",
+            "secondary": "#006a62",
+            "surface-variant": "#e0e3e5",
+            "surface-container-highest": "#e0e3e5",
+            "on-tertiary-container": "#00b4b8",
+            "outline": "#73777e",
+            "on-secondary": "#ffffff",
+            "tertiary": "#002829",
+            "surface-container-low": "#f2f4f6",
+            "on-tertiary": "#ffffff",
+            "tertiary-fixed-dim": "#1edce0",
+            "on-error": "#ffffff",
+            "on-primary-container": "#87a5ca",
+            "secondary-container": "#57fae9",
+            "surface-tint": "#436182",
+            "on-secondary-fixed-variant": "#005049",
+            "surface-container": "#eceef0",
+            "error": "#ba1a1a",
+            "surface": "#f7f9fb",
+            "on-surface": "#191c1e",
+            "inverse-on-surface": "#eff1f3",
+            "secondary-fixed": "#57fae9",
+            "on-tertiary-fixed": "#002021",
+            "primary-fixed": "#d1e4ff",
+            "secondary-fixed-dim": "#2addcd",
+            "primary-fixed-dim": "#abc9ef",
+            "on-primary-fixed": "#001d35",
+            "primary": "#002542",
+            "on-primary-fixed-variant": "#2a4968"
+          },
+          "borderRadius": {
+            "DEFAULT": "0.125rem",
+            "lg": "0.25rem",
+            "xl": "0.5rem",
+            "full": "0.75rem"
+          },
+          "fontFamily": {
+            "headline": ["Inter"],
+            "body": ["Inter"],
+            "label": ["Inter"]
+          }
+        },
+      },
+    }
+  </script>
+  <style>
+    body {
+      font-family: 'Inter', sans-serif;
+      background-color: theme('colors.background');
+      color: theme('colors.on-background');
+    }
+
+    .toast-container {
+      z-index: 9999;
+    }
+  </style>
+</head>
+
+<body class="bg-background text-on-background min-h-screen flex flex-col antialiased">
+  <!-- TopNavBar -->
+  <nav class="bg-white/70 backdrop-blur-xl docked full-width top-0 sticky z-50 shadow-sm" id="topNavbar">
+    <div class="flex justify-between items-center w-full px-6 py-4 max-w-screen-2xl mx-auto">
+      <div class="flex items-center gap-8">
+        <a class="text-xl font-black tracking-tighter text-[#002542]" href="/">EstAirbnb</a>
+        <div class="hidden md:flex gap-6">
+          <a class="font-['Inter'] font-medium tracking-tight text-slate-500 hover:text-slate-800 transition-colors px-3 py-2 rounded-md"
+            href="/explorar.html" id="navLinkExplorar" style="display:none;">Explorar</a>
+          <a class="font-['Inter'] font-medium tracking-tight text-slate-500 hover:text-slate-800 transition-colors px-3 py-2 rounded-md"
+            href="/mis-garajes.html" id="navLinkGarajes" style="display:none;">Mis Garajes</a>
+          <a class="font-['Inter'] font-medium tracking-tight text-[#002542] border-b-2 border-[#006a62] pb-1 px-3 py-2 rounded-md"
+            href="/configuracion.html">Mi Perfil</a>
+        </div>
+      </div>
+      <div class="flex items-center gap-4">
+        <span id="navUserName" class="hidden md:inline-block font-semibold text-sm text-surface-variant"></span>
+        <button class="text-slate-500 hover:bg-slate-100/50 p-2 rounded-full transition-colors" id="btnThemeToggle">
+          <span class="material-symbols-outlined" id="themeIcon">dark_mode</span>
+        </button>
+        <button class="text-error hover:bg-error-container/50 p-2 rounded-full transition-colors font-bold"
+          id="btnLogout" title="Cerrar sesión">
+          <i class="fa-solid fa-right-from-bracket"></i>
+        </button>
+        <div
+          class="w-10 h-10 rounded-full bg-secondary text-white flex items-center justify-center font-bold text-lg shadow-sm border border-transparent hover:border-outline cursor-pointer overflow-hidden"
+          id="userAvatar" onclick="document.getElementById('inputFoto').click()">
+          <span id="navInitials">?</span>
+        </div>
+        <input type="file" id="inputFoto" accept="image/jpeg,image/png,image/webp" style="display:none;"
+          onchange="onFotoSeleccionada(event)">
+      </div>
+    </div>
+    <div class="bg-gradient-to-b from-slate-200/50 to-transparent h-[1px] w-full absolute bottom-0"></div>
+  </nav>
+
+  <!-- Toast Notification -->
+  <div class="toast-container position-fixed top-0 end-0 p-3">
+    <div id="toastNotification" class="toast align-items-center text-white bg-[#006a62] border-0" role="alert"
+      aria-live="assertive" aria-atomic="true">
+      <div class="d-flex">
+        <div class="toast-body" id="toastMessage">Mensaje</div>
+        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+          aria-label="Close"></button>
+      </div>
     </div>
   </div>
-</div>
 
-<div class="flex flex-1 max-w-screen-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 gap-8 md:gap-12">
-<!-- Left Tab Navigation -->
-<aside class="w-full md:w-64 flex-shrink-0" id="settingsSidebar">
-<div class="sticky top-28 flex flex-col gap-2" id="sidebarNav">
-<h2 class="font-headline text-sm font-bold tracking-widest text-primary uppercase mb-4 px-4">Configuración de Cuenta</h2>
-<a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-container-lowest text-secondary border-l-4 border-secondary shadow-sm transition-all" href="#general" id="navGeneral" data-section="general">
-<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
-<span class="font-body font-medium">General</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-lowest hover:shadow-sm transition-all" href="#seguridad" id="navSeguridad" data-section="seguridad">
-<span class="material-symbols-outlined">lock</span>
-<span class="font-body font-medium">Seguridad</span>
-</a>
-<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-lowest hover:shadow-sm transition-all" href="#privacidad" id="navPrivacidad" data-section="privacidad">
-<span class="material-symbols-outlined">visibility</span>
-<span class="font-body font-medium">Privacidad</span>
-</a>
-</div>
-</aside>
+  <div class="flex flex-1 max-w-screen-2xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-8 gap-8 md:gap-12">
+    <!-- Left Tab Navigation -->
+    <aside class="w-full md:w-64 flex-shrink-0" id="settingsSidebar">
+      <div class="sticky top-28 flex flex-col gap-2" id="sidebarNav">
 
-<!-- Right Content Area -->
-<main class="flex-1 max-w-3xl" id="settingsContent">
-<div class="mb-12">
-<h1 class="font-headline text-3xl md:text-4xl font-black text-primary tracking-tight mb-2">Mi Perfil</h1>
-<p class="font-body text-on-surface-variant text-lg">Actualiza la información de tu cuenta.</p>
-</div>
+        <h2 class="font-headline text-sm font-bold tracking-widest text-primary uppercase mb-4 px-4">
+          Configuración de Cuenta
+        </h2>
 
-<!-- General Section -->
-<section class="mb-16" id="sectionGeneral">
-<div class="bg-surface-container-lowest rounded-xl shadow-[0px_24px_48px_rgba(0,37,66,0.06)] p-8 relative overflow-hidden" id="profileCardBody">
-<div class="absolute inset-0 ring-1 ring-inset ring-outline-variant/15 rounded-xl pointer-events-none"></div>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-lg bg-surface-container-lowest text-secondary border-l-4 border-secondary shadow-sm transition-all"
+          href="#general" id="navGeneral" data-section="general">
+          <span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+          <span class="font-body font-medium">General</span>
+        </a>
 
-<!-- Loading state general -->
-<div id="loadingState" class="flex flex-col items-center py-10 gap-2">
-  <div class="spinner-border text-secondary" role="status"></div>
-  <p class="text-on-surface-variant">Cargando...</p>
-</div>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-lowest hover:shadow-sm transition-all"
+          href="#seguridad" id="navSeguridad" data-section="seguridad">
+          <span class="material-symbols-outlined">lock</span>
+          <span class="font-body font-medium">Seguridad</span>
+        </a>
 
-<div class="flex flex-col md:flex-row gap-8 items-start" id="fieldsContainer" style="display:none;">
-<!-- Avatar -->
-<div class="flex flex-col items-center gap-4">
-<div class="w-32 h-32 rounded-full bg-surface-container-high text-4xl font-bold flex items-center justify-center overflow-hidden border-4 border-surface shadow-sm relative group cursor-pointer" id="avatarBig" onclick="document.getElementById('inputFoto').click()">
-<span id="avatarBigInitials"></span>
-<div class="absolute inset-0 bg-primary/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
-<span class="material-symbols-outlined text-white">photo_camera</span>
-</div>
-</div>
-<button class="font-label text-sm font-semibold text-secondary hover:text-tertiary-container transition-colors uppercase tracking-widest" onclick="document.getElementById('inputFoto').click()">Cambiar Foto</button>
-</div>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-lowest hover:shadow-sm transition-all"
+          href="#privacidad" id="navPrivacidad" data-section="privacidad">
+          <span class="material-symbols-outlined">visibility</span>
+          <span class="font-body font-medium">Privacidad</span>
+        </a>
 
-<!-- Form Fields -->
-<div class="flex-1 w-full flex flex-col gap-6">
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-<div class="relative group" id="rowNombre">
-<label class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider flex justify-between mb-2">
-  Nombre <button class="text-[9px] uppercase tracking-widest text-secondary hover:underline" data-field="Nombre" onclick="toggleEdit('Nombre')">Editar</button>
-</label>
-<div class="bg-surface-container-low text-on-surface p-3 rounded-md" id="valNombre">--</div>
-<input class="w-full bg-surface-container-high border-0 border-b-2 border-transparent focus:border-secondary focus:ring-0 px-4 py-3 rounded-md font-body text-on-surface transition-colors" id="inpNombre" type="text" style="display:none;"/>
-</div>
-<div class="relative group" id="rowApellidos">
-<label class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider flex justify-between mb-2">
-  Apellidos <button class="text-[9px] uppercase tracking-widest text-secondary hover:underline" data-field="Apellidos" onclick="toggleEdit('Apellidos')">Editar</button>
-</label>
-<div class="bg-surface-container-low text-on-surface p-3 rounded-md" id="valApellidos">--</div>
-<input class="w-full bg-surface-container-high border-0 border-b-2 border-transparent focus:border-secondary focus:ring-0 px-4 py-3 rounded-md font-body text-on-surface transition-colors" id="inpApellidos" type="text" style="display:none;"/>
-</div>
-</div>
-<div class="relative group" id="rowTelefono">
-<label class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider flex justify-between mb-2">
-  Teléfono <button class="text-[9px] uppercase tracking-widest text-secondary hover:underline" data-field="Telefono" onclick="toggleEdit('Telefono')">Editar</button>
-</label>
-<div class="bg-surface-container-low text-on-surface p-3 rounded-md" id="valTelefono">--</div>
-<input class="w-full bg-surface-container-high border-0 border-b-2 border-transparent focus:border-secondary focus:ring-0 px-4 py-3 rounded-md font-body text-on-surface transition-colors" id="inpTelefono" type="tel" style="display:none;"/>
-</div>
-<div class="relative" id="rowEmail">
-<label class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-2">Correo (Solo lectura)</label>
-<div class="bg-surface-container-low text-on-surface-variant p-3 rounded-md" id="valEmail">--</div>
-</div>
+        <a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-lowest transition-all"
+          href="#preferencias" id="navPreferencias" data-section="preferencias">
+          <span class="material-symbols-outlined">tune</span>
+          <span class="font-body font-medium">Preferencias</span>
+        </a>
 
-<div class="pt-4 flex justify-end gap-3" id="saveBarWrapper" style="display:none;">
-<button class="bg-surface-container-highest text-on-surface font-body font-medium px-6 py-3 rounded-md hover:bg-outline-variant transition-colors" onclick="cancelarTodo()">Cancelar</button>
-<button class="bg-gradient-to-br from-primary to-primary-container text-white font-body font-medium px-6 py-3 rounded-md hover:from-secondary hover:to-secondary-container transition-all shadow-sm active:scale-95" id="btnGuardar" onclick="guardarCambios()">Guardar Cambios</button>
-</div>
-</div>
-</div>
-</div>
-</section>
+      </div>
+    </aside> <!-- 🔥 AQUÍ ESTABA EL ERROR: faltaba cerrar -->
 
-<!-- Security Section -->
-<section class="mb-16" id="sectionSeguridad" style="display:none;">
-<h2 class="font-headline text-2xl font-bold text-primary tracking-tight mb-6">Seguridad</h2>
-<div class="bg-surface-container-lowest rounded-xl shadow-[0px_24px_48px_rgba(0,37,66,0.06)] p-8 relative overflow-hidden">
-<div class="absolute inset-0 ring-1 ring-inset ring-outline-variant/15 rounded-xl pointer-events-none"></div>
+    <!-- Right Content Area -->
+    <main class="flex-1 max-w-3xl" id="settingsContent">
+      <div class="mb-12">
+        <h1 class="font-headline text-3xl md:text-4xl font-black text-primary tracking-tight mb-2">
+          Mi Perfil
+        </h1>
+        <p class="font-body text-on-surface-variant text-lg">
+          Actualiza la información de tu cuenta.
+        </p>
+      </div>
 
-<div id="pwAlertBox" class="hidden p-3 bg-error-container text-error rounded-lg mb-6 flex items-center gap-2 text-sm font-medium">
-  <i id="pwAlertIcon" class="fa-solid fa-circle-exclamation"></i>
-  <span id="pwAlertMsg"></span>
-</div>
+      <!-- General Section -->
+      <section class="mb-16" id="sectionGeneral">
+        <div
+          class="bg-surface-container-lowest rounded-xl shadow-[0px_24px_48px_rgba(0,37,66,0.06)] p-8 relative overflow-hidden"
+          id="profileCardBody">
+          <div class="absolute inset-0 ring-1 ring-inset ring-outline-variant/15 rounded-xl pointer-events-none">
+          </div>
 
-<div class="flex flex-col gap-6">
-<div class="relative group">
-<label class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-2" for="pwActual">Contraseña Actual</label>
-<div class="flex items-center bg-surface-container-high border-b-2 border-transparent focus-within:border-secondary rounded-t-md px-4 py-2 transition-colors">
-<input class="w-full bg-transparent border-0 focus:ring-0 p-0 text-on-surface font-body" id="pwActual" type="password" />
-<button type="button" class="text-on-surface-variant z-10" onclick="togglePwField('pwActual', this)"><i class="fa-solid fa-eye"></i></button>
-</div>
-</div>
+          <!-- Loading state general -->
+          <div id="loadingState" class="flex flex-col items-center py-10 gap-2">
+            <div class="spinner-border text-secondary" role="status"></div>
+            <p class="text-on-surface-variant">Cargando...</p>
+          </div>
 
-<div class="relative group">
-<label class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-2" for="pwNueva">Nueva Contraseña</label>
-<div class="flex items-center bg-surface-container-high border-b-2 border-transparent focus-within:border-secondary rounded-t-md px-4 py-2 transition-colors">
-<input class="w-full bg-transparent border-0 focus:ring-0 p-0 text-on-surface font-body" id="pwNueva" type="password" />
-<button type="button" class="text-on-surface-variant z-10" onclick="togglePwField('pwNueva', this)"><i class="fa-solid fa-eye"></i></button>
-</div>
-</div>
+          <div class="flex flex-col md:flex-row gap-8 items-start" id="fieldsContainer" style="display:none;">
+            <!-- Avatar -->
+            <div class="flex flex-col items-center gap-4">
+              <div
+                class="w-32 h-32 rounded-full bg-surface-container-high text-4xl font-bold flex items-center justify-center overflow-hidden border-4 border-surface shadow-sm relative group cursor-pointer"
+                id="avatarBig" onclick="document.getElementById('inputFoto').click()">
+                <span id="avatarBigInitials"></span>
+                <div
+                  class="absolute inset-0 bg-primary/60 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span class="material-symbols-outlined text-white">photo_camera</span>
+                </div>
+              </div>
+              <button
+                class="font-label text-sm font-semibold text-secondary hover:text-tertiary-container transition-colors uppercase tracking-widest"
+                onclick="document.getElementById('inputFoto').click()">Cambiar Foto</button>
+            </div>
 
-<div class="relative group">
-<label class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-2" for="pwConfirmar">Confirmar Contraseña</label>
-<div class="flex items-center bg-surface-container-high border-b-2 border-transparent focus-within:border-secondary rounded-t-md px-4 py-2 transition-colors">
-<input class="w-full bg-transparent border-0 focus:ring-0 p-0 text-on-surface font-body" id="pwConfirmar" type="password" />
-<button type="button" class="text-on-surface-variant z-10" onclick="togglePwField('pwConfirmar', this)"><i class="fa-solid fa-eye"></i></button>
-</div>
-</div>
+            <!-- Form Fields -->
+            <div class="flex-1 w-full flex flex-col gap-6">
+              <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="relative group" id="rowNombre">
+                  <label
+                    class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider flex justify-between mb-2">
+                    Nombre <button class="text-[9px] uppercase tracking-widest text-secondary hover:underline"
+                      data-field="Nombre" onclick="toggleEdit('Nombre')">Editar</button>
+                  </label>
+                  <div class="bg-surface-container-low text-on-surface p-3 rounded-md" id="valNombre">--</div>
+                  <input
+                    class="w-full bg-surface-container-high border-0 border-b-2 border-transparent focus:border-secondary focus:ring-0 px-4 py-3 rounded-md font-body text-on-surface transition-colors"
+                    id="inpNombre" type="text" style="display:none;" />
+                </div>
+                <div class="relative group" id="rowApellidos">
+                  <label
+                    class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider flex justify-between mb-2">
+                    Apellidos <button class="text-[9px] uppercase tracking-widest text-secondary hover:underline"
+                      data-field="Apellidos" onclick="toggleEdit('Apellidos')">Editar</button>
+                  </label>
+                  <div class="bg-surface-container-low text-on-surface p-3 rounded-md" id="valApellidos">--</div>
+                  <input
+                    class="w-full bg-surface-container-high border-0 border-b-2 border-transparent focus:border-secondary focus:ring-0 px-4 py-3 rounded-md font-body text-on-surface transition-colors"
+                    id="inpApellidos" type="text" style="display:none;" />
+                </div>
+              </div>
+              <div class="relative group" id="rowTelefono">
+                <label
+                  class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider flex justify-between mb-2">
+                  Teléfono <button class="text-[9px] uppercase tracking-widest text-secondary hover:underline"
+                    data-field="Telefono" onclick="toggleEdit('Telefono')">Editar</button>
+                </label>
+                <div class="bg-surface-container-low text-on-surface p-3 rounded-md" id="valTelefono">--</div>
+                <input
+                  class="w-full bg-surface-container-high border-0 border-b-2 border-transparent focus:border-secondary focus:ring-0 px-4 py-3 rounded-md font-body text-on-surface transition-colors"
+                  id="inpTelefono" type="tel" style="display:none;" />
+              </div>
+              <div class="relative" id="rowEmail">
+                <label
+                  class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-2">Correo
+                  (Solo lectura)</label>
+                <div class="bg-surface-container-low text-on-surface-variant p-3 rounded-md" id="valEmail">--</div>
+              </div>
 
-<div class="pt-4 flex justify-end">
-<button class="bg-gradient-to-br from-primary to-primary-container text-white font-body font-medium px-6 py-3 rounded-md hover:from-secondary hover:to-secondary-container transition-all shadow-sm active:scale-95" id="btnCambiarPw" onclick="cambiarPassword()">Actualizar Contraseña</button>
-</div>
-</div>
-</div>
-</section>
+              <div class="pt-4 flex justify-end gap-3" id="saveBarWrapper" style="display:none;">
+                <button
+                  class="bg-surface-container-highest text-on-surface font-body font-medium px-6 py-3 rounded-md hover:bg-outline-variant transition-colors"
+                  onclick="cancelarTodo()">Cancelar</button>
+                <button
+                  class="bg-gradient-to-br from-primary to-primary-container text-white font-body font-medium px-6 py-3 rounded-md hover:from-secondary hover:to-secondary-container transition-all shadow-sm active:scale-95"
+                  id="btnGuardar" onclick="guardarCambios()">Guardar Cambios</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+      <!-- Preferences Section -->
+      <section class="mb-16" id="sectionPreferencias" style="display:none;">
+        <h2 class="font-headline text-2xl font-bold text-primary tracking-tight mb-6">
+          Preferencias de Búsqueda
+        </h2>
 
-<!-- Privacy Section -->
-<section class="mb-16" id="sectionPrivacidad" style="display:none;">
-<h2 class="font-headline text-2xl font-bold text-primary tracking-tight mb-6">Privacidad</h2>
-<div class="bg-surface-container-lowest rounded-xl shadow-[0px_24px_48px_rgba(0,37,66,0.06)] p-8 relative overflow-hidden flex flex-col gap-8">
-<div class="absolute inset-0 ring-1 ring-inset ring-outline-variant/15 rounded-xl pointer-events-none"></div>
+        <div class="bg-surface-container-lowest rounded-xl shadow p-8 flex flex-col gap-6">
 
-<div id="privAlertBox" class="hidden p-3 bg-secondary-container text-on-secondary-container rounded-lg flex items-center gap-2 text-sm font-medium">
-  <i id="privAlertIcon" class="fa-solid fa-circle-check"></i>
-  <span id="privAlertMsg"></span>
-</div>
+          <!-- Tipo vehículo -->
+          <div>
+            <label class="text-sm font-bold text-on-surface-variant uppercase mb-2 block">
+              Tipo de vehículo por defecto
+            </label>
+            <select id="prefTipo" class="w-full p-3 rounded-md bg-surface-container-high">
+              <option value="">Sin preferencia</option>
+              <option value="auto">Auto</option>
+              <option value="moto">Moto</option>
+              <option value="camioneta">Camioneta</option>
+            </select>
+          </div>
 
-<div class="mb-2">
-  <label class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-2">Rol Actual (Solo lectura)</label>
-  <span class="inline-block bg-[#d1e4ff] text-[#001d35] font-semibold py-1.5 px-3 rounded text-sm uppercase tracking-wider" id="rolBadge">Cargando... </span>
-</div>
+          <!-- Zona -->
+          <div>
+            <label class="text-sm font-bold text-on-surface-variant uppercase mb-2 block">
+              Zona de preferencia
+            </label>
+            <input id="prefZona" type="text" placeholder="Ej: centro, equipetrol..."
+              class="w-full p-3 rounded-md bg-surface-container-high" />
+          </div>
 
-<!-- Toggle 1 -->
-<div class="flex items-center justify-between">
-<div>
-<h3 class="font-body font-bold text-on-surface text-lg">Mostrar número de teléfono</h3>
-<p class="font-body text-on-surface-variant text-sm mt-1">Permitir que anfitriones con reserva confirmada vean tu número.</p>
-</div>
-<label class="relative inline-flex items-center cursor-pointer">
-<input class="sr-only peer form-check-input" id="switchTelefono" type="checkbox"/>
-<div class="w-11 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
-</label>
-</div>
+          <!-- Botón -->
+          <div class="flex justify-end">
+            <button id="btnGuardarPreferencias"
+              class="bg-secondary text-white px-6 py-3 rounded-md font-medium hover:bg-[#005049]">
+              Guardar Preferencias
+            </button>
+          </div>
 
-<div class="flex items-center justify-between hidden" id="privSwitchCalifWrapper">
-<div>
-<h3 class="font-body font-bold text-on-surface text-lg">Permitir ver calificaciones</h3>
-<p class="font-body text-on-surface-variant text-sm mt-1">Otros conocerán tu reputación como anfitrión.</p>
-</div>
-<label class="relative inline-flex items-center cursor-pointer">
-<input class="sr-only peer form-check-input" id="switchCalificaciones" type="checkbox"/>
-<div class="w-11 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
-</label>
-</div>
+        </div>
+      </section>
 
-<!-- Toggle 2 -->
-<div class="flex items-center justify-between">
-<div>
-<h3 class="font-body font-bold text-on-surface text-lg">Ocultar correo electrónico</h3>
-<p class="font-body text-on-surface-variant text-sm mt-1">Mentener tu dirección de correo siempre privada.</p>
-</div>
-<label class="relative inline-flex items-center cursor-pointer">
-<input class="sr-only peer form-check-input" id="switchEmail" type="checkbox"/>
-<div class="w-11 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary"></div>
-</label>
-</div>
+      <!-- Security Section -->
+      <section class="mb-16" id="sectionSeguridad" style="display:none;">
+        <h2 class="font-headline text-2xl font-bold text-primary tracking-tight mb-6">Seguridad</h2>
+        <div
+          class="bg-surface-container-lowest rounded-xl shadow-[0px_24px_48px_rgba(0,37,66,0.06)] p-8 relative overflow-hidden">
+          <div class="absolute inset-0 ring-1 ring-inset ring-outline-variant/15 rounded-xl pointer-events-none">
+          </div>
 
-<div class="pt-4 flex justify-end">
-<button class="bg-gradient-to-br from-primary to-primary-container text-white font-body font-medium px-6 py-3 rounded-md hover:from-secondary hover:to-secondary-container transition-all shadow-sm active:scale-95" id="btnGuardarPriv" onclick="guardarPrivacidad()">Guardar Preferencias</button>
-</div>
+          <div id="pwAlertBox"
+            class="hidden p-3 bg-error-container text-error rounded-lg mb-6 flex items-center gap-2 text-sm font-medium">
+            <i id="pwAlertIcon" class="fa-solid fa-circle-exclamation"></i>
+            <span id="pwAlertMsg"></span>
+          </div>
 
-</div>
-</section>
+          <div class="flex flex-col gap-6">
+            <div class="relative group">
+              <label class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-2"
+                for="pwActual">Contraseña Actual</label>
+              <div
+                class="flex items-center bg-surface-container-high border-b-2 border-transparent focus-within:border-secondary rounded-t-md px-4 py-2 transition-colors">
+                <input class="w-full bg-transparent border-0 focus:ring-0 p-0 text-on-surface font-body" id="pwActual"
+                  type="password" />
+                <button type="button" class="text-on-surface-variant z-10" onclick="togglePwField('pwActual', this)"><i
+                    class="fa-solid fa-eye"></i></button>
+              </div>
+            </div>
 
-</main>
-</div>
+            <div class="relative group">
+              <label class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-2"
+                for="pwNueva">Nueva Contraseña</label>
+              <div
+                class="flex items-center bg-surface-container-high border-b-2 border-transparent focus-within:border-secondary rounded-t-md px-4 py-2 transition-colors">
+                <input class="w-full bg-transparent border-0 focus:ring-0 p-0 text-on-surface font-body" id="pwNueva"
+                  type="password" />
+                <button type="button" class="text-on-surface-variant z-10" onclick="togglePwField('pwNueva', this)"><i
+                    class="fa-solid fa-eye"></i></button>
+              </div>
+            </div>
 
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-<script src="/js/configuracion.js"></script>
-<script src="/js/navbar-badge.js"></script>
-</body></html>
+            <div class="relative group">
+              <label class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-2"
+                for="pwConfirmar">Confirmar Contraseña</label>
+              <div
+                class="flex items-center bg-surface-container-high border-b-2 border-transparent focus-within:border-secondary rounded-t-md px-4 py-2 transition-colors">
+                <input class="w-full bg-transparent border-0 focus:ring-0 p-0 text-on-surface font-body"
+                  id="pwConfirmar" type="password" />
+                <button type="button" class="text-on-surface-variant z-10"
+                  onclick="togglePwField('pwConfirmar', this)"><i class="fa-solid fa-eye"></i></button>
+              </div>
+            </div>
+
+            <div class="pt-4 flex justify-end">
+              <button
+                class="bg-gradient-to-br from-primary to-primary-container text-white font-body font-medium px-6 py-3 rounded-md hover:from-secondary hover:to-secondary-container transition-all shadow-sm active:scale-95"
+                id="btnCambiarPw" onclick="cambiarPassword()">Actualizar Contraseña</button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Privacy Section -->
+      <section class="mb-16" id="sectionPrivacidad" style="display:none;">
+        <h2 class="font-headline text-2xl font-bold text-primary tracking-tight mb-6">Privacidad</h2>
+        <div
+          class="bg-surface-container-lowest rounded-xl shadow-[0px_24px_48px_rgba(0,37,66,0.06)] p-8 relative overflow-hidden flex flex-col gap-8">
+          <div class="absolute inset-0 ring-1 ring-inset ring-outline-variant/15 rounded-xl pointer-events-none">
+          </div>
+
+          <div id="privAlertBox"
+            class="hidden p-3 bg-secondary-container text-on-secondary-container rounded-lg flex items-center gap-2 text-sm font-medium">
+            <i id="privAlertIcon" class="fa-solid fa-circle-check"></i>
+            <span id="privAlertMsg"></span>
+          </div>
+
+          <div class="mb-2">
+            <label class="font-label text-xs font-bold text-on-surface-variant uppercase tracking-wider block mb-2">Rol
+              Actual (Solo lectura)</label>
+            <span
+              class="inline-block bg-[#d1e4ff] text-[#001d35] font-semibold py-1.5 px-3 rounded text-sm uppercase tracking-wider"
+              id="rolBadge">Cargando... </span>
+          </div>
+
+          <!-- Toggle 1 -->
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-body font-bold text-on-surface text-lg">Mostrar número de teléfono</h3>
+              <p class="font-body text-on-surface-variant text-sm mt-1">Permitir que anfitriones con reserva
+                confirmada vean tu número.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input class="sr-only peer form-check-input" id="switchTelefono" type="checkbox" />
+              <div
+                class="w-11 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary">
+              </div>
+            </label>
+          </div>
+
+          <div class="flex items-center justify-between hidden" id="privSwitchCalifWrapper">
+            <div>
+              <h3 class="font-body font-bold text-on-surface text-lg">Permitir ver calificaciones</h3>
+              <p class="font-body text-on-surface-variant text-sm mt-1">Otros conocerán tu reputación como anfitrión.
+              </p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input class="sr-only peer form-check-input" id="switchCalificaciones" type="checkbox" />
+              <div
+                class="w-11 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary">
+              </div>
+            </label>
+          </div>
+
+          <!-- Toggle 2 -->
+          <div class="flex items-center justify-between">
+            <div>
+              <h3 class="font-body font-bold text-on-surface text-lg">Ocultar correo electrónico</h3>
+              <p class="font-body text-on-surface-variant text-sm mt-1">Mentener tu dirección de correo siempre
+                privada.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input class="sr-only peer form-check-input" id="switchEmail" type="checkbox" />
+              <div
+                class="w-11 h-6 bg-surface-container-high peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-outline-variant after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-secondary">
+              </div>
+            </label>
+          </div>
+
+          <div class="pt-4 flex justify-end">
+            <button
+              class="bg-gradient-to-br from-primary to-primary-container text-white font-body font-medium px-6 py-3 rounded-md hover:from-secondary hover:to-secondary-container transition-all shadow-sm active:scale-95"
+              id="btnGuardarPriv" onclick="guardarPrivacidad()">Guardar Preferencias</button>
+          </div>
+
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="/js/configuracion.js"></script>
+  <script src="/js/navbar-badge.js"></script>
+</body>
+
+</html>
