@@ -11,6 +11,7 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
 <link href="/css/dark-theme.css" rel="stylesheet">
 <link href="/css/globals.css" rel="stylesheet">
+<link href="/css/explorar.css" rel="stylesheet">
 <script id="tailwind-config">
 tailwind.config = {
     darkMode: "class",
@@ -81,23 +82,7 @@ tailwind.config = {
 }
 </script>
 <style>
-/* CSS Hibrido para mantener compatibilidad con cards generadas por explorar.js */
-.garaje-card { background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.05); transition: transform 0.2s, box-shadow 0.2s; border: 1px solid #e0e3e5; display: flex; flex-direction: column; }
-.garaje-card:hover { transform: translateY(-5px); box-shadow: 0 12px 25px rgba(0,0,0,0.1); }
-.garaje-card-img { height: 200px; overflow: hidden; position: relative; }
-.garaje-card-img img { width: 100%; height: 100%; object-fit: cover; }
-.garaje-card-badge { position: absolute; top: 12px; left: 12px; background: rgba(0,37,66,0.85); color: white; padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; backdrop-filter: blur(4px); }
-.garaje-card-body { padding: 20px; display: flex; flex-direction: column; flex: 1; }
-.garaje-card-body h3 { font-size: 1.25rem; font-weight: 700; margin-bottom: 8px; color: #002542; }
-.garaje-location { color: #43474d; font-size: 0.85rem; display: flex; align-items: flex-start; gap: 6px; margin-bottom: 12px; }
-.garaje-details { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
-.garaje-details span { background: #f2f4f6; color: #43474d; font-size: 0.75rem; padding: 4px 8px; border-radius: 6px; font-weight: 500; display: flex; align-items: center; gap: 4px; }
-.garaje-footer { margin-top: auto; display: flex; justify-content: space-between; align-items: flex-end; padding-top: 16px; border-top: 1px solid #e0e3e5; }
-.garaje-price { display: flex; flex-direction: column; }
-.garaje-price-label { font-size: 0.7rem; color: #73777e; text-transform: uppercase; font-weight: 600; }
-.garaje-price-value { font-size: 1.5rem; font-weight: 800; color: #002542; line-height: 1; }
-.btn-ver-detalle { background: #006a62; color: white; border: none; padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 0.9rem; text-decoration: none; transition: background 0.2s; }
-.btn-ver-detalle:hover { background: #005049; color: white; }
+/* Handled by /css/explorar.css */
 </style>
 </head>
 <body class="bg-background text-on-background font-body antialiased selection:bg-secondary-container selection:text-on-secondary-container flex flex-col min-h-screen">
@@ -111,7 +96,9 @@ tailwind.config = {
       </a>
       <div class="nav-links">
         <a href="/explorar.html" class="nav-link active" id="linkExplorar">Explorar</a>
+        <a href="/mis-favoritos.html" class="nav-link" id="linkFavoritos">❤️ Favoritos</a>
         <a href="/mis-reservas.html" class="nav-link" id="linkMisReservas">Mis Reservas</a>
+        <a href="/cupones.html" class="nav-link" id="linkCupones">🎟️ Cupones</a>
         <a href="/configuracion.html" class="nav-link" id="linkMiPerfil">Mi Perfil</a>
       </div>
     </div>
@@ -156,11 +143,17 @@ tailwind.config = {
 </div>
 <!-- Price Range -->
 <div class="flex flex-col gap-2">
-<label class="font-label text-sm uppercase tracking-wider text-on-surface-variant font-medium">Rango de Precio ($)</label>
-<div class="flex items-center gap-4">
-<input class="w-full bg-surface-container-highest text-on-surface border-0 rounded-md py-3 px-4 focus:ring-0 focus:border-b-2 focus:border-b-secondary outline-none" id="filtroPrecioMin" placeholder="Mín" type="number"/>
-<span class="text-on-surface-variant">-</span>
-<input class="w-full bg-surface-container-highest text-on-surface border-0 rounded-md py-3 px-4 focus:ring-0 focus:border-b-2 focus:border-b-secondary outline-none" id="filtroPrecioMax" placeholder="Máx" type="number"/>
+<label class="font-label text-sm uppercase tracking-wider text-on-surface-variant font-medium">Rango de Precio (Bs.)</label>
+<div class="flex items-center gap-2">
+  <div class="relative flex-1">
+    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant pointer-events-none">Bs.</span>
+    <input class="w-full bg-surface-container-highest text-on-surface border-0 rounded-md py-3 pl-9 pr-3 focus:ring-0 focus:border-b-2 focus:border-b-secondary outline-none" id="filtroPrecioMin" placeholder="Mín" type="number" min="0" step="0.5"/>
+  </div>
+  <span class="text-on-surface-variant font-bold shrink-0">—</span>
+  <div class="relative flex-1">
+    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant pointer-events-none">Bs.</span>
+    <input class="w-full bg-surface-container-highest text-on-surface border-0 rounded-md py-3 pl-9 pr-3 focus:ring-0 focus:border-b-2 focus:border-b-secondary outline-none" id="filtroPrecioMax" placeholder="Máx" type="number" min="0" step="0.5"/>
+  </div>
 </div>
 </div>
 <!-- Vehicle Type -->

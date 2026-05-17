@@ -230,7 +230,9 @@ tailwind.config = {
       </a>
       <div class="nav-links">
         <a href="/explorar.html" class="nav-link" id="linkExplorar">Explorar</a>
+        <a href="/mis-favoritos.html" class="nav-link" id="linkFavoritos">❤️ Favoritos</a>
         <a href="/mis-reservas.html" class="nav-link active" id="linkMisGarajes">Mis Reservas</a>
+        <a href="/cupones.html" class="nav-link" id="linkCupones">🎟️ Cupones</a>
         <a href="/configuracion.html" class="nav-link" id="linkMiPerfil">Mi Perfil</a>
       </div>
     </div>
@@ -259,6 +261,40 @@ tailwind.config = {
 </div>
 <a href="/explorar.html" class="bg-primary text-white font-semibold py-2 px-6 rounded-md hover:bg-secondary transition-colors" id="btnNuevaReserva">Buscar Garajes</a>
 </header>
+
+<!-- ── Barra de Filtros ── -->
+<div id="filtrosBar" style="background:#fff;border-radius:16px;border:1px solid #e2e8f0;padding:18px 24px;margin-bottom:24px;display:flex;flex-wrap:wrap;gap:14px;align-items:flex-end;box-shadow:0 1px 6px rgba(0,37,66,0.05);">
+  <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:130px;">
+    <label style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#73777e;">Estado</label>
+    <select id="filtroEstado" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:9px;font-size:0.85rem;color:#002542;background:#f8fafc;font-family:inherit;cursor:pointer;outline:none;">
+      <option value="">Todos</option>
+      <option value="pendiente">Pendiente</option>
+      <option value="confirmada">Confirmada</option>
+      <option value="finalizada">Finalizada</option>
+      <option value="rechazada">Rechazada</option>
+      <option value="cancelada">Cancelada</option>
+    </select>
+  </div>
+  <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px;">
+    <label style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#73777e;">Desde</label>
+    <input type="date" id="filtroDesde" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:9px;font-size:0.85rem;color:#002542;background:#f8fafc;font-family:inherit;outline:none;">
+  </div>
+  <div style="display:flex;flex-direction:column;gap:5px;flex:1;min-width:140px;">
+    <label style="font-size:0.68rem;font-weight:700;text-transform:uppercase;letter-spacing:0.07em;color:#73777e;">Hasta</label>
+    <input type="date" id="filtroHasta" style="padding:8px 12px;border:1px solid #e2e8f0;border-radius:9px;font-size:0.85rem;color:#002542;background:#f8fafc;font-family:inherit;outline:none;">
+  </div>
+  <div style="display:flex;gap:8px;align-items:flex-end;">
+    <button id="btnAplicarFiltros" style="padding:9px 20px;background:linear-gradient(135deg,#002542,#436182);color:#fff;border:none;border-radius:9px;font-size:0.82rem;font-weight:700;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;">
+      <i class="fa-solid fa-filter"></i> Filtrar
+    </button>
+    <button id="btnLimpiarFiltros" style="padding:9px 16px;background:#f1f5f9;color:#002542;border:1px solid #e2e8f0;border-radius:9px;font-size:0.82rem;font-weight:600;font-family:inherit;cursor:pointer;">
+      Limpiar
+    </button>
+  </div>
+  <div id="filtroConteo" style="display:none;font-size:0.78rem;font-weight:600;color:#006a62;padding:8px 14px;background:#f0fdf4;border-radius:9px;border:1px solid #bbf7d0;white-space:nowrap;align-self:flex-end;">
+    <i class="fa-solid fa-circle-check"></i> <span id="filtroConteoNum">0</span> resultado(s)
+  </div>
+</div>
 
 <div class="flex flex-col gap-8">
 
@@ -342,6 +378,7 @@ tailwind.config = {
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/moment.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/moment@2.29.4/locale/es.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="/js/mis-reservas.js"></script>
 <script src="/js/navbar-badge.js"></script>
 </body></html>

@@ -10,6 +10,17 @@
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
 <link href="/css/dark-theme.css" rel="stylesheet">
 <link href="/css/globals.css" rel="stylesheet">
+<!-- Flatpickr — calendario visual para selector de fechas -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<style>
+  .flatpickr-calendar { font-family: 'Inter', sans-serif; border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.18); border: 1px solid #e2e8f0; }
+  .flatpickr-day.selected, .flatpickr-day.selected:hover { background: #006a62; border-color: #006a62; }
+  .flatpickr-day.today { border-color: #006a62; }
+  .flatpickr-time input:focus, .flatpickr-time .flatpickr-am-pm:focus { background: #f0fdf4; }
+  .numInputWrapper:hover { background: #f0fdf4; }
+  /* Reemplazar input nativo con el de flatpickr */
+  #fechaEntrada, #fechaSalida { cursor: pointer; caret-color: transparent; }
+</style>
 <script id="tailwind-config">
 tailwind.config = {
   darkMode: "class",
@@ -86,6 +97,88 @@ body { font-family: 'Inter', sans-serif; }
 .espacio-btn:hover { background: #e0e3e5; }
 .espacio-btn.ocupado { background: #ffdad6; border-color: #93000a; color: #93000a; cursor: not-allowed; opacity: 0.7; }
 .espacio-btn.seleccionado { background: #006a62; border-color: #00201d; color: white; transform: scale(1.05); box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+
+/* ── Conductor Booking Wizard ── */
+.reserva-wizard-overlay{position:fixed;inset:0;background:rgba(0,0,0,.55);backdrop-filter:blur(4px);z-index:9900;display:flex;align-items:center;justify-content:center;padding:16px;opacity:0;pointer-events:none;transition:opacity .3s}
+.reserva-wizard-overlay.open{opacity:1;pointer-events:auto}
+.reserva-wizard-modal{background:#fff;border-radius:20px;width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.22);transform:translateY(16px) scale(.97);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
+.reserva-wizard-overlay.open .reserva-wizard-modal{transform:none}
+.dark .reserva-wizard-modal{background:#1e293b;color:#e2e8f0}
+
+.reserva-wizard-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid #e2e8f0;gap:12px}
+.dark .reserva-wizard-header{border-color:#334155}
+.reserva-wizard-steps{display:flex;align-items:center;gap:0;flex:1}
+.reserva-step-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:default}
+.reserva-step-circle{width:28px;height:28px;border-radius:50%;border:2px solid #c3c6ce;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#73777e;transition:all .25s}
+.reserva-step-item.active .reserva-step-circle{background:#006a62;border-color:#006a62;color:#fff;box-shadow:0 0 0 3px rgba(0,106,98,.2)}
+.reserva-step-item.completed .reserva-step-circle{background:#d1fae5;border-color:#006a62;color:#006a62}
+.reserva-step-item span{font-size:.65rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em}
+.reserva-step-item.active span{color:#006a62}
+.reserva-step-divider{flex:1;height:2px;background:#e2e8f0;margin:0 6px;align-self:center;margin-bottom:14px}
+.dark .reserva-step-divider{background:#334155}
+.reserva-wizard-close{width:34px;height:34px;border-radius:50%;border:none;background:#f1f5f9;color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:background .2s,color .2s;flex-shrink:0}
+.reserva-wizard-close:hover{background:#fee2e2;color:#dc2626}
+.dark .reserva-wizard-close{background:#334155;color:#94a3b8}
+
+.reserva-wizard-body{flex:1;overflow-y:auto;padding:24px 24px 12px}
+.reserva-panel{display:none}
+.reserva-panel.active{display:block}
+.reserva-panel-title{font-size:1.1rem;font-weight:700;color:#002542;margin-bottom:4px;display:flex;align-items:center;gap:8px}
+.dark .reserva-panel-title{color:#e2e8f0}
+.reserva-panel-title i{color:#006a62}
+.reserva-panel-sub{font-size:.83rem;color:#64748b;margin-bottom:18px}
+
+.reserva-espacio-info{display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;font-size:.85rem;font-weight:600;color:#166534}
+.reserva-espacio-info.hidden{display:none}
+.reserva-espacio-info i{color:#16a34a}
+
+.reserva-dates-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.reserva-date-field{display:flex;flex-direction:column;gap:6px}
+.reserva-date-field label{font-size:.75rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:5px}
+.reserva-date-field label i{color:#006a62}
+.reserva-date-field input{padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:.88rem;color:#002542;background:#f8fafc;outline:none;transition:border-color .2s}
+.reserva-date-field input:focus{border-color:#006a62;box-shadow:0 0 0 3px rgba(0,106,98,.12)}
+.dark .reserva-date-field input{background:#1e293b;border-color:#334155;color:#e2e8f0}
+
+.reserva-precio-live{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;font-size:.88rem;color:#166534;font-weight:600;margin-top:4px}
+.reserva-precio-live.hidden{display:none}
+.reserva-total{font-size:1.2rem;font-weight:800;color:#006a62}
+.reserva-alert{padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;font-size:.83rem;color:#dc2626;font-weight:600;margin-top:8px}
+.reserva-alert.hidden{display:none}
+
+.reserva-summary{border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:16px}
+.dark .reserva-summary{border-color:#334155}
+.reserva-summary-row{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;font-size:.88rem;color:#64748b;border-bottom:1px solid #f1f5f9}
+.dark .reserva-summary-row{border-color:#1e293b;color:#94a3b8}
+.reserva-summary-row:last-child{border-bottom:none}
+.reserva-summary-row strong{color:#002542;font-weight:700}
+.dark .reserva-summary-row strong{color:#e2e8f0}
+.reserva-summary-row.total{background:linear-gradient(135deg,#f0fdf4,#dcfce7);padding:14px 16px}
+.reserva-summary-row.total span{font-size:.95rem;font-weight:700;color:#166534}
+.reserva-summary-row.total strong{font-size:1.2rem;color:#006a62}
+
+.reserva-accept-check{display:flex;align-items:center;gap:10px;padding:10px 0;font-size:.85rem;color:#64748b}
+.reserva-accept-check input{width:16px;height:16px;accent-color:#006a62;cursor:pointer}
+.reserva-accept-check label{cursor:pointer}
+.reserva-policy-note{font-size:.75rem;color:#94a3b8;display:flex;align-items:center;gap:5px;margin-top:4px}
+.reserva-policy-note i{color:#94a3b8}
+
+.reserva-wizard-footer{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 18px;border-top:1px solid #e2e8f0;gap:10px}
+.dark .reserva-wizard-footer{border-color:#334155}
+.reserva-step-counter{font-size:.75rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;flex:1;text-align:center}
+.reserva-btn-sec{padding:10px 18px;border-radius:10px;border:1.5px solid #e2e8f0;background:transparent;color:#64748b;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s}
+.reserva-btn-sec:hover{border-color:#006a62;color:#006a62}
+.reserva-btn-primary{padding:10px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,#006a62,#005049);color:#fff;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;box-shadow:0 4px 12px rgba(0,106,98,.25)}
+.reserva-btn-primary:hover{background:linear-gradient(135deg,#005049,#003d38);box-shadow:0 6px 16px rgba(0,106,98,.35);transform:translateY(-1px)}
+.reserva-btn-confirm{padding:10px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;box-shadow:0 4px 12px rgba(22,163,74,.25)}
+.reserva-btn-confirm:hover:not(:disabled){background:linear-gradient(135deg,#15803d,#14532d);transform:translateY(-1px)}
+.reserva-btn-confirm:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+@media(max-width:480px){
+  .reserva-dates-grid{grid-template-columns:1fr}
+  .reserva-wizard-modal{max-height:95vh;border-radius:16px 16px 0 0;align-self:flex-end}
+  .reserva-wizard-overlay{align-items:flex-end;padding:0}
+}
 </style>
 </head>
 <body class="bg-background text-on-background antialiased min-h-screen">
@@ -99,7 +192,9 @@ body { font-family: 'Inter', sans-serif; }
       </a>
       <div class="nav-links">
         <a href="/explorar.html" class="nav-link" id="linkExplorar">Explorar</a>
+        <a href="/mis-favoritos.html" class="nav-link" id="linkFavoritos">❤️ Favoritos</a>
         <a href="/mis-reservas.html" class="nav-link" id="linkMisReservas">Mis Reservas</a>
+        <a href="/cupones.html" class="nav-link" id="linkCupones">🎟️ Cupones</a>
         <a href="/configuracion.html" class="nav-link" id="linkMiPerfil">Mi Perfil</a>
       </div>
     </div>
@@ -168,23 +263,7 @@ body { font-family: 'Inter', sans-serif; }
 <p>Cargando descripción...</p>
 </div>
 </section>
-<!-- Interactive Space Map -->
-<section>
-<h2 class="text-2xl font-headline font-bold text-primary tracking-tight mb-6">Selecciona tu Espacio</h2>
-<div class="bg-surface-container-low rounded-xl p-8 outline outline-1 outline-outline-variant/20 shadow-sm relative overflow-hidden">
-<div class="flex gap-4 mb-4 text-sm font-label text-on-surface-variant uppercase tracking-widest">
-  <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-surface-container-highest border border-outline-variant"></div> Libre</span>
-  <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-secondary"></div> Seleccionado</span>
-  <span class="flex items-center gap-2"><div class="w-3 h-3 rounded-full bg-error-container"></div> Ocupado</span>
-</div>
-<div class="relative z-10" id="mapa-parqueo">
-  <!-- Interactive spaces injected by js -->
-</div>
-<div id="espacioSeleccionadoInfo" class="mt-4 hidden p-3 bg-secondary/10 text-secondary border border-secondary/20 rounded-lg font-medium flex items-center gap-2">
-  <i class="fa-solid fa-square-check"></i> Espacio seleccionado: <strong id="espacioSeleccionadoLabel">--</strong>
-</div>
-</div>
-</section>
+<!-- Map is shown inside the booking wizard -->
 
 <!-- Sección: Conoce lo que reservas -->
 <section class="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8 border-t border-outline-variant/10">
@@ -231,95 +310,206 @@ body { font-family: 'Inter', sans-serif; }
 </section>
 </div>
 
-<!-- Right Column: Floating Booking Card -->
+<!-- Right Column: CTA Booking -->
 <div class="lg:col-span-1 relative">
-<div class="sticky top-28 bg-surface-container-lowest/80 backdrop-blur-2xl shadow-lg rounded-xl p-8 flex flex-col outline outline-1 outline-outline-variant/10">
-<!-- Pricing Header -->
-<div class="mb-8 pb-6 border-b border-outline-variant/20 flex items-end gap-2">
-<span class="text-4xl font-headline font-bold text-primary tracking-tighter" id="garajePrecio">Bs. 0</span>
-<span class="text-on-surface-variant font-label uppercase tracking-widest text-sm mb-1">/ hora</span>
-</div>
-
-<div id="reservaAlert" class="hidden p-3 bg-error-container text-error rounded-lg mb-4 text-sm font-medium"></div>
-
-<!-- Input Form -->
-<div class="space-y-4 mb-8">
-<div class="bg-surface-container-high rounded-lg p-3 pt-2 relative group focus-within:ring-2 focus-within:ring-secondary/50 transition-shadow">
-<label class="block text-[10px] font-label uppercase text-on-surface-variant tracking-widest mb-1 group-focus-within:text-secondary transition-colors" for="fechaEntrada">Llegada</label>
-<input class="w-full bg-transparent border-none p-0 focus:ring-0 text-primary font-body font-medium outline-none text-base" id="fechaEntrada" type="datetime-local"/>
-</div>
-<div class="bg-surface-container-high rounded-lg p-3 pt-2 relative group focus-within:ring-2 focus-within:ring-secondary/50 transition-shadow">
-<label class="block text-[10px] font-label uppercase text-on-surface-variant tracking-widest mb-1 group-focus-within:text-secondary transition-colors" for="fechaSalida">Salida</label>
-<input class="w-full bg-transparent border-none p-0 focus:ring-0 text-primary font-body font-medium outline-none text-base" id="fechaSalida" type="datetime-local"/>
-</div>
-</div>
-<!-- Summary Line -->
-<div class="flex justify-between items-center mb-8 text-sm font-body text-on-surface-variant hidden" id="resumenPrecio">
-<span id="textoHoras">0 horas</span>
-<span class="font-bold text-primary text-xl" id="textoTotal">Bs. 0.00</span>
-</div>
-<!-- CTA Action -->
-<button class="w-full bg-gradient-to-br from-primary to-primary-container hover:from-secondary hover:to-[#005a52] text-on-primary rounded-md py-4 font-label tracking-widest uppercase transition-all duration-300 shadow-md hover:shadow-lg disabled:opacity-50 disabled:cursor-not-allowed" id="btnReserva" disabled>
-  Solicitar Reserva
-</button>
-<p class="text-center text-xs text-on-surface-variant mt-4 font-body opacity-70">Aún no se te cobrará</p>
+<div class="sticky top-28 space-y-4">
+  <!-- Main CTA card -->
+  <div class="bg-surface-container-lowest/80 backdrop-blur-2xl shadow-lg rounded-xl p-7 outline outline-1 outline-outline-variant/10 flex flex-col gap-5" id="bookingCtaCard">
+    <!-- Price -->
+    <div class="flex items-end gap-2 pb-5 border-b border-outline-variant/20">
+      <span class="text-4xl font-headline font-bold text-primary tracking-tighter" id="garajePrecio">Bs. 0</span>
+      <span class="text-on-surface-variant font-label uppercase tracking-widest text-sm mb-1">/ hora</span>
+    </div>
+    <!-- Quick info chips -->
+    <div id="garajeQuickInfo" class="flex flex-wrap gap-2 text-xs"></div>
+    <!-- Reserve CTA -->
+    <button id="btnAbrirWizardReserva"
+      class="w-full bg-gradient-to-br from-secondary to-[#005049] hover:from-[#005049] hover:to-[#003d38] text-white rounded-xl py-4 font-semibold uppercase tracking-wider transition-all duration-300 shadow-md hover:shadow-lg flex items-center justify-center gap-3 text-sm">
+      <i class="fa-solid fa-calendar-plus"></i>
+      Reservar Ahora
+    </button>
+    <p class="text-center text-xs text-on-surface-variant font-body opacity-70">Aún no se te cobrará</p>
+  </div>
+  <!-- Existing reservation notice (injected by JS) -->
+  <div id="reservaExistenteCard" class="hidden bg-surface-container-lowest/80 backdrop-blur-2xl shadow-lg rounded-xl p-6 outline outline-1 outline-outline-variant/10"></div>
 </div>
 </div>
 </div>
 </main>
 
-<!-- Bootstrap Modal -->
-<div class="modal fade" id="modalCheckout" tabindex="-1" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content bg-surface-container-lowest text-on-background border-none shadow-xl rounded-xl">
-      <div class="modal-header border-b border-outline-variant/20">
-        <h5 class="modal-title font-headline font-bold text-primary flex items-center gap-2" id="modalCheckoutLabel"><i class="fa-solid fa-file-invoice-dollar text-secondary"></i> Confirma tu Reserva</h5>
-        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+<!-- Conductor Booking Wizard Overlay -->
+<div id="reservaWizardOverlay" class="reserva-wizard-overlay" aria-hidden="true">
+  <div class="reserva-wizard-modal" role="dialog" aria-modal="true">
+    <!-- Header with steps -->
+    <div class="reserva-wizard-header">
+      <div class="reserva-wizard-steps">
+        <div class="reserva-step-item active" data-step="1">
+          <div class="reserva-step-circle">1</div>
+          <span>Espacio</span>
+        </div>
+        <div class="reserva-step-divider"></div>
+        <div class="reserva-step-item" data-step="2">
+          <div class="reserva-step-circle">2</div>
+          <span>Horario</span>
+        </div>
+        <div class="reserva-step-divider"></div>
+        <div class="reserva-step-item" data-step="3">
+          <div class="reserva-step-circle">3</div>
+          <span>Confirmar</span>
+        </div>
       </div>
-      <div class="modal-body p-6 font-body">
-        <div class="mb-4 pb-4 border-b border-outline-variant/20">
-          <div class="flex justify-between mt-2">
-            <div><small class="text-on-surface-variant block uppercase tracking-widest text-[10px]">Llegada</small><strong id="modalEntrada" class="text-primary">--</strong></div>
-            <div class="text-right"><small class="text-on-surface-variant block uppercase tracking-widest text-[10px]">Salida</small><strong id="modalSalida" class="text-primary">--</strong></div>
+      <button class="reserva-wizard-close" id="btnCerrarWizardReserva" title="Cerrar">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
+    </div>
+
+    <!-- Body -->
+    <div class="reserva-wizard-body">
+      <!-- Step 1: Select Space -->
+      <div class="reserva-panel active" data-step="1">
+        <h3 class="reserva-panel-title"><i class="fa-solid fa-map-location-dot"></i> ¿Qué espacio prefieres?</h3>
+        <p class="reserva-panel-sub">Selecciona un espacio disponible en el mapa del garaje.</p>
+        <div id="mapa-parqueo"></div>
+        <div id="espacioSeleccionadoInfo" class="reserva-espacio-info hidden">
+          <i class="fa-solid fa-square-check"></i>
+          Espacio seleccionado: <strong id="espacioSeleccionadoLabel">--</strong>
+        </div>
+      </div>
+
+      <!-- Step 2: Dates -->
+      <div class="reserva-panel" data-step="2">
+        <h3 class="reserva-panel-title"><i class="fa-regular fa-calendar"></i> ¿Cuándo llegas?</h3>
+        <p class="reserva-panel-sub">Ingresa tu horario de llegada y salida.</p>
+        <div class="reserva-dates-grid">
+          <div class="reserva-date-field">
+            <label><i class="fa-solid fa-right-to-bracket"></i> Llegada</label>
+            <input type="datetime-local" id="fechaEntrada"/>
+          </div>
+          <div class="reserva-date-field">
+            <label><i class="fa-solid fa-right-from-bracket"></i> Salida</label>
+            <input type="datetime-local" id="fechaSalida"/>
           </div>
         </div>
-        
-        <div class="mb-4 pb-4 border-b border-outline-variant/20">
-          <div class="flex justify-between mt-2 text-sm text-on-surface-variant">
-            <span>Tarifa Base (<span id="modalHoras">0</span> hrs)</span>
-            <span id="modalSubtotal" class="font-medium">Bs. 0.00</span>
-          </div>
-          <div class="flex justify-between mt-1 text-sm text-on-surface-variant">
-            <span>Tarifa EstAirbnb (10%)</span>
-            <span id="modalTarifa" class="font-medium">Bs. 0.00</span>
-          </div>
-          <div class="flex justify-between mt-4">
-            <strong class="text-xl text-primary">Total a Pagar</strong>
-            <strong class="text-xl text-secondary" id="modalTotal">Bs. 0.00</strong>
-          </div>
+        <div id="reservaPrecioLive" class="reserva-precio-live hidden">
+          <span id="textoHoras">0 horas</span>
+          <span id="textoTotal" class="reserva-total">Bs. 0.00</span>
+        </div>
+        <div id="reservaAlert" class="reserva-alert hidden"></div>
+      </div>
+
+      <!-- Step 3: Confirm -->
+      <div class="reserva-panel" data-step="3">
+        <h3 class="reserva-panel-title"><i class="fa-solid fa-file-invoice-dollar"></i> Confirma tu reserva</h3>
+        <div class="reserva-summary" style="margin-top:14px">
+          <div class="reserva-summary-row"><span>Espacio</span><strong id="sumEspacio">--</strong></div>
+          <div class="reserva-summary-row"><span>Llegada</span><strong id="sumEntrada">--</strong></div>
+          <div class="reserva-summary-row"><span>Salida</span><strong id="sumSalida">--</strong></div>
+          <div class="reserva-summary-row"><span>Tarifa base (<span id="sumHoras">0</span> hrs)</span><strong id="sumSubtotal">Bs. 0.00</strong></div>
+          <div class="reserva-summary-row"><span>Tarifa EstAirbnb (10%)</span><strong id="sumTarifa">Bs. 0.00</strong></div>
+          <div class="reserva-summary-row" id="rowDescuento" style="display:none;"><span id="sumDescuentoLabel">Descuento (cupón)</span><strong id="sumDescuento" style="color:#16a34a;">-Bs. 0.00</strong></div>
+          <div class="reserva-summary-row total"><span>Total a Pagar</span><strong id="sumTotal">Bs. 0.00</strong></div>
         </div>
 
-        <div class="mb-4">
-          <small class="text-on-surface-variant text-xs"><i class="fa-solid fa-circle-info mr-1"></i> Política: Cancelación gratuita hasta 2 horas antes del inicio.</small>
+        <!-- Cupón -->
+        <div id="cuponSection" style="margin:0 0 16px;">
+          <div style="display:flex;gap:8px;align-items:center;">
+            <input type="text" id="inputCupon" placeholder="Código de cupón (opcional)"
+              style="flex:1;padding:9px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:.85rem;color:#002542;background:#f8fafc;outline:none;transition:border-color .2s;"
+              autocomplete="off" spellcheck="false">
+            <button type="button" id="btnAplicarCupon"
+              style="padding:9px 16px;border-radius:10px;border:none;background:linear-gradient(135deg,#006a62,#005049);color:#fff;font-family:inherit;font-size:.82rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:opacity .2s;">
+              Aplicar
+            </button>
+          </div>
+          <div id="cuponFeedback" style="display:none;margin-top:6px;font-size:.8rem;font-weight:600;padding:6px 10px;border-radius:8px;"></div>
         </div>
 
-        <div class="form-check mt-3 flex items-center gap-2">
-          <input class="w-4 h-4 rounded border-outline-variant text-secondary focus:ring-secondary cursor-pointer" type="checkbox" id="checkAcepto">
-          <label class="form-check-label text-sm text-on-surface-variant cursor-pointer" for="checkAcepto">
-            He leído y acepto los términos.
-          </label>
+        <div class="reserva-accept-check">
+          <input type="checkbox" id="checkAcepto">
+          <label for="checkAcepto">He leído y acepto los términos y condiciones.</label>
         </div>
+        <p class="reserva-policy-note"><i class="fa-solid fa-circle-info"></i> Cancelación gratuita hasta 2 horas antes del inicio.</p>
       </div>
-      <div class="modal-footer border-t border-outline-variant/20 bg-surface-container-low/50 rounded-b-xl">
-        <button type="button" class="px-4 py-2 text-sm font-medium text-on-surface-variant hover:bg-surface-variant rounded-md transition-colors" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="px-4 py-2 text-sm font-medium bg-secondary text-white rounded-md hover:bg-[#005049] transition-colors disabled:opacity-50 disabled:cursor-not-allowed" id="btnConfirmarReserva" disabled>Confirmar Reserva</button>
-      </div>
+    </div>
+
+    <!-- Footer -->
+    <div class="reserva-wizard-footer">
+      <button class="reserva-btn-sec" id="btnReservaPrev" style="display:none">
+        <i class="fa-solid fa-chevron-left"></i> Anterior
+      </button>
+      <span class="reserva-step-counter" id="reservaStepCounter">Paso 1 de 3</span>
+      <button class="reserva-btn-primary" id="btnReservaNext">
+        Siguiente <i class="fa-solid fa-chevron-right"></i>
+      </button>
+      <button class="reserva-btn-confirm" id="btnConfirmarReserva" style="display:none" disabled>
+        <i class="fa-solid fa-check"></i> Confirmar Reserva
+      </button>
     </div>
   </div>
 </div>
 
+<!-- Flatpickr JS -->
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script>
+// Inicializa el calendario visual cuando el wizard de reserva se abre
+// (lo hacemos en DOMContentLoaded para que los inputs existan en el DOM)
+document.addEventListener('DOMContentLoaded', () => {
+  const now = new Date();
+  // Redondear al próximo cuarto de hora para pre-fill limpio
+  now.setMinutes(Math.ceil(now.getMinutes() / 15) * 15, 0, 0);
+  const defaultEnd = new Date(now.getTime() + 2 * 60 * 60 * 1000); // +2h
+
+  const fpEntrada = flatpickr('#fechaEntrada', {
+    enableTime: true,
+    dateFormat: 'Y-m-dTH:i',   // Mismo formato que datetime-local → compatible con detalle.js
+    altInput: true,
+    altFormat: 'D d M Y — H:i',  // Formato legible en español
+    time_24hr: true,
+    minDate: 'today',
+    defaultDate: now,
+    disableMobile: false,
+    onReady(_sel, _val, fp) {
+      fp.altInput.placeholder = 'Selecciona fecha y hora de llegada';
+      fp.altInput.readOnly = false;
+    },
+    onChange(selectedDates) {
+      if (selectedDates[0]) {
+        // Forzar que Salida sea al menos 1h después de Entrada
+        const minSalida = new Date(selectedDates[0].getTime() + 60 * 60 * 1000);
+        fpSalida.set('minDate', selectedDates[0]);
+        if (!fpSalida.selectedDates[0] || fpSalida.selectedDates[0] <= selectedDates[0]) {
+          fpSalida.setDate(minSalida, true);
+        }
+        // Disparar evento de cambio para que detalle.js recalcule precio
+        document.getElementById('fechaEntrada').dispatchEvent(new Event('change'));
+      }
+    }
+  });
+
+  const fpSalida = flatpickr('#fechaSalida', {
+    enableTime: true,
+    dateFormat: 'Y-m-dTH:i',
+    altInput: true,
+    altFormat: 'D d M Y — H:i',
+    time_24hr: true,
+    minDate: 'today',
+    defaultDate: defaultEnd,
+    disableMobile: false,
+    onReady(_sel, _val, fp) {
+      fp.altInput.placeholder = 'Selecciona fecha y hora de salida';
+      fp.altInput.readOnly = false;
+    },
+    onChange() {
+      document.getElementById('fechaSalida').dispatchEvent(new Event('change'));
+    }
+  });
+
+  // Hacer accesibles globalmente por si detalle.js necesita resetearlos
+  window._fpEntrada = fpEntrada;
+  window._fpSalida  = fpSalida;
+});
+</script>
 <!-- JS -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 <script src="/js/detalle.js"></script>
 <script src="/js/navbar-badge.js"></script>
 </body></html>

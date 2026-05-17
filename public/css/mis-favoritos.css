@@ -1,0 +1,416 @@
+/* ============================================================
+   EstAirbnb — mis-favoritos.css
+   Página de Favoritos del Conductor
+   ============================================================ */
+
+/* ============================
+   Variables
+============================ */
+:root {
+  --fav-accent: #ff4757;
+  --fav-accent-soft: rgba(255, 71, 87, 0.08);
+  --fav-accent-glow: rgba(255, 71, 87, 0.25);
+}
+
+/* ============================
+   Counter Badge
+============================ */
+.fav-counter {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--fav-accent-soft);
+  color: #002542;
+  padding: 8px 18px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  margin-bottom: 28px;
+  border: 1px solid rgba(255, 71, 87, 0.15);
+  animation: fadeInUp 0.4s ease;
+}
+
+/* ============================
+   Loading State
+============================ */
+.fav-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 80px 20px;
+  gap: 16px;
+}
+
+.fav-spinner {
+  width: 44px;
+  height: 44px;
+  border: 4px solid #e0e3e5;
+  border-top-color: #006a62;
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.fav-loading p {
+  color: #73777e;
+  font-weight: 500;
+  font-size: 0.95rem;
+}
+
+/* ============================
+   Empty State
+============================ */
+.fav-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 80px 24px;
+  max-width: 480px;
+  margin: 0 auto;
+  animation: fadeInUp 0.5s ease;
+}
+
+.fav-empty-icon {
+  width: 96px;
+  height: 96px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #fff0f1, #ffe0e3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 28px;
+}
+
+.fav-empty-icon i {
+  font-size: 2.8rem;
+  color: var(--fav-accent);
+  opacity: 0.6;
+}
+
+.fav-empty h3 {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: #002542;
+  margin-bottom: 10px;
+}
+
+.fav-empty p {
+  color: #73777e;
+  font-size: 1rem;
+  line-height: 1.6;
+  margin-bottom: 28px;
+}
+
+.fav-empty-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: linear-gradient(135deg, #002542, #1b3b5a);
+  color: #fff;
+  padding: 12px 28px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  text-decoration: none;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 14px rgba(0, 37, 66, 0.2);
+}
+
+.fav-empty-btn:hover {
+  background: linear-gradient(135deg, #006a62, #009688);
+  color: #fff;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(0, 106, 98, 0.25);
+}
+
+/* ============================
+   Favorites Grid
+============================ */
+.fav-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 24px;
+}
+
+/* ============================
+   Favorite Card
+============================ */
+.fav-card {
+  background: #fff;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
+  border: 1px solid rgba(0, 0, 0, 0.06);
+  display: flex;
+  flex-direction: column;
+  animation: fadeInUp 0.45s ease both;
+  position: relative;
+}
+
+.fav-card:hover {
+  transform: translateY(-6px);
+  box-shadow: 0 16px 40px rgba(0, 37, 66, 0.12);
+}
+
+/* Stagger */
+.fav-card:nth-child(1) { animation-delay: 0.05s; }
+.fav-card:nth-child(2) { animation-delay: 0.10s; }
+.fav-card:nth-child(3) { animation-delay: 0.15s; }
+.fav-card:nth-child(4) { animation-delay: 0.20s; }
+.fav-card:nth-child(5) { animation-delay: 0.25s; }
+.fav-card:nth-child(6) { animation-delay: 0.30s; }
+
+/* Card Image */
+.fav-card-img-wrap {
+  position: relative;
+  height: 200px;
+  overflow: hidden;
+  background: #f0f2f5;
+}
+
+.fav-card-img-wrap img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+
+.fav-card:hover .fav-card-img-wrap img {
+  transform: scale(1.06);
+}
+
+.fav-card-placeholder {
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: #a0a0a0;
+}
+
+.fav-card-placeholder i {
+  font-size: 2.5rem;
+}
+
+.fav-card-placeholder span {
+  font-size: 0.78rem;
+  font-weight: 500;
+}
+
+/* Tag overlay */
+.fav-card-tag {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  padding: 4px 12px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  backdrop-filter: blur(10px);
+  background: rgba(24, 119, 242, 0.85);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Inactive badge */
+.fav-card-inactive {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  background: rgba(186, 26, 26, 0.85);
+  color: #fff;
+  backdrop-filter: blur(8px);
+}
+
+/* Remove Favorite Button */
+.fav-card-remove {
+  position: absolute;
+  bottom: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  color: #ff4757;
+  background: rgba(255, 255, 255, 0.9);
+  backdrop-filter: blur(8px);
+  transition: transform 0.2s ease, background 0.2s ease;
+  z-index: 5;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+}
+
+.fav-card-remove:hover {
+  background: #ff4757;
+  color: #fff;
+  transform: scale(1.15);
+}
+
+/* Card Body */
+.fav-card-body {
+  padding: 18px 20px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.fav-card-direccion {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #002542;
+  margin-bottom: 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.fav-card-host {
+  font-size: 0.78rem;
+  color: #73777e;
+  margin-bottom: 12px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.fav-card-badges {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.fav-card-badges span {
+  font-size: 0.68rem;
+  background: #f0f2f5;
+  color: #43474d;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.fav-card-badges span i {
+  color: #006a62;
+  font-size: 0.65rem;
+}
+
+/* Card Footer */
+.fav-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 14px;
+  border-top: 1px solid #f0f2f5;
+  margin-top: auto;
+}
+
+.fav-card-precio {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #002542;
+}
+
+.fav-card-precio small {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #73777e;
+}
+
+.fav-card-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: linear-gradient(135deg, #006a62, #009688);
+  color: #fff;
+  padding: 8px 18px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.fav-card-action:hover {
+  background: linear-gradient(135deg, #005049, #006a62);
+  color: #fff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 106, 98, 0.3);
+}
+
+/* ============================
+   Card Remove Animation
+============================ */
+@keyframes cardRemove {
+  0%   { opacity: 1; transform: scale(1); }
+  100% { opacity: 0; transform: scale(0.85) translateY(10px); }
+}
+
+.fav-card.removing {
+  animation: cardRemove 0.35s ease forwards;
+  pointer-events: none;
+}
+
+/* ============================
+   Animations
+============================ */
+@keyframes fadeInUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+/* ============================
+   Responsive
+============================ */
+@media (max-width: 1200px) {
+  .fav-grid { grid-template-columns: repeat(2, 1fr); }
+}
+
+@media (max-width: 768px) {
+  .fav-grid { grid-template-columns: 1fr; gap: 18px; }
+}
+
+/* ============================
+   Dark Mode
+============================ */
+.dark .fav-card {
+  background: #1a1a2e;
+  border-color: #2a2a4a;
+}
+
+.dark .fav-card-direccion { color: #e4e6f0; }
+.dark .fav-card-host { color: #8b8fa3; }
+.dark .fav-card-precio { color: #e4e6f0; }
+.dark .fav-card-precio small { color: #8b8fa3; }
+.dark .fav-card-badges span { background: #16213e; color: #8b8fa3; }
+.dark .fav-card-footer { border-color: #2a2a4a; }
+.dark .fav-card-img-wrap { background: #16213e; }
+.dark .fav-card-remove { background: rgba(26, 26, 46, 0.9); }
+.dark .fav-empty h3 { color: #e4e6f0; }
+.dark .fav-empty p { color: #8b8fa3; }
+.dark .fav-counter { background: rgba(255, 71, 87, 0.1); color: #e4e6f0; }

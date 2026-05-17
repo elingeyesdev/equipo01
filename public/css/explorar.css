@@ -398,25 +398,24 @@ select.filter-input {
 }
 
 /* ============================
-   Garage Card (Explorer)
+   Garage Card (Explorer) — Premium
 ============================ */
 .explore-card {
   background: var(--card-bg);
-  border-radius: 14px;
+  border-radius: 18px;
   overflow: hidden;
-  box-shadow: var(--card-shadow);
-  transition: transform var(--transition-smooth), box-shadow var(--transition-smooth), background 0.35s;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06), 0 0 0 1px rgba(0, 0, 0, 0.03);
+  transition: transform 0.35s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.35s ease;
   animation: fadeInUp 0.45s ease both;
   display: flex;
   flex-direction: column;
-  text-decoration: none;
-  color: inherit;
   cursor: pointer;
+  position: relative;
 }
 
 .explore-card:hover {
-  transform: translateY(-6px);
-  box-shadow: var(--card-shadow-hover);
+  transform: translateY(-8px);
+  box-shadow: 0 20px 48px rgba(0, 37, 66, 0.14), 0 0 0 1px rgba(0, 0, 0, 0.04);
 }
 
 /* Stagger animation */
@@ -430,11 +429,12 @@ select.filter-input {
 .explore-card:nth-child(8) { animation-delay: 0.40s; }
 .explore-card:nth-child(9) { animation-delay: 0.45s; }
 
+/* ── Image Wrapper ── */
 .explore-card-img-wrapper {
   overflow: hidden;
   position: relative;
-  height: 200px;
-  background: var(--sidebar-hover);
+  height: 220px;
+  background: linear-gradient(135deg, #e8ecf1, #d0d5dc);
 }
 
 .explore-card-img {
@@ -442,13 +442,23 @@ select.filter-input {
   height: 100%;
   object-fit: cover;
   display: block;
-  transition: transform 0.5s ease;
+  transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94);
 }
 
 .explore-card:hover .explore-card-img {
-  transform: scale(1.06);
+  transform: scale(1.08);
 }
 
+/* Gradient overlay for depth */
+.explore-card-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.45) 100%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* No-image placeholder */
 .explore-card-img-placeholder {
   width: 100%;
   height: 100%;
@@ -456,51 +466,141 @@ select.filter-input {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 8px;
+  gap: 10px;
   color: var(--text-secondary);
-  opacity: 0.4;
+  opacity: 0.35;
+  background: linear-gradient(135deg, #f0f2f5, #e4e6eb);
 }
 
 .explore-card-img-placeholder i {
-  font-size: 2.5rem;
+  font-size: 2.8rem;
 }
 
 .explore-card-img-placeholder span {
   font-size: 0.8rem;
-  font-weight: 500;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
 }
 
-/* Vehicle type badge on image */
+/* ── Vehicle type badge ── */
 .explore-card-tag {
   position: absolute;
-  top: 12px;
-  left: 12px;
-  padding: 5px 12px;
-  border-radius: 20px;
-  font-size: 0.72rem;
+  top: 14px;
+  left: 14px;
+  padding: 5px 14px;
+  border-radius: 999px;
+  font-size: 0.7rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.04em;
   text-transform: uppercase;
-  backdrop-filter: blur(10px);
-  -webkit-backdrop-filter: blur(10px);
-  background: rgba(24, 119, 242, 0.85);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  background: rgba(0, 37, 66, 0.7);
   color: #fff;
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  z-index: 3;
+  border: 1px solid rgba(255, 255, 255, 0.12);
 }
 
-/* Card body */
+/* ── Favorite Heart Button ── */
+.btn-fav-heart {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+  z-index: 10;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+}
+
+.btn-fav-heart:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.18);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+}
+
+.btn-fav-heart.is-fav {
+  color: #ff4757;
+  background: rgba(255, 71, 87, 0.2);
+  border-color: rgba(255, 71, 87, 0.3);
+  box-shadow: 0 0 12px rgba(255, 71, 87, 0.3);
+}
+
+.btn-fav-heart.is-fav:hover {
+  background: rgba(255, 71, 87, 0.4);
+  box-shadow: 0 0 20px rgba(255, 71, 87, 0.4);
+}
+
+/* Pulse animation on toggle */
+@keyframes favPulse {
+  0%   { transform: scale(1); }
+  25%  { transform: scale(1.4); }
+  50%  { transform: scale(0.85); }
+  75%  { transform: scale(1.15); }
+  100% { transform: scale(1); }
+}
+
+.btn-fav-heart.fav-pulse {
+  animation: favPulse 0.5s ease;
+}
+
+/* ── Floating Price Badge ── */
+.explore-card-price-float {
+  position: absolute;
+  bottom: 14px;
+  left: 14px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  z-index: 3;
+  backdrop-filter: blur(12px) saturate(180%);
+  -webkit-backdrop-filter: blur(12px) saturate(180%);
+  background: rgba(255, 255, 255, 0.18);
+  padding: 6px 14px;
+  border-radius: 10px;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.explore-card-price-float .price-amount {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: #fff;
+  letter-spacing: -0.02em;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.3);
+}
+
+.explore-card-price-float .price-unit {
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: rgba(255, 255, 255, 0.8);
+}
+
+/* ── Card Body ── */
 .explore-card-body {
-  padding: 16px 18px;
+  padding: 18px 20px 20px;
   flex: 1;
   display: flex;
   flex-direction: column;
 }
 
 .explore-card-direccion {
-  font-size: 0.95rem;
-  font-weight: 600;
+  font-size: 1.02rem;
+  font-weight: 700;
   color: var(--text-primary);
   margin-bottom: 6px;
   line-height: 1.35;
@@ -511,10 +611,10 @@ select.filter-input {
 }
 
 .explore-card-descripcion {
-  font-size: 0.82rem;
+  font-size: 0.83rem;
   color: var(--text-secondary);
   margin-bottom: 14px;
-  line-height: 1.4;
+  line-height: 1.5;
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
@@ -522,41 +622,68 @@ select.filter-input {
   flex: 1;
 }
 
+/* ── Chips ── */
+.explore-card-chips {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.explore-card-chips span {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  letter-spacing: 0.01em;
+}
+
+.chip-seg {
+  background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+  color: #14532d;
+  border: 1px solid #bbf7d0;
+}
+
+.chip-seg i { color: #16a34a; }
+
+.chip-access {
+  background: linear-gradient(135deg, #eff6ff, #dbeafe);
+  color: #1e3a5f;
+  border: 1px solid #bfdbfe;
+}
+
+.chip-access i { color: #2563eb; }
+
+/* ── Card Footer ── */
 .explore-card-footer {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding-top: 12px;
+  justify-content: flex-end;
+  padding-top: 14px;
   border-top: 1px solid var(--sidebar-border);
 }
 
-.explore-card-precio {
-  font-size: 1.15rem;
+.explore-card-cta {
+  font-size: 0.82rem;
   font-weight: 700;
-  color: var(--accent);
-}
-
-.explore-card-precio small {
-  font-size: 0.75rem;
-  font-weight: 500;
-  color: var(--text-secondary);
-}
-
-.explore-card-action {
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--accent);
+  color: #fff;
+  background: linear-gradient(135deg, #006a62, #009688);
+  padding: 7px 16px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
-  gap: 4px;
-  opacity: 0;
-  transform: translateX(-8px);
-  transition: opacity 0.3s ease, transform 0.3s ease;
+  gap: 6px;
+  transition: all 0.25s ease;
+  text-decoration: none;
 }
 
-.explore-card:hover .explore-card-action {
-  opacity: 1;
-  transform: translateX(0);
+.explore-card:hover .explore-card-cta {
+  background: linear-gradient(135deg, #005049, #00796b);
+  box-shadow: 0 4px 12px rgba(0, 106, 98, 0.3);
+  transform: translateX(2px);
 }
 
 /* ============================
@@ -717,4 +844,70 @@ select.filter-input {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #a0a0a0;
+}
+
+/* ============================
+   Dark Mode — Card Overrides
+============================ */
+.dark .explore-card,
+[data-theme="dark"] .explore-card {
+  background: #1a1a2e;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.dark .explore-card:hover,
+[data-theme="dark"] .explore-card:hover {
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.dark .explore-card-direccion,
+[data-theme="dark"] .explore-card-direccion {
+  color: #e4e6f0;
+}
+
+.dark .explore-card-descripcion,
+[data-theme="dark"] .explore-card-descripcion {
+  color: #8b8fa3;
+}
+
+.dark .explore-card-footer,
+[data-theme="dark"] .explore-card-footer {
+  border-color: #2a2a4a;
+}
+
+.dark .chip-seg,
+[data-theme="dark"] .chip-seg {
+  background: linear-gradient(135deg, #0a2e1a, #133a23);
+  color: #86efac;
+  border-color: #166534;
+}
+
+.dark .chip-seg i,
+[data-theme="dark"] .chip-seg i { color: #4ade80; }
+
+.dark .chip-access,
+[data-theme="dark"] .chip-access {
+  background: linear-gradient(135deg, #0c1a33, #152850);
+  color: #93bbfd;
+  border-color: #1e3a6e;
+}
+
+.dark .chip-access i,
+[data-theme="dark"] .chip-access i { color: #60a5fa; }
+
+.dark .explore-card-img-wrapper,
+[data-theme="dark"] .explore-card-img-wrapper {
+  background: linear-gradient(135deg, #16213e, #1a1a2e);
+}
+
+.dark .explore-card-img-placeholder,
+[data-theme="dark"] .explore-card-img-placeholder {
+  background: linear-gradient(135deg, #16213e, #1a1a2e);
+}
+
+/* Mobile responsive for new image height */
+@media (max-width: 576px) {
+  .explore-card-img-wrapper {
+    height: 180px;
+  }
 }
