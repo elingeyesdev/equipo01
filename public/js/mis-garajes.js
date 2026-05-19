@@ -28,12 +28,15 @@ const inpPrecio         = document.getElementById('inpPrecio');
 const inpFotos          = document.getElementById('inpFotos');
 const uploadZone        = document.getElementById('uploadZone');
 const photoPreviewGrid  = document.getElementById('photoPreviewGrid');
-const btnPublicar       = document.getElementById('btnPublicar');
+const btnPublicar       = document.getElementById('btnWizardSubmit');
 const garajesGrid       = document.getElementById('garajesGrid');
 const loadingGarajes    = document.getElementById('loadingGarajes');
 const emptyState        = document.getElementById('emptyState');
 const statsBar          = document.getElementById('statsBar');
 const contadorGarajes   = document.getElementById('contadorGarajes');
+
+// Cache garajes para modal de edición
+let _garajesCache = [];
 
 // Visual builder elements — TILEMAP 2D
 const tmGrid     = document.getElementById('tmGrid');
@@ -242,7 +245,11 @@ function initTilemap() {
       tmPincel = btn.dataset.tool;
       // Show vehicle selector only when painting parking
       const sel = document.getElementById('tmVehicleSelector');
-      if (sel) sel.style.opacity = tmPincel === 'parking' ? '1' : '0.4';
+      if (sel) sel.style.opacity = tmPincel === 'parking' ? '1' : '0.22';
+      // Update active tool name banner
+      const toolNames = { parking:'Parqueo', wall:'Pared', entrance:'Entrada', exit:'Salida', aisle:'Carril', eraser:'Borrar' };
+      const nameEl = document.getElementById('tmActiveToolName');
+      if (nameEl) nameEl.textContent = toolNames[tmPincel] || tmPincel;
     });
   });
 
@@ -268,10 +275,7 @@ function initTilemap() {
   // Presets
   document.querySelectorAll('.tm-preset-btn').forEach(btn => {
     btn.addEventListener('click', () => {
-      const f = Math.min(Math.max(parseInt(tmFilas.value, 10) || 6, 3), 12);
-      const c = Math.min(Math.max(parseInt(tmColumnas.value, 10) || 8, 3), 12);
-      tmFilasVal = f; tmColsVal = c;
-      tmAplicarPreset(btn.dataset.preset, f, c);
+      tmAplicarPreset(btn.dataset.preset, tmFilasVal, tmColsVal);
     });
   });
 
@@ -280,17 +284,81 @@ function initTilemap() {
   document.addEventListener('touchend', () => { tmIsPainting = false; });
 }
 
+const VICO = { 
+  auto:      { icon: 'directions_car', color: '#3b82f6', sz: '15px' }, 
+  moto:      { icon: 'two_wheeler',    color: '#f59e0b', sz: '13px' }, 
+  camioneta: { icon: 'local_shipping', color: '#8b5cf6', sz: '15px' }
+};
+
 function tmGenerarGrilla(filas, cols) {
-  // Initialize empty matrix
   tmMatriz = [];
   for (let f = 0; f < filas; f++) {
     tmMatriz[f] = [];
     for (let c = 0; c < cols; c++) {
-      tmMatriz[f][c] = { tile: 'empty', tipo_vehiculo: 'auto' };
+      tmMatriz[f][c] = { tile: 'empty', tipo_vehiculo: 'auto', adir: 'h', num: 0 };
     }
   }
   tmRenderGrilla();
   tmActualizarStats();
+}
+
+function renderCellEl(cell, cellData) {
+  cell.setAttribute('data-t', cellData.tile);
+  cell.innerHTML = '';
+  if (cellData.tile === 'parking') {
+    const v = VICO[cellData.tipo_vehiculo] || VICO.auto;
+    const top = document.createElement('div');
+    top.className = 'gc-ico';
+    top.style.cssText = `color:${v.color};display:flex;align-items:center;justify-content:center`;
+    top.innerHTML = `<span class="material-symbols-outlined" style="font-size:${v.sz};">${v.icon}</span>`;
+    const num = document.createElement('div');
+    num.className = 'gc-num';
+    num.textContent = 'A' + (cellData.num || '');
+    cell.appendChild(top); cell.appendChild(num);
+  } else if (cellData.tile === 'entrance') {
+    cell.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M10 5l3 3-3 3" stroke="#10b981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="gc-lbl" style="color:#10b981">ENT</div>';
+  } else if (cellData.tile === 'exit') {
+    cell.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8H3M6 5L3 8l3 3" stroke="#ef4444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="gc-lbl" style="color:#ef4444">SAL</div>';
+  } else if (cellData.tile === 'wall') {
+    cell.innerHTML = '<div style="font-size:8px;color:rgba(255,255,255,0.15);font-weight:700;letter-spacing:0.05em">▪▪▪</div>';
+  } else if (cellData.tile === 'aisle') {
+    const inner = document.createElement('div');
+    inner.className = 'gc-aisle-inner';
+    if (cellData.adir === 'cross') {
+      const cross = document.createElement('div'); cross.className = 'gc-aisle-cross'; inner.appendChild(cross);
+    } else if (cellData.adir === 'v') {
+      const bar = document.createElement('div'); bar.className = 'gc-aisle-v'; inner.appendChild(bar);
+    } else {
+      const bar = document.createElement('div'); bar.className = 'gc-aisle-h'; inner.appendChild(bar);
+    }
+    cell.appendChild(inner);
+  }
+}
+
+function updateAisleNeighbors(r, c) {
+  const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
+  const R = tmMatriz.length, C = tmMatriz[0].length;
+  for (const [dr, dc] of dirs) {
+    const nr = r + dr, nc = c + dc;
+    if (nr < 0 || nr >= R || nc < 0 || nc >= C) continue;
+    if (tmMatriz[nr][nc].tile === 'aisle') {
+      tmMatriz[nr][nc].adir = computeAisleDirFromNeighbors(nr, nc);
+      const el = document.querySelector(`#tmGrid .gc[data-fila="${nr}"][data-col="${nc}"]`);
+      if (el) renderCellEl(el, tmMatriz[nr][nc]);
+    }
+  }
+}
+
+function computeAisleDirFromNeighbors(r, c) {
+  const R = tmMatriz.length, C = tmMatriz[0].length;
+  const hasN = r > 0 && tmMatriz[r-1][c].tile === 'aisle';
+  const hasS = r < R-1 && tmMatriz[r+1][c].tile === 'aisle';
+  const hasE = c < C-1 && tmMatriz[r][c+1].tile === 'aisle';
+  const hasW = c > 0 && tmMatriz[r][c-1].tile === 'aisle';
+  const v = hasN || hasS, h = hasE || hasW;
+  if (v && h) return 'cross';
+  if (v) return 'v';
+  return 'h';
 }
 
 function tmRenderGrilla() {
@@ -298,45 +366,30 @@ function tmRenderGrilla() {
   tmGrid.innerHTML = '';
   const filas = tmMatriz.length;
   const cols  = filas > 0 ? tmMatriz[0].length : 0;
-
-  tmGrid.style.gridTemplateColumns = `repeat(${cols}, 1fr)`;
+  tmGrid.style.gridTemplateColumns = `repeat(${cols}, minmax(0,1fr))`;
 
   let parkingCounter = 1;
-
   for (let f = 0; f < filas; f++) {
     for (let c = 0; c < cols; c++) {
+      if (tmMatriz[f][c].tile === 'parking') {
+        tmMatriz[f][c].num = parkingCounter++;
+      }
       const cell = document.createElement('div');
-      cell.className = 'tm-cell';
+      cell.className = 'gc';
       cell.dataset.fila = f;
       cell.dataset.col  = c;
 
-      const cellData = tmMatriz[f][c];
-      cell.dataset.tile = cellData.tile;
+      renderCellEl(cell, tmMatriz[f][c]);
 
-      // Cell content
-      if (cellData.tile === 'parking') {
-        const num = parkingCounter++;
-        const vehicleIcons = { auto: '🚗', moto: '🏍️', camioneta: '🚙' };
-        cell.innerHTML = `
-          <span style="font-size:1rem;line-height:1;">${vehicleIcons[cellData.tipo_vehiculo] || '🚗'}</span>
-          <span class="tm-cell-num">A${num}</span>
-        `;
-      } else if (cellData.tile === 'wall') {
-        cell.innerHTML = `<span style="font-size:1.1rem">🧱</span>`;
-      } else if (cellData.tile === 'entrance') {
-        cell.innerHTML = `<span style="font-size:1rem">🚪</span><span class="tm-cell-label">ENT</span>`;
-      } else if (cellData.tile === 'aisle') {
-        cell.innerHTML = `<span style="font-size:0.8rem;color:#38bdf8;">↔</span>`;
-      }
-
-      // Paint events
       cell.addEventListener('mousedown', (e) => {
         e.preventDefault();
         tmIsPainting = true;
         tmPintarCelda(f, c);
       });
       cell.addEventListener('mouseover', () => {
-        if (tmIsPainting) tmPintarCelda(f, c);
+        if (tmIsPainting) {
+          tmPintarCelda(f, c);
+        }
       });
       cell.addEventListener('touchstart', (e) => {
         e.preventDefault();
@@ -348,7 +401,9 @@ function tmRenderGrilla() {
         const touch = e.touches[0];
         const el = document.elementFromPoint(touch.clientX, touch.clientY);
         if (el && el.dataset.fila !== undefined) {
-          tmPintarCelda(parseInt(el.dataset.fila), parseInt(el.dataset.col));
+          const nf = parseInt(el.dataset.fila);
+          const nc = parseInt(el.dataset.col);
+          tmPintarCelda(nf, nc);
         }
       }, { passive: false });
 
@@ -359,12 +414,35 @@ function tmRenderGrilla() {
 
 function tmPintarCelda(f, c) {
   const tipoVehiculo = document.getElementById('tmTipoVehiculo')?.value || 'auto';
-  if (tmPincel === 'eraser') {
-    tmMatriz[f][c] = { tile: 'empty', tipo_vehiculo: 'auto' };
-  } else {
-    tmMatriz[f][c] = { tile: tmPincel, tipo_vehiculo: tipoVehiculo };
+  const old = tmMatriz[f][c];
+  
+  if (old.tile === tmPincel && old.tipo_vehiculo === tipoVehiculo && tmPincel !== 'parking') {
+    return;
   }
-  tmRenderGrilla();
+  
+  let num = old.num, adir = 'h';
+  
+  if (tmPincel === 'eraser') {
+    tmMatriz[f][c] = { tile: 'empty', tipo_vehiculo: 'auto', num: 0, adir: 'h' };
+  } else {
+    tmMatriz[f][c] = { tile: tmPincel, tipo_vehiculo: tipoVehiculo, num, adir: 'h' };
+  }
+  
+  if (tmPincel === 'aisle') {
+    tmMatriz[f][c].adir = computeAisleDirFromNeighbors(f, c);
+  }
+  
+  const el = document.querySelector(`#tmGrid .gc[data-fila="${f}"][data-col="${c}"]`);
+  if (el) renderCellEl(el, tmMatriz[f][c]);
+  
+  if (tmPincel === 'aisle' || tmPincel === 'eraser' || old.tile === 'aisle') {
+    updateAisleNeighbors(f, c);
+  }
+  
+  if (tmPincel === 'parking' || old.tile === 'parking') {
+    tmRenderGrilla(); 
+  }
+  
   tmActualizarStats();
   if (tilemapError) tilemapError.classList.add('hidden');
 }
@@ -380,49 +458,44 @@ function tmActualizarStats() {
 }
 
 function tmAplicarPreset(preset, filas, cols) {
-  tmMatriz = [];
-  for (let f = 0; f < filas; f++) {
-    tmMatriz[f] = [];
-    for (let c = 0; c < cols; c++) tmMatriz[f][c] = { tile: 'empty', tipo_vehiculo: 'auto' };
-  }
-
+  tmGenerarGrilla(filas, cols); 
   const halfway = Math.floor(cols / 2);
 
   if (preset === 'linea') {
-    // Walls top/bottom, aisle in middle, parking rows
-    for (let c = 0; c < cols; c++) { tmMatriz[0][c].tile = 'wall'; tmMatriz[filas-1][c].tile = 'wall'; }
-    const midF = Math.floor(filas / 2);
-    for (let f = 1; f < filas-1; f++) {
-      for (let c = 0; c < cols; c++) {
-        tmMatriz[f][c].tile = f === midF ? 'aisle' : 'parking';
-      }
+    for (let c = 0; c < cols; c++) {
+      if (c !== halfway) { tmMatriz[0][c].tile = 'parking'; tmMatriz[filas-1][c].tile = 'parking'; }
     }
-    tmMatriz[1][0].tile = 'entrance';
-  } else if (preset === 'ele') {
-    // L-shape: left column + bottom row are parking, rest walls/aisle
-    for (let f = 0; f < filas; f++) {
-      for (let c = 0; c < cols; c++) {
-        if (c === 0) { tmMatriz[f][c].tile = 'wall'; }
-        else if (f === filas-1) { tmMatriz[f][c].tile = 'parking'; }
-        else if (c === 1) { tmMatriz[f][c].tile = 'aisle'; }
-        else { tmMatriz[f][c].tile = f < filas-2 ? 'parking' : 'aisle'; }
-      }
-    }
+    for (let c = 0; c < cols; c++) tmMatriz[Math.floor(filas/2)][c] = { tile: 'aisle', adir: 'h', tipo_vehiculo:'auto', num:0 };
     tmMatriz[0][0].tile = 'entrance';
+    tmMatriz[filas-1][cols-1].tile = 'exit';
+  } else if (preset === 'ele') {
+    for (let c = 0; c < cols; c++) tmMatriz[0][c].tile = 'parking';
+    for (let f = 1; f < filas; f++) tmMatriz[f][0].tile = 'parking';
+    for (let c = 1; c < cols; c++) tmMatriz[1][c] = {tile:'aisle', adir:'h', tipo_vehiculo:'auto', num:0};
+    for (let f = 2; f < filas; f++) tmMatriz[f][1] = {tile:'aisle', adir:'v', tipo_vehiculo:'auto', num:0};
+    tmMatriz[1][1].adir = 'cross';
+    tmMatriz[0][0].tile = 'entrance';
+    tmMatriz[filas-1][cols-1].tile = 'exit';
   } else if (preset === 'patio') {
-    // Outer wall, aisle strip in center, parking filling left/right
     for (let f = 0; f < filas; f++) {
       for (let c = 0; c < cols; c++) {
         if (f === 0 || f === filas-1 || c === 0 || c === cols-1) {
           tmMatriz[f][c].tile = 'wall';
         } else if (c === halfway) {
-          tmMatriz[f][c].tile = 'aisle';
+          tmMatriz[f][c] = {tile:'aisle', adir:'v', tipo_vehiculo:'auto', num:0};
         } else {
           tmMatriz[f][c].tile = 'parking';
         }
       }
     }
     tmMatriz[0][halfway].tile = 'entrance';
+    tmMatriz[filas-1][halfway].tile = 'exit';
+  }
+
+  for (let f = 0; f < filas; f++) {
+    for (let c = 0; c < cols; c++) {
+      if (tmMatriz[f][c].tile === 'aisle') tmMatriz[f][c].adir = computeAisleDirFromNeighbors(f, c);
+    }
   }
 
   tmRenderGrilla();
@@ -430,14 +503,12 @@ function tmAplicarPreset(preset, filas, cols) {
 }
 
 function exportarMapa() {
-  // Returns { matriz: tmMatriz, espacios: [...] }
   const espacios = [];
-  let parkNum = 1;
   tmMatriz.forEach((fila, f) => {
     fila.forEach((cell, c) => {
       if (cell.tile === 'parking') {
         espacios.push({
-          numero_espacio: `A${parkNum++}`,
+          numero_espacio: `A${cell.num}`,
           tipo_vehiculo: cell.tipo_vehiculo || 'auto',
           fila: f + 1,
           columna: c + 1
@@ -454,36 +525,90 @@ function exportarMapa() {
 function initHorariosBuilder() {
   const mapDias = {1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb', 0: 'Dom'};
 
+  function renderHorarios() {
+    horariosContainer.innerHTML = '';
+    horariosConfigurados.forEach((horario, idx) => {
+      const diasLabels = horario.dias.map(d => mapDias[d]).join(', ');
+      const div = document.createElement('div');
+      div.className = 'wz-horario-tag';
+
+      if (horario._auto) {
+        div.innerHTML = `
+          <div>
+            <span class="days"><i class="fa-solid fa-clock" style="margin-right:4px;color:#006a62"></i>Todos los días</span><br>
+            <span class="time"><i class="fa-regular fa-clock" style="margin-right:4px"></i>00:00 — 23:59</span>
+          </div>
+          <span style="font-size:0.7rem;background:#dcfce7;color:#166534;padding:2px 8px;border-radius:20px;white-space:nowrap">24/7 Auto</span>
+        `;
+      } else {
+        div.innerHTML = `
+          <div>
+            <span class="days"><i class="fa-regular fa-calendar" style="margin-right:4px"></i>${diasLabels}</span><br>
+            <span class="time"><i class="fa-regular fa-clock" style="margin-right:4px"></i>${horario.inicio} — ${horario.fin}</span>
+          </div>
+          <div style="display:flex;gap:6px">
+            <button type="button" class="edit-h" onclick="editarHorario(${idx})" title="Editar">
+              <i class="fa-solid fa-pen"></i>
+            </button>
+            <button type="button" class="remove-h" onclick="eliminarHorario(${idx})" title="Eliminar">
+              <i class="fa-solid fa-trash-can"></i>
+            </button>
+          </div>
+        `;
+      }
+      horariosContainer.appendChild(div);
+    });
+
+    if (horariosConfigurados.length > 0 && horariosError) {
+      horariosError.classList.add('hidden');
+    }
+  }
+
   window.eliminarHorario = function(idx) {
     horariosConfigurados.splice(idx, 1);
     renderHorarios();
   };
 
-  function renderHorarios() {
-    horariosContainer.innerHTML = '';
-    horariosConfigurados.forEach((horario, idx) => {
-      const diasLabels = horario.dias.map(d => mapDias[d]).join(', ');
-      
-      const div = document.createElement('div');
-      div.className = 'flex items-center justify-between bg-surface-container-low p-3 rounded-lg border border-outline-variant/30';
-      div.innerHTML = `
-        <div class="flex flex-col">
-          <span class="text-sm font-semibold text-primary"><i class="fa-regular fa-calendar text-secondary mr-1"></i> ${diasLabels}</span>
-          <span class="text-xs text-on-surface-variant font-medium"><i class="fa-regular fa-clock mr-1"></i> ${horario.inicio} — ${horario.fin}</span>
-        </div>
-        <button type="button" class="text-error hover:bg-error-container/50 p-2 rounded-full transition-colors flex items-center justify-center" onclick="eliminarHorario(${idx})" title="Eliminar">
-          <i class="fa-solid fa-trash-can"></i>
-        </button>
-      `;
-      horariosContainer.appendChild(div);
+  window.editarHorario = function(idx) {
+    const h = horariosConfigurados[idx];
+    document.querySelectorAll('input[name="diasHorario"]').forEach(cb => {
+      cb.checked = h.dias.includes(parseInt(cb.value, 10));
     });
+    if (inpHorarioDesde) inpHorarioDesde.value = h.inicio;
+    if (inpHorarioHasta) inpHorarioHasta.value = h.fin;
+    horariosConfigurados.splice(idx, 1);
+    renderHorarios();
+    btnAgregarHorario?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  };
 
-    if (horariosConfigurados.length > 0) {
-      horariosError.classList.add('hidden');
-    }
+  // Vinculo Acceso 24h → bloquea el builder y agrega horario automático
+  const chk24h = document.querySelector('input[value="acceso_24h"]');
+  const builder = document.getElementById('wzHorarioBuilder');
+  const banner = document.getElementById('hz24hBanner');
+
+  window.desactivar24h = function() {
+    if (chk24h) chk24h.checked = false;
+    horariosConfigurados = horariosConfigurados.filter(h => !h._auto);
+    if (builder) { builder.style.pointerEvents = ''; builder.style.opacity = ''; }
+    if (banner) banner.style.display = 'none';
+    renderHorarios();
+  };
+
+  if (chk24h) {
+    chk24h.addEventListener('change', function() {
+      if (this.checked) {
+        horariosConfigurados = horariosConfigurados.filter(h => !h._auto);
+        horariosConfigurados.push({ dias: [0,1,2,3,4,5,6], inicio: '00:00', fin: '23:59', _auto: true });
+        if (builder) { builder.style.pointerEvents = 'none'; builder.style.opacity = '0.45'; }
+        if (banner) banner.style.display = 'flex';
+        renderHorarios();
+      } else {
+        window.desactivar24h();
+      }
+    });
   }
 
-  if(btnAgregarHorario) {
+  if (btnAgregarHorario) {
     btnAgregarHorario.addEventListener('click', () => {
       const checkboxes = document.querySelectorAll('input[name="diasHorario"]:checked');
       const dias = Array.from(checkboxes).map(cb => parseInt(cb.value, 10));
@@ -499,39 +624,50 @@ function initHorariosBuilder() {
         return;
       }
 
-      // Validar superposiciones
       let superposicion = false;
       for (const h of horariosConfigurados) {
-        // Verificar si tienen días en común
         const diasEnComun = dias.filter(d => h.dias.includes(d));
-        if (diasEnComun.length > 0) {
-          // Verificar superposición de horas: (StartA < EndB) and (EndA > StartB)
-          if (inicio < h.fin && fin > h.inicio) {
-            superposicion = true;
-            break;
-          }
+        if (diasEnComun.length > 0 && inicio < h.fin && fin > h.inicio) {
+          superposicion = true;
+          break;
         }
       }
 
       if (superposicion) {
-        showToast('El horario seleccionado se superpone con un horario ya existente para esos días.', 'error');
+        showToast('El horario se superpone con uno ya existente para esos días.', 'error');
         return;
       }
 
       horariosConfigurados.push({ dias, inicio, fin });
-      
-      // Clear checkboxes for next input
       checkboxes.forEach(cb => cb.checked = false);
-      
       renderHorarios();
     });
   }
 }
 
+function wzPresetDias(preset) {
+  const mapPreset = { lv: [1,2,3,4,5], ls: [1,2,3,4,5,6], todos: [0,1,2,3,4,5,6], finde: [0,6] };
+  const vals = mapPreset[preset] || [];
+  document.querySelectorAll('input[name="diasHorario"]').forEach(cb => {
+    cb.checked = vals.includes(parseInt(cb.value, 10));
+  });
+}
+
+function wzPresetHora(desde, hasta) {
+  const d = document.getElementById('inpHorarioDesde');
+  const h = document.getElementById('inpHorarioHasta');
+  if (d) d.value = desde;
+  if (h) h.value = hasta;
+}
+
 // ============================================================
 // Publicar Garaje — POST /api/garajes
 // ============================================================
-formGaraje.addEventListener('submit', async (e) => {
+function initFormSubmit() {
+  const formGarajeEl = document.getElementById('formGaraje');
+  if (!formGarajeEl) return;
+
+  formGarajeEl.addEventListener('submit', async (e) => {
   e.preventDefault();
 
   const direccion     = inpDireccion.value.trim();
@@ -549,17 +685,23 @@ formGaraje.addEventListener('submit', async (e) => {
     inpPrecio.focus();
     return;
   }
+  // Auto-generate map if no spots were manually placed
+  let parkCheck = 0;
+  tmMatriz.forEach(f => f.forEach(c => { if (c.tile === 'parking') parkCheck++; }));
+  if (parkCheck === 0 && typeof aplicarAutoPlano === 'function') {
+    aplicarAutoPlano();
+  }
+
   // Collect data from Tilemap
   const { matriz, espacios } = exportarMapa();
   espaciosConfigurados = espacios;
 
   if (espaciosConfigurados.length === 0) {
-    if (tilemapError) tilemapError.classList.remove('hidden');
+    if (tilemapError) { tilemapError.style.display = 'block'; }
     showToast('Debes colocar al menos un espacio de parqueo (🟩) en el mapa.', 'error');
-    document.getElementById('espacioBuilderSection')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     return;
   }
-  if (tilemapError) tilemapError.classList.add('hidden');
+  if (tilemapError) { tilemapError.style.display = 'none'; }
 
   if (horariosConfigurados.length === 0) {
     horariosError.classList.remove('hidden');
@@ -589,9 +731,20 @@ formGaraje.addEventListener('submit', async (e) => {
   formData.append('comodidades', JSON.stringify(comodidades));
 
   // Datos de Confianza
-  formData.append('dimensiones', document.getElementById('inpDimensiones')?.value || '');
+  const _dA = document.getElementById('inpDimAltura')?.value;
+  const _dW = document.getElementById('inpDimAncho')?.value;
+  const _dL = document.getElementById('inpDimLargo')?.value;
+  const _dims = [_dA && `${_dA}m`, _dW && `${_dW}m`, _dL && `${_dL}m`].filter(Boolean).join(' × ');
+  formData.append('dimensiones', _dims);
   formData.append('reglas_casa', document.getElementById('inpReglas')?.value || '');
   formData.append('politica_cancelacion', document.getElementById('inpPolitica')?.value || '');
+
+  // Fidelidad
+  const fidActivo = document.getElementById('inpFidelidadActivo')?.checked ? 'true' : 'false';
+  formData.append('fidelidad_activo', fidActivo);
+  formData.append('fidelidad_visitas', document.getElementById('inpFidelidadVisitas')?.value || '10');
+  formData.append('fidelidad_descuento_pct', document.getElementById('inpFidelidadDescuento')?.value || '10');
+  formData.append('fidelidad_dias_validez', document.getElementById('inpFidelidadValidez')?.value || '');
 
   // Adjuntar archivos
   selectedFiles.forEach(file => {
@@ -599,9 +752,12 @@ formGaraje.addEventListener('submit', async (e) => {
   });
 
   // UI: desactivar botón
-  const origHTML = btnPublicar.innerHTML;
-  btnPublicar.disabled = true;
-  btnPublicar.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Publicando...`;
+  const btnSubmit = document.getElementById('btnWizardSubmit');
+  const origHTML = btnSubmit ? btnSubmit.innerHTML : '';
+  if (btnSubmit) {
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = `<span class="spinner-border spinner-border-sm" role="status"></span> Publicando...`;
+  }
 
   try {
     const res = await fetch('/api/garajes', {
@@ -612,7 +768,7 @@ formGaraje.addEventListener('submit', async (e) => {
 
     if (res.ok && data.status === 'ok') {
       showToast(data.message || '¡Espacio publicado exitosamente!');
-      closeModalFormulario();
+      closeWizard();
 
       // Limpiar formulario
       formGaraje.reset();
@@ -623,6 +779,11 @@ formGaraje.addEventListener('submit', async (e) => {
       tmGenerarGrilla(6, 8);
       if (tmFilas) tmFilas.value = 6;
       if (tmColumnas) tmColumnas.value = 8;
+      // Reset loyalty
+      const fidChk = document.getElementById('inpFidelidadActivo');
+      const fidCfg = document.getElementById('fidelidadConfig');
+      if (fidChk) fidChk.checked = false;
+      if (fidCfg) fidCfg.style.display = 'none';
 
       // Recargar lista de garajes
       await cargarMisGarajes();
@@ -634,10 +795,11 @@ formGaraje.addEventListener('submit', async (e) => {
     console.error('Error al publicar:', err);
     showToast('No se pudo conectar con el servidor.', 'error');
   } finally {
-    btnPublicar.disabled = false;
-    btnPublicar.innerHTML = origHTML;
+    const btn = document.getElementById('btnWizardSubmit');
+    if (btn) { btn.disabled = false; btn.innerHTML = origHTML; }
   }
-});
+  }); // end formGarajeEl.addEventListener
+} // end initFormSubmit
 
 // ============================================================
 // Cargar Mis Garajes — GET /api/garajes/mis-espacios
@@ -673,6 +835,13 @@ async function cargarMisGarajes() {
       document.getElementById('statInactivos').textContent = inactivos;
       statsBar.style.display = 'flex';
       contadorGarajes.textContent = `${total} espacio${total !== 1 ? 's' : ''}`;
+
+      // Update tab badge
+      const tabBadge = document.getElementById('tabBadgeGarajes');
+      if (tabBadge && total > 0) { tabBadge.textContent = total; tabBadge.style.display = 'inline-block'; }
+
+      // Cache garajes for edit modal
+      _garajesCache = garajes;
 
       // Render cards
       garajes.forEach((garaje, index) => {
@@ -736,7 +905,7 @@ function crearTarjetaGaraje(garaje) {
         </div>
       </div>
       
-      <div class="flex items-center gap-4 mb-6 text-sm text-on-surface-variant font-body bg-surface-container-low p-3 rounded-lg">
+      <div class="flex items-center gap-4 mb-4 text-sm text-on-surface-variant font-body bg-surface-container-low p-3 rounded-lg">
         <div class="flex items-center gap-2">
           <span class="material-symbols-outlined text-secondary">${iconText}</span>
           <span class="capitalize font-medium">${garaje.tipo_vehiculo}</span>
@@ -748,14 +917,22 @@ function crearTarjetaGaraje(garaje) {
         </div>
         ` : ''}
       </div>
+      ${garaje.fidelidad_activo ? `
+      <div style="display:flex;align-items:center;gap:6px;font-size:0.75rem;font-weight:600;color:#b45309;background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:4px 10px;margin-bottom:12px;">
+        <i class="fa-solid fa-medal" style="color:#f59e0b"></i>
+        Fidelidad activa: ${garaje.fidelidad_visitas} visitas → ${garaje.fidelidad_descuento_pct}% dto.
+      </div>` : ''}
       
       <div class="mt-auto pt-4 border-t border-outline-variant/10 flex flex-col gap-2">
-        <button class="w-full text-center text-primary font-label uppercase text-xs tracking-wider font-bold py-2.5 hover:bg-surface-container-low rounded-md transition-colors flex items-center justify-center gap-2" onclick="window.location.href='/panel-mantenimiento.html?id=${garaje.id}'">
+        <button class="btn-edit-garaje" data-garaje-id="${garaje.id}" onclick="abrirEditModalById(this.dataset.garajeId)">
+            <span class="material-symbols-outlined" style="font-size:15px;">edit</span> Editar Información
+        </button>
+        <button class="w-full text-center text-primary font-label uppercase text-xs tracking-wider font-bold py-2 hover:bg-surface-container-low rounded-md transition-colors flex items-center justify-center gap-2" onclick="window.location.href='/panel-mantenimiento.html?id=${garaje.id}'">
             <span class="material-symbols-outlined text-sm">build</span> Administrar Espacios
         </button>
-        <button class="w-full text-center font-label uppercase text-xs tracking-wider font-bold py-2 hover:bg-surface-container-low rounded-md transition-colors flex items-center justify-center gap-2 ${activo ? 'text-error hover:bg-error-container/20' : 'text-secondary'}" 
+        <button class="w-full text-center font-label uppercase text-xs tracking-wider font-bold py-2 hover:bg-surface-container-low rounded-md transition-colors flex items-center justify-center gap-2 ${activo ? 'text-error hover:bg-error-container/20' : 'text-secondary'}"
                 onclick="toggleEstado(${garaje.id}, this)" id="btnEstado-${garaje.id}">
-            <span class="material-symbols-outlined text-sm">${activo ? 'visibility_off' : 'visibility'}</span> 
+            <span class="material-symbols-outlined text-sm">${activo ? 'visibility_off' : 'visibility'}</span>
             ${activo ? 'Desactivar Listado' : 'Activar Listado'}
         </button>
       </div>
@@ -825,83 +1002,117 @@ async function cargarReservasRecibidas() {
       if (reservas.length === 0) {
         emptyEl.style.display = 'block';
         contadorEl.textContent = '';
+        const badge = document.getElementById('tabBadgeReservas');
+        if (badge) badge.style.display = 'none';
         return;
       }
 
       const pendientes = reservas.filter(r => r.estado === 'pendiente').length;
+      const confirmadas = reservas.filter(r => r.estado === 'confirmada').length;
+
       contadorEl.textContent = pendientes > 0
         ? `${pendientes} pendiente${pendientes !== 1 ? 's' : ''}`
         : `${reservas.length} reserva${reservas.length !== 1 ? 's' : ''}`;
 
-      // Construir tabla
-      const table = document.createElement('table');
-      table.className = 'reservas-table';
-      table.innerHTML = `
-        <thead>
-          <tr>
-            <th>Conductor</th>
-            <th>Garaje</th>
-            <th>Espacio</th>
-            <th>Entrada</th>
-            <th>Salida</th>
-            <th>Total</th>
-            <th>Estado</th>
-            <th>Acciones</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${reservas.map(r => {
-            const fechaInicio = new Date(r.fecha_inicio).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' });
-            const fechaFin = new Date(r.fecha_fin).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' });
+      // Update tab badge
+      const badge = document.getElementById('tabBadgeReservas');
+      const urgentes = pendientes + confirmadas;
+      if (badge && urgentes > 0) {
+        badge.textContent = urgentes;
+        badge.style.display = 'inline-block';
+      } else if (badge) {
+        badge.style.display = 'none';
+      }
 
-            const estadoBadge = {
-              pendiente:  '<span class="reserva-badge pendiente"><i class="fa-solid fa-clock"></i> Pendiente</span>',
-              confirmada: '<span class="reserva-badge confirmada"><i class="fa-solid fa-circle-check"></i> Confirmada</span>',
-              rechazada:  '<span class="reserva-badge rechazada"><i class="fa-solid fa-circle-xmark"></i> Rechazada</span>',
-              finalizada: '<span class="reserva-badge finalizada"><i class="fa-solid fa-flag-checkered"></i> Finalizada</span>',
-            };
+      const estadoBadge = {
+        pendiente:  '<span class="reserva-badge pendiente"><i class="fa-solid fa-clock"></i> Pendiente</span>',
+        confirmada: '<span class="reserva-badge confirmada"><i class="fa-solid fa-circle-check"></i> Confirmada</span>',
+        rechazada:  '<span class="reserva-badge rechazada"><i class="fa-solid fa-circle-xmark"></i> Rechazada</span>',
+        finalizada: '<span class="reserva-badge finalizada"><i class="fa-solid fa-flag-checkered"></i> Finalizada</span>',
+        cancelada:  '<span class="reserva-badge rechazada"><i class="fa-solid fa-ban"></i> Cancelada</span>',
+      };
 
-            let acciones = '<span style="font-size:0.78rem;color:var(--text-secondary);">—</span>';
-            
-            if (r.estado === 'pendiente') {
-              acciones = `
-                <div class="reserva-acciones">
-                  <button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)" title="Confirmar">
-                    <i class="fa-solid fa-check"></i> Confirmar
-                  </button>
-                  <button class="btn-reserva rechazar" onclick="cambiarEstadoReserva(${r.id}, 'rechazada', this)" title="Rechazar">
-                    <i class="fa-solid fa-xmark"></i> Rechazar
-                  </button>
-                </div>`;
-            } else if (r.estado === 'confirmada') {
-              acciones = `
-                <div class="reserva-acciones">
-                  <button class="btn-reserva" style="background:#64748b; color:white; border:none; padding:5px 10px; border-radius:6px; font-size:0.7rem; font-weight:700;" onclick="cambiarEstadoReserva(${r.id}, 'finalizada', this)" title="Finalizar Estancia">
-                    <i class="fa-solid fa-flag-checkered"></i> Finalizar
-                  </button>
-                </div>`;
-            }
+      const container = document.createElement('div');
 
-            return `
-              <tr>
-                <td>
-                  <div style="font-weight:600;font-size:0.85rem;">${escapeHTML(r.conductor_nombre || 'N/A')}</div>
-                  <div style="font-size:0.75rem;color:var(--text-secondary);">${r.conductor_telefono || ''}</div>
-                </td>
-                <td style="font-size:0.85rem;">${escapeHTML(r.garaje_direccion)}</td>
-                <td style="font-size:0.85rem;font-weight:600;">${escapeHTML(r.numero_espacio || '—')}</td>
-                <td style="font-size:0.82rem;">${fechaInicio}</td>
-                <td style="font-size:0.82rem;">${fechaFin}</td>
-                <td style="font-weight:700;font-size:0.85rem;">Bs. ${Number(r.precio_total).toFixed(2)}</td>
-                <td>${estadoBadge[r.estado] || r.estado}</td>
-                <td>${acciones}</td>
-              </tr>
-            `;
-          }).join('')}
-        </tbody>
-      `;
+      reservas.forEach(r => {
+        const fechaInicio = new Date(r.fecha_inicio).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' });
+        const fechaFin    = new Date(r.fecha_fin).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' });
+        const total = Number(r.precio_total || 0);
+        const multa = Number(r.multa_exceso || 0);
+        const descuento = Number(r.descuento_aplicado || 0);
 
-      tableWrapper.appendChild(table);
+        let accionesHTML = '';
+        if (r.estado === 'pendiente') {
+          if (r.estado_pago === 'pagado') {
+            accionesHTML =
+              `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-qrcode"></i> Pago QR recibido</span><br>` +
+              `<button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)"><i class="fa-solid fa-check"></i> Confirmar</button>` +
+              `<button class="btn-reserva rechazar"  onclick="cambiarEstadoReserva(${r.id}, 'rechazada',  this)"><i class="fa-solid fa-xmark"></i> Rechazar</button>`;
+          } else if (r.estado_pago === 'efectivo_pendiente') {
+            accionesHTML =
+              `<span style="display:inline-flex;align-items:center;gap:4px;background:#fff7ed;color:#92400e;border:1px solid #fed7aa;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-money-bill-wave"></i> Efectivo pendiente de confirmar</span><br>` +
+              `<button class="btn-reserva confirmar" onclick="confirmarPagoEfectivo(${r.id}, this)"><i class="fa-solid fa-hand-holding-dollar"></i> Confirmar efectivo recibido</button>` +
+              `<button class="btn-reserva rechazar"  onclick="cambiarEstadoReserva(${r.id}, 'rechazada', this)"><i class="fa-solid fa-xmark"></i> Rechazar</button>`;
+          } else if (r.estado_pago === 'efectivo_confirmado') {
+            accionesHTML =
+              `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-circle-check"></i> Efectivo recibido ✓</span><br>` +
+              `<button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)"><i class="fa-solid fa-check"></i> Confirmar reserva</button>` +
+              `<button class="btn-reserva rechazar"  onclick="cambiarEstadoReserva(${r.id}, 'rechazada',  this)"><i class="fa-solid fa-xmark"></i> Rechazar</button>`;
+          } else {
+            accionesHTML =
+              `<span style="display:inline-flex;align-items:center;gap:4px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-clock"></i> Pago pendiente</span><br>` +
+              `<button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)"><i class="fa-solid fa-check"></i> Confirmar</button>` +
+              `<button class="btn-reserva rechazar"  onclick="cambiarEstadoReserva(${r.id}, 'rechazada',  this)"><i class="fa-solid fa-xmark"></i> Rechazar</button>`;
+          }
+        } else if (r.estado === 'confirmada') {
+          accionesHTML = `
+            <button class="btn-reserva" style="background:#475569;color:white;border:none;"
+              onclick="abrirMultaModal(${r.id}, '${r.fecha_fin}', ${r.precio_hora || 0})">
+              <i class="fa-solid fa-flag-checkered"></i> Registrar Salida
+            </button>`;
+        }
+
+        const multaBadge = multa > 0
+          ? `<span class="reserva-multa-badge"><i class="fa-solid fa-triangle-exclamation"></i> Multa Bs. ${multa.toFixed(2)}</span>`
+          : '';
+
+        const cuponHTML = (r.cupon_codigo && descuento > 0)
+          ? `<span style="font-size:0.75rem;color:#16a34a;font-weight:600;"><i class="fa-solid fa-tag"></i> Cupón: ${escapeHTML(r.cupon_codigo)} (-Bs. ${descuento.toFixed(2)})</span>`
+          : '';
+
+        const cardClass = r.estado === 'pendiente' ? 'reserva-card is-pendiente'
+                        : r.estado === 'confirmada' ? 'reserva-card is-confirmada'
+                        : 'reserva-card';
+
+        const card = document.createElement('div');
+        card.className = cardClass;
+        card.innerHTML = `
+          <div class="reserva-card-header">
+            <div>
+              <div class="reserva-card-conductor">${escapeHTML(r.conductor_nombre || 'N/A')}</div>
+              ${r.conductor_telefono ? `<div class="reserva-card-telefono"><i class="fa-solid fa-phone" style="margin-right:4px"></i>${escapeHTML(r.conductor_telefono)}</div>` : ''}
+            </div>
+            <div>${estadoBadge[r.estado] || r.estado}</div>
+          </div>
+          <div class="reserva-card-meta">
+            <span><i class="fa-solid fa-warehouse" style="color:#64748b"></i> ${escapeHTML(r.garaje_direccion)}</span>
+            <span><i class="fa-solid fa-parking" style="color:#64748b"></i> Espacio ${escapeHTML(r.numero_espacio || '—')}</span>
+          </div>
+          <div class="reserva-card-meta">
+            <span><i class="fa-regular fa-clock" style="color:#64748b"></i> Entrada: <strong>${fechaInicio}</strong></span>
+            <span><i class="fa-solid fa-right-from-bracket" style="color:#64748b"></i> Salida: <strong>${fechaFin}</strong></span>
+          </div>
+          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+            <span class="reserva-card-total">Bs. ${total.toFixed(2)}</span>
+            ${multaBadge}
+            ${cuponHTML}
+          </div>
+          ${accionesHTML ? `<div class="reserva-card-actions">${accionesHTML}</div>` : ''}
+        `;
+        container.appendChild(card);
+      });
+
+      tableWrapper.appendChild(container);
       tableWrapper.style.display = 'block';
     }
   } catch (err) {
@@ -928,8 +1139,8 @@ async function cambiarEstadoReserva(reservaId, nuevoEstado, btnElement) {
     const data = await res.json();
 
     if (res.ok && data.status === 'ok') {
-      const label = nuevoEstado === 'confirmada' ? 'confirmada' : 'rechazada';
-      showToast(`¡Reserva ${label} exitosamente!`);
+      const labels = { confirmada: 'confirmada', rechazada: 'rechazada', finalizada: 'finalizada' };
+      showToast(`¡Reserva ${labels[nuevoEstado] || nuevoEstado} exitosamente!`);
       await cargarReservasRecibidas();
     } else {
       showToast(data.message || 'Error al cambiar el estado.', 'error');
@@ -945,6 +1156,36 @@ async function cambiarEstadoReserva(reservaId, nuevoEstado, btnElement) {
 }
 
 // ============================================================
+// Confirmar recepción de pago en efectivo (anfitrión)
+// ============================================================
+async function confirmarPagoEfectivo(reservaId, btnElement) {
+  btnElement.disabled = true;
+  const origHTML = btnElement.innerHTML;
+  btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirmando...';
+  try {
+    const res = await fetch(`/api/reservas/${reservaId}/confirmar-efectivo`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ anfitrion_id: currentUser.id }),
+    });
+    const data = await res.json();
+    if (res.ok && data.status === 'ok') {
+      showToast('¡Efectivo confirmado! Ahora puedes aceptar o rechazar la reserva.');
+      await cargarReservasRecibidas();
+    } else {
+      showToast(data.message || 'Error al confirmar el efectivo.', 'error');
+      btnElement.disabled = false;
+      btnElement.innerHTML = origHTML;
+    }
+  } catch (err) {
+    console.error('Error al confirmar efectivo:', err);
+    showToast('No se pudo conectar con el servidor.', 'error');
+    btnElement.disabled = false;
+    btnElement.innerHTML = origHTML;
+  }
+}
+
+// ============================================================
 // Utilitarios Adicionales
 // ============================================================
 function escapeHTML(str) {
@@ -953,24 +1194,265 @@ function escapeHTML(str) {
   return div.innerHTML;
 }
 
+// openModalFormulario / closeModalFormulario are defined in wizard-garaje.js
+
 // ============================================================
-// Modal Formulario Handlers
+// Tab Navigation
 // ============================================================
-function openModalFormulario() {
-  const modal = document.getElementById('modalFormularioWrapper');
-  if (modal) {
-    modal.classList.remove('hidden');
-    modal.classList.add('flex');
-    document.body.style.overflow = 'hidden';
+function switchTab(tab) {
+  const garSection = document.getElementById('sectionMisParqueos');
+  const resSection = document.getElementById('sectionReservas');
+  const btnG = document.getElementById('tabBtnGarajes');
+  const btnR = document.getElementById('tabBtnReservas');
+
+  if (tab === 'garajes') {
+    garSection.style.display = 'block';
+    resSection.style.display = 'none';
+    btnG.classList.add('active');
+    btnR.classList.remove('active');
+  } else {
+    garSection.style.display = 'none';
+    resSection.style.display = 'block';
+    btnG.classList.remove('active');
+    btnR.classList.add('active');
+    cargarReservasRecibidas();
   }
 }
 
-function closeModalFormulario() {
-  const modal = document.getElementById('modalFormularioWrapper');
-  if (modal) {
-    modal.classList.remove('flex');
-    modal.classList.add('hidden');
-    document.body.style.overflow = '';
+// ============================================================
+// Loyalty field toggle (wizard Step 2)
+// ============================================================
+function initLoyaltyToggle() {
+  const chk = document.getElementById('inpFidelidadActivo');
+  const cfg = document.getElementById('fidelidadConfig');
+  if (chk && cfg) {
+    chk.addEventListener('change', () => {
+      cfg.style.display = chk.checked ? 'block' : 'none';
+    });
+  }
+
+  const editChk = document.getElementById('editFidelidadActivo');
+  const editCfg = document.getElementById('editFidelidadConfig');
+  if (editChk && editCfg) {
+    editChk.addEventListener('change', () => {
+      editCfg.style.display = editChk.checked ? 'block' : 'none';
+    });
+  }
+}
+
+// ============================================================
+// Edit Garage Modal
+// ============================================================
+function abrirEditModalById(garajeId) {
+  const garaje = _garajesCache.find(g => String(g.id) === String(garajeId));
+  if (!garaje) { showToast('No se encontraron datos del garaje.', 'error'); return; }
+  abrirEditModal(garaje);
+}
+
+function abrirEditModal(garaje) {
+  document.getElementById('editGarajeId').value = garaje.id;
+  document.getElementById('editDireccion').value = garaje.direccion || '';
+  document.getElementById('editDescripcion').value = garaje.descripcion || '';
+  document.getElementById('editPrecio').value = garaje.precio_hora || '';
+  document.getElementById('editNivelSeguridad').value = garaje.nivel_seguridad || 'Estándar';
+  document.getElementById('editMetodoAcceso').value = garaje.metodo_acceso || 'Manual';
+  document.getElementById('editPolitica').value = garaje.politica_cancelacion || 'Moderada: Reembolso 50% hasta 24h antes';
+  document.getElementById('editInstrucciones').value = garaje.instrucciones_acceso || '';
+
+  const fidActivo = !!garaje.fidelidad_activo;
+  const editChk = document.getElementById('editFidelidadActivo');
+  const editCfg = document.getElementById('editFidelidadConfig');
+  editChk.checked = fidActivo;
+  editCfg.style.display = fidActivo ? 'block' : 'none';
+  document.getElementById('editFidelidadVisitas').value = garaje.fidelidad_visitas || 10;
+  document.getElementById('editFidelidadDescuento').value = garaje.fidelidad_descuento_pct || 10;
+  document.getElementById('editFidelidadValidez').value = garaje.fidelidad_dias_validez != null ? garaje.fidelidad_dias_validez : '';
+
+  document.getElementById('editGarajeOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeEditModal() {
+  document.getElementById('editGarajeOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+async function guardarEdicionGaraje() {
+  const garajeId = document.getElementById('editGarajeId').value;
+  const direccion = document.getElementById('editDireccion').value.trim();
+  const precio_hora = document.getElementById('editPrecio').value;
+
+  if (!direccion || direccion.length < 5) {
+    showToast('La dirección debe tener al menos 5 caracteres.', 'error');
+    return;
+  }
+  if (!precio_hora || Number(precio_hora) <= 0) {
+    showToast('Ingresa un precio por hora válido.', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('btnGuardarEdit');
+  const origHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Guardando...';
+
+  try {
+    const fidActivo = document.getElementById('editFidelidadActivo').checked;
+    const payload = {
+      usuario_id: currentUser.id,
+      direccion,
+      descripcion:           document.getElementById('editDescripcion').value,
+      precio_hora,
+      nivel_seguridad:       document.getElementById('editNivelSeguridad').value,
+      metodo_acceso:         document.getElementById('editMetodoAcceso').value,
+      instrucciones_acceso:  document.getElementById('editInstrucciones').value,
+      politica_cancelacion:  document.getElementById('editPolitica').value,
+      fidelidad_activo:      fidActivo,
+      fidelidad_visitas:     document.getElementById('editFidelidadVisitas').value,
+      fidelidad_descuento_pct: document.getElementById('editFidelidadDescuento').value,
+      fidelidad_dias_validez: document.getElementById('editFidelidadValidez').value,
+    };
+
+    const res = await fetch(`/api/garajes/${garajeId}/editar`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+    });
+    const data = await res.json();
+
+    if (res.ok && data.status === 'ok') {
+      showToast(data.message || '¡Espacio actualizado!');
+      closeEditModal();
+      await cargarMisGarajes();
+    } else {
+      showToast(data.message || 'Error al actualizar.', 'error');
+    }
+  } catch (err) {
+    console.error('Error al editar garaje:', err);
+    showToast('No se pudo conectar con el servidor.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origHTML;
+  }
+}
+
+// ============================================================
+// Multa Modal — Registrar Salida
+// ============================================================
+let _multaFechaFin = null;
+
+function abrirMultaModal(reservaId, fechaFin, precioHora) {
+  _multaFechaFin = new Date(fechaFin);
+  document.getElementById('multaReservaId').value = reservaId;
+  document.getElementById('multaPrecioHora').value = precioHora;
+  document.getElementById('multaFechaFinDisplay').textContent =
+    _multaFechaFin.toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' });
+
+  // Pre-fill con la fecha actual
+  const now = new Date();
+  const pad = n => String(n).padStart(2, '0');
+  const localNow = `${now.getFullYear()}-${pad(now.getMonth()+1)}-${pad(now.getDate())}T${pad(now.getHours())}:${pad(now.getMinutes())}`;
+  document.getElementById('inpHoraSalidaReal').value = localNow;
+
+  document.getElementById('multaResultado').style.display = 'none';
+  document.getElementById('multaOk').style.display = 'none';
+  document.getElementById('multaExceso').style.display = 'none';
+  document.getElementById('btnConfirmarSalida').disabled = true;
+
+  document.getElementById('multaOverlay').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeMultaModal() {
+  document.getElementById('multaOverlay').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function calcularMulta() {
+  const salidaRealStr = document.getElementById('inpHoraSalidaReal').value;
+  if (!salidaRealStr || !_multaFechaFin) {
+    showToast('Ingresa la hora real de salida.', 'error');
+    return;
+  }
+
+  const salidaReal = new Date(salidaRealStr);
+  const precioHora = parseFloat(document.getElementById('multaPrecioHora').value) || 0;
+  const diffMs = salidaReal - _multaFechaFin;
+
+  document.getElementById('multaResultado').style.display = 'block';
+
+  if (diffMs <= 0) {
+    document.getElementById('multaOk').style.display = 'block';
+    document.getElementById('multaExceso').style.display = 'none';
+  } else {
+    const minutosExtra = Math.ceil(diffMs / 60000);
+    const intervalos = Math.ceil(minutosExtra / 30);
+    // Each 30-min interval = precio_hora × 1.5 × 0.5h
+    const multa = precioHora * 1.5 * 0.5 * intervalos;
+
+    document.getElementById('multaOk').style.display = 'none';
+    document.getElementById('multaExceso').style.display = 'block';
+    document.getElementById('multaMinutosExtra').textContent = minutosExtra;
+    document.getElementById('multaIntervalos').textContent = intervalos;
+    document.getElementById('multaMontoDisplay').textContent = `Bs. ${multa.toFixed(2)}`;
+  }
+
+  document.getElementById('btnConfirmarSalida').disabled = false;
+}
+
+async function confirmarSalida() {
+  const reservaId = document.getElementById('multaReservaId').value;
+  const salidaRealStr = document.getElementById('inpHoraSalidaReal').value;
+  const precioHora = parseFloat(document.getElementById('multaPrecioHora').value) || 0;
+
+  if (!salidaRealStr) {
+    showToast('Ingresa la hora real de salida.', 'error');
+    return;
+  }
+
+  const salidaReal = new Date(salidaRealStr);
+  const diffMs = salidaReal - _multaFechaFin;
+  let multaExceso = 0;
+  if (diffMs > 0) {
+    const minutosExtra = Math.ceil(diffMs / 60000);
+    const intervalos = Math.ceil(minutosExtra / 30);
+    multaExceso = precioHora * 1.5 * 0.5 * intervalos;
+  }
+
+  const btn = document.getElementById('btnConfirmarSalida');
+  const origHTML = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Confirmando...';
+
+  try {
+    const res = await fetch(`/api/reservas/${reservaId}/estado`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        estado: 'finalizada',
+        multa_exceso: multaExceso,
+        hora_salida_real: salidaReal.toISOString(),
+      }),
+    });
+    const data = await res.json();
+
+    if (res.ok && data.status === 'ok') {
+      const msg = multaExceso > 0
+        ? `¡Reserva finalizada! Multa registrada: Bs. ${multaExceso.toFixed(2)}`
+        : '¡Reserva finalizada correctamente!';
+      showToast(msg);
+      closeMultaModal();
+      // Reload reservas tab
+      await cargarReservasRecibidas();
+    } else {
+      showToast(data.message || 'Error al finalizar.', 'error');
+    }
+  } catch (err) {
+    console.error('Error al confirmar salida:', err);
+    showToast('No se pudo conectar con el servidor.', 'error');
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = origHTML;
   }
 }
 
@@ -983,6 +1465,9 @@ document.addEventListener('DOMContentLoaded', () => {
   initFileUpload();
   initHorariosBuilder();
   initTilemap();
+  initFormSubmit();
+  initLoyaltyToggle();
+  if (typeof initWizard === 'function') initWizard();
   cargarMisGarajes();
-  cargarReservasRecibidas();
+  // Reservas se carga al hacer click en la tab
 });

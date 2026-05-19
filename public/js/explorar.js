@@ -26,6 +26,9 @@
   let paginaActual = 1;
   const LIMIT_POR_PAGINA = 6;
 
+  // ─── Favoritos State ───
+  let favoritosIds = new Set();
+
   // ─── DOM References ───
   const catalogGrid      = document.getElementById('catalogGrid');
   const loadingCatalog   = document.getElementById('loadingCatalog');
@@ -121,8 +124,8 @@
     }
 
     if (busqueda) params.set('busqueda', busqueda);
-    if (precioMin) params.set('precio_min', precioMin);
-    if (precioMax) params.set('precio_max', precioMax);
+    if (precioMin && Number(precioMin) >= 0) params.set('precio_min', Math.max(0, Number(precioMin)));
+    if (precioMax && Number(precioMax) >= 0) params.set('precio_max', Math.max(0, Number(precioMax)));
     if (tipoVehiculo) params.set('tipo_vehiculo', tipoVehiculo);
     if (nivelSeguridad) params.set('nivel_seguridad', nivelSeguridad);
     if (metodoAcceso) params.set('metodo_acceso', metodoAcceso);
@@ -160,6 +163,12 @@
         catalogGrid.appendChild(card);
       });
 
+      // Attach favorite handlers and sync visual state after cards are in DOM
+      catalogGrid.querySelectorAll('.btn-fav-heart').forEach(btn => {
+        btn.addEventListener('click', handleFavToggle);
+      });
+      sincronizarFavoritos();
+
       // Render Pagination
       renderPaginacion(paginacion);
 
@@ -173,9 +182,10 @@
 
   // ─── Create Garage Card ───
   function crearTarjeta(garaje, index) {
-    const card = document.createElement('a');
-    card.href = `detalle-garaje.html?id=${garaje.id}`;
+    // IMPORTANT: Use a <div> instead of <a> so nested <button> receives click events
+    const card = document.createElement('div');
     card.className = 'explore-card';
+    card.dataset.garajeId = garaje.id;
     card.style.animationDelay = `${0.05 * (index % 9)}s`;
 
     // Image section
@@ -185,13 +195,19 @@
     } else {
       imagenHTML = `
         <div class="explore-card-img-placeholder">
-          <i class="fa-solid fa-image"></i>
+          <i class="fa-solid fa-warehouse"></i>
           <span>Sin foto</span>
         </div>`;
     }
 
-    // Vehicle type label
+    // Vehicle type icon
+    const tipoIcons = { auto: 'fa-car-side', moto: 'fa-motorcycle', camioneta: 'fa-truck-pickup' };
     const tipoLabel = TIPO_LABELS[garaje.tipo_vehiculo] || garaje.tipo_vehiculo;
+    const tipoIcon = tipoIcons[garaje.tipo_vehiculo] || 'fa-car';
+
+    // Security icon
+    const segIcons = { 'Básico': 'fa-shield', 'Estándar': 'fa-shield-halved', 'Premium': 'fa-shield-heart' };
+    const segIcon = segIcons[garaje.nivel_seguridad] || 'fa-shield-halved';
 
     // Price formatting
     const precio = parseFloat(garaje.precio_hora).toFixed(2);
@@ -201,32 +217,50 @@
       ? garaje.descripcion
       : 'Espacio de parqueo disponible.';
 
+    const isFav = favoritosIds.has(garaje.id);
+
     card.innerHTML = `
       <div class="explore-card-img-wrapper">
         ${imagenHTML}
+        <div class="explore-card-overlay"></div>
         <span class="explore-card-tag">
-          <i class="fa-solid fa-car"></i> ${tipoLabel}
+          <i class="fa-solid ${tipoIcon}"></i> ${tipoLabel}
         </span>
+        <button class="btn-fav-heart ${isFav ? 'is-fav' : ''}" data-garaje-id="${garaje.id}" title="${isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
+          <i class="fa-${isFav ? 'solid' : 'regular'} fa-heart"></i>
+        </button>
+        <div class="explore-card-price-float">
+          <span class="price-amount">Bs. ${precio}</span>
+          <span class="price-unit">/ hora</span>
+        </div>
       </div>
       <div class="explore-card-body">
         <div class="explore-card-direccion">${garaje.direccion}</div>
         <div class="explore-card-descripcion">${descripcion}</div>
         
-        <div style="display:flex; gap:8px; margin-bottom: 12px; flex-wrap:wrap;">
-          <span style="font-size:0.7rem; background:#e0e3e5; color:#191c1e; padding:2px 8px; border-radius:4px; font-weight:600;"><i class="fa-solid fa-shield-halved" style="color:#006a62;"></i> Seg: ${garaje.nivel_seguridad || 'Estándar'}</span>
-          <span style="font-size:0.7rem; background:#e0e3e5; color:#191c1e; padding:2px 8px; border-radius:4px; font-weight:600;"><i class="fa-solid fa-key" style="color:#006a62;"></i> Acceso: ${garaje.metodo_acceso || 'Manual'}</span>
+        <div class="explore-card-chips">
+          <span class="chip-seg"><i class="fa-solid ${segIcon}"></i> ${garaje.nivel_seguridad || 'Estándar'}</span>
+          <span class="chip-access"><i class="fa-solid fa-right-to-bracket"></i> ${garaje.metodo_acceso || 'Manual'}</span>
         </div>
 
         <div class="explore-card-footer">
-          <span class="explore-card-precio">
-            Bs. ${precio} <small>/ hora</small>
-          </span>
-          <span class="explore-card-action">
+          <span class="explore-card-cta">
             Ver detalles <i class="fa-solid fa-arrow-right"></i>
           </span>
         </div>
       </div>
     `;
+
+    // Navigate to detail on card body click (not on heart button)
+    card.querySelector('.explore-card-body').addEventListener('click', () => {
+      window.location.href = `detalle-garaje.html?id=${garaje.id}`;
+    });
+    card.querySelector('.explore-card-img-wrapper').addEventListener('click', (e) => {
+      // Only navigate if not clicking the heart button
+      if (!e.target.closest('.btn-fav-heart')) {
+        window.location.href = `detalle-garaje.html?id=${garaje.id}`;
+      }
+    });
 
     return card;
   }
@@ -313,6 +347,74 @@
     });
   });
 
+  // ─── Favoritos: toggle handler ───
+  async function handleFavToggle(e) {
+    e.preventDefault();
+    e.stopPropagation(); // Evitar que el click navegue al detalle
+
+    const btn = e.currentTarget;
+    const garajeId = parseInt(btn.dataset.garajeId, 10);
+    const icon = btn.querySelector('i');
+
+    // Animación de pulso
+    btn.classList.add('fav-pulse');
+    setTimeout(() => btn.classList.remove('fav-pulse'), 400);
+
+    try {
+      const resp = await fetch('/api/favoritos/toggle', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ conductor_id: currentUser.id, garaje_id: garajeId })
+      });
+      const json = await resp.json();
+
+      if (json.status === 'ok') {
+        if (json.favorito) {
+          favoritosIds.add(garajeId);
+          btn.classList.add('is-fav');
+          icon.className = 'fa-solid fa-heart';
+          btn.title = 'Quitar de favoritos';
+        } else {
+          favoritosIds.delete(garajeId);
+          btn.classList.remove('is-fav');
+          icon.className = 'fa-regular fa-heart';
+          btn.title = 'Agregar a favoritos';
+        }
+      }
+    } catch (err) {
+      console.error('Error al toggle favorito:', err);
+    }
+  }
+
+  // ─── Cargar IDs de favoritos ───
+  async function cargarFavoritosIds() {
+    try {
+      const resp = await fetch(`/api/favoritos/ids?conductor_id=${currentUser.id}`);
+      const json = await resp.json();
+      if (json.status === 'ok' && Array.isArray(json.ids)) {
+        favoritosIds = new Set(json.ids.map(Number));
+      }
+    } catch (err) {
+      console.error('Error al cargar favoritos:', err);
+    }
+  }
+
+  function sincronizarFavoritos() {
+    document.querySelectorAll('.btn-fav-heart').forEach(btn => {
+      const id = Number(btn.dataset.garajeId);
+      const icon = btn.querySelector('i');
+      if (favoritosIds.has(id)) {
+        btn.classList.add('is-fav');
+        if (icon) icon.className = 'fa-solid fa-heart';
+        btn.title = 'Quitar de favoritos';
+      } else {
+        btn.classList.remove('is-fav');
+        if (icon) icon.className = 'fa-regular fa-heart';
+        btn.title = 'Agregar a favoritos';
+      }
+    });
+  }
+
   // ─── Init ───
   // Prevenir seleccionar fechas pasadas en frontend
   const now = new Date();
@@ -322,6 +424,7 @@
   if (filtroSalida) filtroSalida.min = nowStr;
 
   initTheme();
-  cargarGarajes();
+  // Cargar favoritos primero, luego garajes
+  cargarFavoritosIds().then(() => cargarGarajes());
 
 })();

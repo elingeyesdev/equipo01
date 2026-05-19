@@ -22,9 +22,11 @@ if (session.rol_id !== 1) {
   const navGarajes = document.getElementById('navLinkGarajes');
   if (navGarajes) navGarajes.style.display = 'none';
 } else {
-  // Ocultar "Explorar" en navbar si el usuario es anfitrión
+  // Ocultar "Explorar" y "Favoritos" en navbar si el usuario es anfitrión
   const navExplorar = document.getElementById('navLinkExplorar');
   if (navExplorar) navExplorar.style.display = 'none';
+  const navFavoritos = document.getElementById('navLinkFavoritos');
+  if (navFavoritos) navFavoritos.style.display = 'none';
 }
 
 // Mostrar nombre e iniciales en navbar
@@ -201,12 +203,16 @@ async function cargarPerfil() {
       }
 
       // ── Mostrar/ocultar nav links según rol ──
-      // Explorar: solo conductores | Mis Garajes: solo anfitriones
+      // Explorar + Favoritos: solo conductores | Mis Garajes: solo anfitriones
       const navLinkExplorar = document.getElementById('navLinkExplorar');
+      const navLinkFavoritos = document.getElementById('navLinkFavoritos');
       const navLinkGarajes = document.getElementById('navLinkGarajes');
 
       if (navLinkExplorar) {
         navLinkExplorar.style.display = esAnfitrion ? 'none' : 'flex';
+      }
+      if (navLinkFavoritos) {
+        navLinkFavoritos.style.display = esAnfitrion ? 'none' : 'flex';
       }
       if (navLinkGarajes) {
         navLinkGarajes.style.display = esAnfitrion ? 'flex' : 'none';

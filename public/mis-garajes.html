@@ -45,328 +45,70 @@
   </script>
   
   <style>
+    /* Ripple animation for buttons */
+    @keyframes ripple { 0% { transform: scale(0.8); opacity: 0.8; } 100% { transform: scale(2.4); opacity: 0; } }
+    /* ═══ PARKING LOT BLUEPRINT EDITOR — Adaptive Lanes Rediseño ═══ */
+    .gb-shell{border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);overflow:hidden;background:var(--color-background-primary)}
+    .gb-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:0.5px solid var(--color-border-tertiary);flex-wrap:wrap}
+    .gb-bar-title{font-size:13px;font-weight:500;color:var(--color-text-primary);flex:1;display:flex;align-items:center;gap:7px}
+    .gb-live{width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0}
+    .gb-dim{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--color-text-secondary)}
+    .gb-dim input{width:36px;font-size:12px;font-weight:500;text-align:center;border:0.5px solid var(--color-border-secondary);border-radius:6px;padding:3px 2px;background:var(--color-background-secondary);color:var(--color-text-primary)}
+    .gb-ibtn{font-size:12px;padding:5px 10px;border-radius:7px;cursor:pointer;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-secondary);display:flex;align-items:center;gap:4px;white-space:nowrap}
+    .gb-ibtn:hover{background:var(--color-background-tertiary);color:var(--color-text-primary)}
+    .gb-ibtn.danger{border-color:var(--color-border-danger);color:var(--color-text-danger);background:var(--color-background-danger)}
+    .gb-presets{display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary)}
+    .gb-plabel{font-size:11px;color:var(--color-text-tertiary);margin-right:2px}
+    .gb-preset{font-size:12px;padding:4px 11px;border-radius:20px;cursor:pointer;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary)}
+    .gb-preset:hover{background:var(--color-background-tertiary);color:var(--color-text-primary)}
+    .gb-tools{display:flex;align-items:center;gap:5px;padding:9px 14px;border-bottom:0.5px solid var(--color-border-tertiary);flex-wrap:wrap}
+    .gb-tool{display:flex;align-items:center;gap:5px;font-size:12px;padding:5px 11px;border-radius:7px;border:0.5px solid var(--color-border-secondary);background:transparent;cursor:pointer;color:var(--color-text-secondary);transition:background 0.12s,color 0.12s,border-color 0.12s;user-select:none;white-space:nowrap}
+    .gb-tool:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
+    .gb-tool.on[data-t=parking]{border-color:#16a34a;color:#14532d;background:#f0fdf4}
+    .gb-tool.on[data-t=wall]{border-color:#475569;color:#1e293b;background:#f1f5f9}
+    .gb-tool.on[data-t=entrance]{border-color:#059669;color:#064e3b;background:#ecfdf5}
+    .gb-tool.on[data-t=exit]{border-color:#dc2626;color:#7f1d1d;background:#fef2f2}
+    .gb-tool.on[data-t=aisle]{border-color:#d97706;color:#78350f;background:#fffbeb}
+    .gb-tool.on[data-t=eraser]{border-color:#9333ea;color:#3b0764;background:#faf5ff}
+    .gb-tip{font-size:11px;color:var(--color-text-secondary);padding:5px 11px;border-radius:7px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:4px;margin-left:auto}
+    .gb-tip-icon{font-size:14px;width:16px;height:16px;display:flex;align-items:center;justify-content:center}
+    .gb-vsel{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--color-text-secondary)}
+    .gb-vsel select{font-size:12px;border:0.5px solid var(--color-border-secondary);border-radius:6px;padding:4px 6px;background:var(--color-background-secondary);color:var(--color-text-primary)}
+    .gb-canvas{background:#16213e;padding:12px;overflow:auto;max-height:280px}
+    #tmGrid{display:inline-grid;gap:2px;cursor:crosshair;user-select:none;min-width:100%}
+    .gc{aspect-ratio:1.15;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:filter 0.08s,transform 0.08s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;overflow:hidden}
+    .gc:hover{filter:brightness(1.18);transform:scale(1.06);z-index:3}
+    .gc[data-t=empty]{background:#1e293b;border:1px dashed rgba(255,255,255,0.06)}
+    .gc[data-t=parking]{background:#14532d;border-left:3px solid #22c55e;border-right:3px solid #22c55e;border-top:1px solid rgba(34,197,94,0.25);border-bottom:1px solid rgba(34,197,94,0.25)}
+    .gc[data-t=wall]{background:#0f172a;border:1.5px solid #020617;background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(255,255,255,0.025) 4px,rgba(255,255,255,0.025) 5px)}
+    .gc[data-t=entrance]{background:#064e3b;border:2px solid #10b981}
+    .gc[data-t=exit]{background:#7f1d1d;border:2px solid #ef4444}
+    .gc[data-t=aisle]{background:#1e293b;border:none}
+    .gc-num{font-size:10px;font-weight:700;color:rgba(255,255,255,0.9);line-height:1;letter-spacing:0.03em}
+    .gc-ico{width:18px;height:18px;display:flex;align-items:center;justify-content:center}
+    .gc-lbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:rgba(255,255,255,0.8);margin-top:2px}
+    .gc-aisle-inner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+    .gc-aisle-h{width:86%;height:2px;background:repeating-linear-gradient(90deg,#f59e0b 0,#f59e0b 7px,transparent 7px,transparent 12px);border-radius:1px}
+    .gc-aisle-v{width:2px;height:86%;background:repeating-linear-gradient(180deg,#f59e0b 0,#f59e0b 7px,transparent 7px,transparent 12px);border-radius:1px}
+    .gc-aisle-cross{position:absolute;inset:0}
+    .gc-aisle-cross::before{content:'';position:absolute;top:50%;left:7%;right:7%;height:2px;background:repeating-linear-gradient(90deg,#f59e0b 0,#f59e0b 7px,transparent 7px,transparent 12px);transform:translateY(-50%);border-radius:1px}
+    .gc-aisle-cross::after{content:'';position:absolute;left:50%;top:7%;bottom:7%;width:2px;background:repeating-linear-gradient(180deg,#f59e0b 0,#f59e0b 7px,transparent 7px,transparent 12px);transform:translateX(-50%);border-radius:1px}
+    .gb-foot{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:0.5px solid var(--color-border-tertiary);flex-wrap:wrap}
+    .gb-legend{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
+    .gb-leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary)}
+    .gb-ldot{width:13px;height:10px;border-radius:3px;flex-shrink:0}
+    .gb-stats{display:flex;gap:8px;margin-left:auto}
+    .gb-stat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:7px 12px;text-align:center}
+    .gb-sv{font-size:18px;font-weight:500;color:var(--color-text-primary);line-height:1}
+    .gb-sl{font-size:10px;color:var(--color-text-tertiary);margin-top:2px}
     body { font-family: 'Inter', sans-serif; }
     .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-    /* Estilos preservados para Formularios Legados y Modales */
     .form-group { margin-bottom: 1.5rem; }
     .toast-container { z-index: 9999; }
-
-    /* ══════════════════════════════════════════════════════════
-       TILEMAP EDITOR — Premium Visual System
-    ══════════════════════════════════════════════════════════ */
-
-    /* ── Animated gradient border keyframes ── */
-    @keyframes tmBorderGlow {
-      0%, 100% { border-color: #334155; box-shadow: 0 0 20px rgba(56, 189, 248, 0.04); }
-      50%      { border-color: #475569; box-shadow: 0 0 30px rgba(56, 189, 248, 0.08); }
-    }
-    @keyframes tmPulse { 0%, 100% { opacity: 0.6; } 50% { opacity: 1; } }
-    @keyframes tmCellPop {
-      0%   { transform: scale(0.7); opacity: 0; }
-      60%  { transform: scale(1.12); }
-      100% { transform: scale(1); opacity: 1; }
-    }
-    @keyframes tmScanline {
-      0%   { transform: translateY(-100%); }
-      100% { transform: translateY(100%); }
-    }
-    @keyframes tmShimmer {
-      0%   { background-position: -200% 0; }
-      100% { background-position: 200% 0; }
-    }
-    @keyframes tmRadarPing {
-      0%   { transform: scale(0.8); opacity: 0.8; }
-      100% { transform: scale(2.4); opacity: 0; }
-    }
-
-    /* ── Editor Wrapper ── */
-    .tm-editor-wrapper {
-      background: linear-gradient(145deg, #0a0f1a 0%, #0f172a 50%, #0a1628 100%);
-      border-radius: 20px;
-      padding: 0;
-      border: 1.5px solid #1e293b;
-      animation: tmBorderGlow 4s ease-in-out infinite;
-      position: relative;
-      overflow: hidden;
-    }
-    .tm-editor-wrapper::before {
-      content: '';
-      position: absolute; inset: 0;
-      background: radial-gradient(ellipse at 30% 20%, rgba(56,189,248,0.03) 0%, transparent 50%),
-                  radial-gradient(ellipse at 70% 80%, rgba(34,197,94,0.03) 0%, transparent 50%);
-      pointer-events: none; z-index: 0;
-    }
-
-    /* ── Header bar ── */
-    .tm-header-bar {
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-      padding: 16px 20px;
-      background: linear-gradient(135deg, rgba(30,41,59,0.8), rgba(15,23,42,0.9));
-      border-bottom: 1px solid #1e293b;
-      backdrop-filter: blur(12px);
-      position: relative; z-index: 1;
-    }
-    .tm-header-title {
-      display: flex; align-items: center; gap: 10px;
-      font-size: 0.8rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.08em; color: #38bdf8;
-    }
-    .tm-header-title i { font-size: 0.9rem; }
-    .tm-header-dot {
-      width: 8px; height: 8px; border-radius: 50%;
-      background: #22c55e;
-      box-shadow: 0 0 8px #22c55e88;
-      animation: tmPulse 2s ease-in-out infinite;
-    }
-
-    /* ── Grid size controls ── */
-    .tm-grid-controls {
-      display: flex; align-items: center; gap: 8px;
-      background: rgba(30,41,59,0.6);
-      border: 1px solid #334155;
-      border-radius: 12px; padding: 4px 6px;
-      backdrop-filter: blur(8px);
-    }
-    .tm-grid-controls label {
-      font-size: 0.65rem; color: #475569; font-weight: 700;
-      text-transform: uppercase; padding: 0 6px;
-    }
-    .tm-grid-controls input[type="number"] {
-      width: 40px; background: transparent; color: #e2e8f0;
-      border: none; outline: none; text-align: center;
-      font-size: 0.85rem; font-weight: 600; padding: 6px 2px;
-    }
-    .tm-grid-controls .tm-divider {
-      color: #334155; font-size: 0.9rem; padding: 0 2px; font-weight: 300;
-    }
-
-    /* ── Tool buttons (Brushes) ── */
-    .tm-tool-btn {
-      display: flex; align-items: center; gap: 7px;
-      padding: 8px 14px; border-radius: 10px;
-      border: 1.5px solid transparent;
-      background: rgba(30,41,59,0.7); color: #94a3b8;
-      font-size: 0.78rem; font-weight: 600; cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      backdrop-filter: blur(4px);
-      position: relative; overflow: hidden;
-    }
-    .tm-tool-btn::after {
-      content: '';
-      position: absolute; inset: 0;
-      background: linear-gradient(135deg, transparent 40%, rgba(255,255,255,0.03) 100%);
-      pointer-events: none;
-    }
-    .tm-tool-btn:hover {
-      background: var(--tool-bg); color: #e2e8f0;
-      border-color: var(--tool-color);
-      transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.3);
-    }
-    .tm-tool-btn.active {
-      background: var(--tool-bg); color: var(--tool-color);
-      border-color: var(--tool-color);
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--tool-color) 20%, transparent),
-                  0 4px 16px color-mix(in srgb, var(--tool-color) 15%, transparent),
-                  inset 0 1px 0 rgba(255,255,255,0.05);
-      transform: translateY(-1px);
-    }
-    .tm-tool-icon { font-size: 1.1rem; line-height: 1; filter: drop-shadow(0 0 2px rgba(255,255,255,0.1)); }
-
-    /* ── Preset buttons ── */
-    .tm-preset-btn {
-      background: rgba(30,41,59,0.7); color: #94a3b8;
-      border: 1px solid #334155; padding: 7px 14px;
-      border-radius: 10px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
-      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-      display: flex; align-items: center; gap: 6px;
-      backdrop-filter: blur(4px);
-    }
-    .tm-preset-btn:hover {
-      background: rgba(51,65,85,0.8); color: #e2e8f0;
-      border-color: #64748b; transform: translateY(-1px);
-      box-shadow: 0 4px 12px rgba(0,0,0,0.25);
-    }
-    .tm-preset-btn:active { transform: translateY(0) scale(0.97); }
-
-    /* ── Action buttons (Regenerate/Clear) ── */
-    .tm-action-btn {
-      background: rgba(51,65,85,0.5); color: #94a3b8;
-      border: 1px solid #334155; padding: 7px 14px;
-      border-radius: 10px; font-size: 0.78rem; font-weight: 600; cursor: pointer;
-      transition: all 0.2s; display: flex; align-items: center; gap: 6px;
-    }
-    .tm-action-btn:hover { background: rgba(51,65,85,0.8); color: #e2e8f0; border-color: #64748b; }
-    .tm-action-btn.danger {
-      background: rgba(127,29,29,0.2); color: #f87171;
-      border-color: rgba(127,29,29,0.5);
-    }
-    .tm-action-btn.danger:hover {
-      background: rgba(127,29,29,0.35); border-color: rgba(220,38,38,0.5);
-      box-shadow: 0 0 12px rgba(239,68,68,0.1);
-    }
-
-    /* ── Toolbar section ── */
-    .tm-toolbar-section {
-      padding: 14px 20px;
-      border-bottom: 1px solid rgba(30,41,59,0.6);
-      position: relative; z-index: 1;
-    }
-    .tm-toolbar-label {
-      font-size: 0.6rem; font-weight: 700; text-transform: uppercase;
-      letter-spacing: 0.12em; color: #475569; margin-bottom: 8px;
-      display: flex; align-items: center; gap: 6px;
-    }
-    .tm-toolbar-label::before {
-      content: ''; width: 3px; height: 12px; border-radius: 2px;
-      background: linear-gradient(to bottom, #38bdf8, #3b82f6);
-    }
-
-    /* ── Grid Canvas area ── */
-    .tm-canvas-area {
-      padding: 20px;
-      position: relative; z-index: 1;
-      display: flex; justify-content: center;
-    }
-    .tm-canvas-area::before {
-      content: '';
-      position: absolute; top: 0; left: 50%; width: 2px; height: 100%;
-      transform: translateX(-50%);
-      pointer-events: none; opacity: 0;
-    }
-
-    /* ── Grid Cells ── */
-    .tm-cell {
-      aspect-ratio: 1;
-      min-width: 38px; min-height: 38px;
-      border-radius: 8px;
-      background: rgba(15,23,42,0.6);
-      border: 1.5px solid rgba(30,41,59,0.8);
-      display: flex; flex-direction: column; align-items: center; justify-content: center;
-      font-size: 0.6rem; font-weight: 700; color: transparent;
-      cursor: crosshair;
-      transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
-      position: relative; overflow: hidden;
-      backdrop-filter: blur(2px);
-    }
-    .tm-cell::after {
-      content: '';
-      position: absolute; inset: 0;
-      background: linear-gradient(135deg, rgba(255,255,255,0.02), transparent);
-      pointer-events: none;
-    }
-    .tm-cell:hover {
-      transform: scale(1.1); z-index: 2;
-      border-color: #475569;
-      box-shadow: 0 0 12px rgba(56,189,248,0.08);
-    }
-
-    /* ── Painted cell types ── */
-    .tm-cell[data-tile="parking"] {
-      background: linear-gradient(145deg, #14532d, #166534);
-      border-color: #22c55e55;
-      color: #86efac;
-      box-shadow: 0 0 10px rgba(34,197,94,0.12), inset 0 1px 0 rgba(255,255,255,0.05);
-      animation: tmCellPop 0.25s ease-out;
-    }
-    .tm-cell[data-tile="parking"]::before {
-      content: ''; position: absolute; inset: 0;
-      background: radial-gradient(circle at 30% 30%, rgba(34,197,94,0.15), transparent 60%);
-      pointer-events: none;
-    }
-    .tm-cell[data-tile="wall"] {
-      background: linear-gradient(145deg, #1e293b, #334155);
-      border-color: #47556955;
-      color: transparent;
-      box-shadow: inset 0 2px 4px rgba(0,0,0,0.3);
-    }
-    .tm-cell[data-tile="wall"]::before {
-      content: ''; position: absolute; inset: 0;
-      background: repeating-linear-gradient(45deg, transparent, transparent 3px, rgba(255,255,255,0.02) 3px, rgba(255,255,255,0.02) 6px);
-      pointer-events: none;
-    }
-    .tm-cell[data-tile="entrance"] {
-      background: linear-gradient(145deg, #78350f, #92400e);
-      border-color: #f59e0b55;
-      color: #fde68a;
-      box-shadow: 0 0 12px rgba(245,158,11,0.15), inset 0 1px 0 rgba(255,255,255,0.08);
-      animation: tmCellPop 0.25s ease-out;
-    }
-    .tm-cell[data-tile="entrance"]::before {
-      content: ''; position: absolute; inset: 0;
-      background: radial-gradient(circle at 50% 50%, rgba(245,158,11,0.12), transparent 70%);
-      pointer-events: none;
-    }
-    .tm-cell[data-tile="aisle"] {
-      background: linear-gradient(145deg, #0c4a6e, #075985);
-      border-color: #38bdf855;
-      color: #bae6fd;
-      box-shadow: 0 0 8px rgba(56,189,248,0.1), inset 0 1px 0 rgba(255,255,255,0.05);
-      animation: tmCellPop 0.25s ease-out;
-    }
-    .tm-cell-label { font-size: 0.55rem; font-weight: 700; line-height: 1; margin-top: 1px; text-shadow: 0 0 4px currentColor; }
-    .tm-cell-num  { font-size: 0.65rem; font-weight: 800; text-shadow: 0 0 6px currentColor; }
-
-    /* ── Footer area ── */
-    .tm-footer-area {
-      padding: 14px 20px;
-      border-top: 1px solid rgba(30,41,59,0.8);
-      background: linear-gradient(135deg, rgba(15,23,42,0.5), rgba(30,41,59,0.3));
-      position: relative; z-index: 1;
-    }
-
-    /* ── Legend ── */
-    .tm-legend-item {
-      display: flex; align-items: center; gap: 6px;
-      font-size: 0.72rem; color: #64748b; font-weight: 600;
-    }
-    .tm-legend-dot {
-      width: 12px; height: 12px; border-radius: 4px;
-      background: var(--lc); flex-shrink: 0;
-      box-shadow: 0 0 6px color-mix(in srgb, var(--lc) 40%, transparent);
-      border: 1px solid color-mix(in srgb, var(--lc) 50%, transparent);
-    }
-
-    /* ── Stats cards ── */
-    .tm-stat-card {
-      display: flex; align-items: center; gap: 8px;
-      background: rgba(30,41,59,0.5);
-      border: 1px solid #1e293b;
-      border-radius: 10px; padding: 8px 14px;
-      backdrop-filter: blur(4px);
-    }
-    .tm-stat-card .tm-stat-icon {
-      width: 32px; height: 32px; border-radius: 8px;
-      display: flex; align-items: center; justify-content: center;
-      font-size: 0.85rem;
-    }
-    .tm-stat-card .tm-stat-value {
-      font-size: 1.2rem; font-weight: 800; color: #f1f5f9; line-height: 1;
-    }
-    .tm-stat-card .tm-stat-label {
-      font-size: 0.6rem; font-weight: 600; text-transform: uppercase;
-      letter-spacing: 0.06em; color: #64748b;
-    }
-
-    /* ── Vehicle selector ── */
-    .tm-vehicle-selector {
-      display: flex; align-items: center; gap: 8px;
-      background: rgba(30,41,59,0.6);
-      padding: 6px 12px; border-radius: 10px;
-      border: 1px solid #334155;
-    }
-    .tm-vehicle-selector label {
-      font-size: 0.65rem; color: #64748b; font-weight: 700;
-      text-transform: uppercase; letter-spacing: 0.05em;
-    }
-    .tm-vehicle-selector select {
-      background: transparent; color: #e2e8f0; border: none; outline: none;
-      font-size: 0.8rem; cursor: pointer; font-weight: 500;
-    }
   </style>
-
   <!-- Mis Garajes Backend Styles -->
   <link href="/css/mis-garajes.css" rel="stylesheet">
+  <link href="/css/wizard-garaje.css" rel="stylesheet">
 </head>
 <body class="bg-background text-on-background min-h-screen">
 
@@ -414,10 +156,10 @@
   ============================== -->
   <main class="max-w-7xl mx-auto px-6 py-12" id="mainContentWrapper">
     <!-- Header Section -->
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-12">
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
       <div>
-        <h1 class="text-3xl md:text-4xl font-headline font-bold text-primary tracking-tight mb-2">Tus Espacios de Parqueo</h1>
-        <p class="text-on-surface-variant font-body text-lg">Publica y gestiona tus estacionamientos disponibles.</p>
+        <h1 class="text-3xl md:text-4xl font-headline font-bold text-primary tracking-tight mb-2">Panel del Anfitrión</h1>
+        <p class="text-on-surface-variant font-body text-lg">Gestiona tus estacionamientos y las reservas recibidas.</p>
       </div>
       <button onclick="openModalFormulario()" class="bg-gradient-to-br from-primary to-primary-container text-on-primary hover:from-primary hover:to-secondary transition-all duration-300 rounded-md px-6 py-3 font-label text-sm uppercase tracking-wider font-semibold shadow-[0px_12px_24px_rgba(0,37,66,0.1)] flex items-center justify-center gap-2 group whitespace-nowrap">
         <span class="material-symbols-outlined text-lg transition-transform group-hover:rotate-90 duration-300">add</span>
@@ -425,353 +167,390 @@
       </button>
     </div>
 
+    <!-- Tab Navigation -->
+    <div class="host-tabs-nav" id="hostTabsNav">
+      <button class="host-tab active" id="tabBtnGarajes" onclick="switchTab('garajes')">
+        <span class="material-symbols-outlined">warehouse</span>
+        Mis Garajes
+        <span class="tab-badge" id="tabBadgeGarajes" style="display:none;">0</span>
+      </button>
+      <button class="host-tab" id="tabBtnReservas" onclick="switchTab('reservas')">
+        <span class="material-symbols-outlined">calendar_month</span>
+        Reservas Recibidas
+        <span class="tab-badge urgent" id="tabBadgeReservas" style="display:none;">0</span>
+      </button>
+    </div>
+
     <!-- ========================
          Modal Formulario (Oculto por defecto)
     ======================== -->
-    <div id="modalFormularioWrapper" class="fixed inset-0 z-[100] hidden items-center justify-center bg-slate-900/50 backdrop-blur-sm p-4 transition-opacity">
-      <div class="bg-surface-container-lowest w-full max-w-4xl rounded-2xl shadow-2xl relative flex flex-col max-h-[90vh] overflow-hidden">
-        <!-- Header modal -->
-        <div class="px-6 py-4 border-b border-outline-variant/20 flex justify-between items-center bg-surface-container-lowest z-10">
-          <h2 class="text-xl font-headline font-bold text-primary flex items-center gap-2"><span class="material-symbols-outlined cursor-pointer">add_circle</span> Publicar Nuevo Espacio</h2>
-          <button onclick="closeModalFormulario()" type="button" class="w-8 h-8 flex flex-col items-center justify-center rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant"><span class="material-symbols-outlined">close</span></button>
+    <!-- ══════════════════════════════════════════════════════
+         WIZARD: Publicar Nuevo Garaje (5 pasos)
+    ══════════════════════════════════════════════════════ -->
+    <div id="wizardOverlay" class="wizard-overlay">
+      <div class="wizard-container">
+        <!-- Header -->
+        <div class="wizard-header">
+          <h2><span class="material-symbols-outlined">add_circle</span> Publicar Nuevo Espacio</h2>
+          <button type="button" class="wizard-close-btn" onclick="closeWizard()"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
         </div>
-        <div class="p-6 overflow-y-auto w-full">
-          <section id="sectionFormulario" class="mb-0">
-            <div class="card-body-custom pt-0 border-0 shadow-none">
-
-        <form id="formGaraje" autocomplete="off">
-
-          <!-- Dirección -->
-          <div class="form-group">
-            <label for="inpDireccion" class="form-label-custom">Dirección</label>
-            <input type="text" class="form-control-custom" id="inpDireccion"
-                   placeholder="Ej: Av. 27 de Febrero #45, Naco, Santo Domingo" maxlength="255" required>
-          </div>
-
-          <!-- Descripción -->
-          <div class="form-group">
-            <label for="inpDescripcion" class="form-label-custom">Descripción</label>
-            <textarea class="form-control-custom" id="inpDescripcion"
-                      placeholder="Describe tu espacio: techado, seguridad, horarios disponibles..." maxlength="500" rows="3"></textarea>
-          </div>
-
-          <!-- Precio -->
-          <div class="form-group">
-            <label for="inpPrecio" class="form-label-custom">Precio por hora (Bs.)</label>
-            <input type="number" class="form-control-custom" id="inpPrecio"
-                   placeholder="Ej: 75.00" min="1" step="0.01" required>
-          </div>
-
-          <hr class="form-divider">
-
-          <!-- Horarios Flexibles -->
-          <div class="form-group">
-            <label class="form-label-custom">
-              <i class="fa-solid fa-calendar-week"></i> Horarios de Disponibilidad
-            </label>
-            <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">
-              Configura los días y las horas en los que tu parqueo estará disponible para reservas. Puedes agregar múltiples horarios (ej. L-V de 08:00 a 17:00, S-D de 10:00 a 20:00).
-            </p>
-            <div id="horariosContainer" class="flex flex-col gap-3 mb-3">
-              <!-- Horarios añadidos irán aquí -->
+        <!-- Progress -->
+        <div class="wizard-progress">
+          <div style="position:relative">
+            <div class="wizard-steps-nav">
+              <div class="wizard-steps-nav" style="display:flex;justify-content:space-between;width:100%">
+                <div class="wizard-step-item active" data-step="1"><div class="wizard-step-circle"><span class="step-num">1</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Información</span></div>
+                <div class="wizard-step-item" data-step="2"><div class="wizard-step-circle"><span class="step-num">2</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Tarifas</span></div>
+                <div class="wizard-step-item" data-step="3"><div class="wizard-step-circle"><span class="step-num">3</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Seguridad</span></div>
+                <div class="wizard-step-item" data-step="4"><div class="wizard-step-circle"><span class="step-num">4</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Plano 2D</span></div>
+                <div class="wizard-step-item" data-step="5"><div class="wizard-step-circle"><span class="step-num">5</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Fotos</span></div>
+                <div class="wizard-step-item" data-step="6"><div class="wizard-step-circle"><span class="step-num">6</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Resumen</span></div>
+              </div>
             </div>
-            
-            <div class="bg-surface-container p-4 rounded-xl border border-outline-variant/30 flex flex-col md:flex-row gap-3 items-end">
-              <div class="w-full md:w-auto flex-1">
-                <label class="form-label-custom" style="font-size:0.7rem;">Días de la semana</label>
-                <div class="flex flex-wrap gap-2 mt-1">
-                  <label class="flex items-center gap-1"><input type="checkbox" name="diasHorario" value="1" class="rounded border-outline-variant text-primary focus:ring-primary"> Lun</label>
-                  <label class="flex items-center gap-1"><input type="checkbox" name="diasHorario" value="2" class="rounded border-outline-variant text-primary focus:ring-primary"> Mar</label>
-                  <label class="flex items-center gap-1"><input type="checkbox" name="diasHorario" value="3" class="rounded border-outline-variant text-primary focus:ring-primary"> Mié</label>
-                  <label class="flex items-center gap-1"><input type="checkbox" name="diasHorario" value="4" class="rounded border-outline-variant text-primary focus:ring-primary"> Jue</label>
-                  <label class="flex items-center gap-1"><input type="checkbox" name="diasHorario" value="5" class="rounded border-outline-variant text-primary focus:ring-primary"> Vie</label>
-                  <label class="flex items-center gap-1"><input type="checkbox" name="diasHorario" value="6" class="rounded border-outline-variant text-primary focus:ring-primary"> Sáb</label>
-                  <label class="flex items-center gap-1"><input type="checkbox" name="diasHorario" value="0" class="rounded border-outline-variant text-primary focus:ring-primary"> Dom</label>
+            <div id="wizardProgressLine" class="wizard-progress-line"></div>
+          </div>
+        </div>
+
+        <!-- Form -->
+        <form id="formGaraje" autocomplete="off" novalidate>
+        <div class="wizard-body">
+
+          <!-- ═══ PASO 1: Información Básica ═══ -->
+          <section class="wizard-panel active" data-step="1">
+            <h3 class="wz-step-title">Información Básica</h3>
+            <p class="wz-step-subtitle">Describe tu espacio de estacionamiento para que los conductores lo encuentren.</p>
+            <div class="wz-field">
+              <label class="wz-label" for="inpDireccion">Dirección <span class="required">*</span></label>
+              <input type="text" class="wz-input" id="inpDireccion" placeholder="Ej: Av. 27 de Febrero #45, Naco" maxlength="255" required>
+              <span class="wz-error-msg">Mínimo 5 caracteres</span>
+            </div>
+            <div class="wz-field">
+              <label class="wz-label" for="inpDescripcion">Descripción</label>
+              <textarea class="wz-textarea" id="inpDescripcion" placeholder="Describe tu espacio: techado, seguridad, horarios..." maxlength="500" rows="3"></textarea>
+            </div>
+            <hr class="wz-divider">
+            <label class="wz-label"><i class="fa-solid fa-tags" style="margin-right:4px"></i> Comodidades</label>
+            <p style="font-size:0.8rem;color:#64748b;margin-bottom:12px;">Selecciona las que ofrece tu parqueo.</p>
+            <div class="wz-chips-grid">
+              <label class="wz-chip"><input type="checkbox" name="comodidad" value="techado"><i class="fa-solid fa-warehouse"></i> Techado</label>
+              <label class="wz-chip"><input type="checkbox" name="comodidad" value="cctv"><i class="fa-solid fa-video"></i> CCTV</label>
+              <label class="wz-chip"><input type="checkbox" name="comodidad" value="vigilancia"><i class="fa-solid fa-shield-halved"></i> Vigilancia 24/7</label>
+              <label class="wz-chip"><input type="checkbox" name="comodidad" value="iluminado"><i class="fa-solid fa-lightbulb"></i> Iluminado</label>
+              <label class="wz-chip"><input type="checkbox" name="comodidad" value="acceso_24h"><i class="fa-solid fa-clock"></i> Acceso 24h</label>
+              <label class="wz-chip"><input type="checkbox" name="comodidad" value="cargador_ev"><i class="fa-solid fa-charging-station"></i> Cargador EV</label>
+              <label class="wz-chip"><input type="checkbox" name="comodidad" value="lavado"><i class="fa-solid fa-droplet"></i> Lavado</label>
+              <label class="wz-chip"><input type="checkbox" name="comodidad" value="acceso_discapacidad"><i class="fa-solid fa-wheelchair"></i> Accesible</label>
+            </div>
+          </section>
+
+          <!-- ═══ PASO 2: Tarifas y Horarios ═══ -->
+          <section class="wizard-panel" data-step="2">
+            <h3 class="wz-step-title">Tarifas y Horarios</h3>
+            <p class="wz-step-subtitle">Define el precio y los horarios en que estará disponible tu parqueo.</p>
+            <div class="wz-field">
+              <label class="wz-label" for="inpPrecio">Precio por hora (Bs.) <span class="required">*</span></label>
+              <input type="number" class="wz-input" id="inpPrecio" placeholder="Ej: 75.00" min="1" step="0.01" required>
+              <span class="wz-error-msg">Ingresa un precio válido</span>
+            </div>
+            <hr class="wz-divider">
+            <label class="wz-label"><i class="fa-solid fa-calendar-week" style="margin-right:4px"></i> Horarios de Disponibilidad</label>
+            <p style="font-size:0.8rem;color:#64748b;margin-bottom:12px;">Puedes agregar múltiples franjas horarias.</p>
+            <div id="horariosContainer" class="wz-horarios-list"></div>
+            <div id="hz24hBanner" class="hz-24h-banner" style="display:none">
+              <i class="fa-solid fa-circle-check"></i>
+              <span>Horario 24/7 configurado automáticamente (Acceso 24h activo).</span>
+              <button type="button" onclick="desactivar24h()">Desactivar</button>
+            </div>
+            <div class="wz-horario-builder" id="wzHorarioBuilder">
+              <div class="wz-preset-row">
+                <span class="wz-preset-label">Días:</span>
+                <button type="button" class="wz-preset-btn" onclick="wzPresetDias('lv')">L–V</button>
+                <button type="button" class="wz-preset-btn" onclick="wzPresetDias('ls')">L–S</button>
+                <button type="button" class="wz-preset-btn" onclick="wzPresetDias('finde')">Fin de semana</button>
+                <button type="button" class="wz-preset-btn" onclick="wzPresetDias('todos')">Todos</button>
+              </div>
+              <div class="wz-days-row">
+                <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="1"> Lun</label>
+                <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="2"> Mar</label>
+                <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="3"> Mié</label>
+                <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="4"> Jue</label>
+                <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="5"> Vie</label>
+                <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="6"> Sáb</label>
+                <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="0"> Dom</label>
+              </div>
+              <div class="wz-time-row">
+                <div class="wz-field"><label class="wz-label" style="font-size:0.7rem">Desde</label><input type="time" class="wz-input" id="inpHorarioDesde" value="08:00"></div>
+                <div class="wz-field"><label class="wz-label" style="font-size:0.7rem">Hasta</label><input type="time" class="wz-input" id="inpHorarioHasta" value="20:00"></div>
+                <button type="button" id="btnAgregarHorario" class="wz-btn-add-h"><i class="fa-solid fa-plus"></i> Agregar</button>
+              </div>
+              <div class="wz-preset-row" style="margin-top:8px">
+                <span class="wz-preset-label">Horario rápido:</span>
+                <button type="button" class="wz-preset-btn" onclick="wzPresetHora('06:00','12:00')">Mañana 6–12</button>
+                <button type="button" class="wz-preset-btn" onclick="wzPresetHora('12:00','18:00')">Tarde 12–18</button>
+                <button type="button" class="wz-preset-btn" onclick="wzPresetHora('18:00','22:00')">Noche 18–22</button>
+                <button type="button" class="wz-preset-btn" onclick="wzPresetHora('06:00','22:00')">6–22h</button>
+              </div>
+            </div>
+            <p id="horariosError" style="color:#dc2626;font-size:0.75rem;margin-top:6px;display:none">Agrega al menos un horario.</p>
+
+            <!-- ── Programa de Fidelidad ── -->
+            <hr class="wz-divider" style="margin-top:20px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <label class="wz-label" style="margin-bottom:0"><i class="fa-solid fa-medal" style="color:#f59e0b;margin-right:6px"></i> Programa de Fidelidad <span style="font-size:0.72rem;color:#94a3b8;font-weight:400;">(opcional)</span></label>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.82rem;font-weight:600;color:var(--text-primary)">
+                <input type="checkbox" id="inpFidelidadActivo" style="width:16px;height:16px;accent-color:#006a62;cursor:pointer">
+                Activar
+              </label>
+            </div>
+            <div id="fidelidadConfig" style="display:none;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:16px;margin-bottom:4px">
+              <p style="font-size:0.8rem;color:#166534;margin-bottom:12px"><i class="fa-solid fa-info-circle" style="margin-right:4px"></i>El conductor recibirá un descuento automático cuando alcance el número de visitas indicado.</p>
+              <div class="wz-row">
+                <div class="wz-field">
+                  <label class="wz-label">Visitas requeridas</label>
+                  <select class="wz-select" id="inpFidelidadVisitas">
+                    <option value="5">5 visitas</option>
+                    <option value="10" selected>10 visitas</option>
+                    <option value="15">15 visitas</option>
+                    <option value="20">20 visitas</option>
+                  </select>
+                </div>
+                <div class="wz-field">
+                  <label class="wz-label">Descuento (%)</label>
+                  <input type="number" class="wz-input" id="inpFidelidadDescuento" value="10" min="1" max="50" placeholder="Ej: 10">
                 </div>
               </div>
-              <div>
-                <label class="form-label-custom" style="font-size:0.7rem;">Desde</label>
-                <input type="time" id="inpHorarioDesde" class="form-control-custom w-32" value="08:00">
-              </div>
-              <div>
-                <label class="form-label-custom" style="font-size:0.7rem;">Hasta</label>
-                <input type="time" id="inpHorarioHasta" class="form-control-custom w-32" value="20:00">
-              </div>
-              <button type="button" id="btnAgregarHorario" class="bg-primary text-white font-semibold py-2 px-4 rounded-md hover:bg-secondary transition-colors text-sm flex items-center gap-2 h-[42px]">
-                <i class="fa-solid fa-plus"></i> Agregar
-              </button>
-            </div>
-            <p id="horariosError" class="text-error text-xs mt-2 hidden">Debes agregar al menos un horario de disponibilidad válido.</p>
-          </div>
-
-          <hr class="form-divider">
-
-          <!-- Instrucciones y Seguridad (Mejora Vida Real) -->
-          <div class="form-group">
-            <label class="form-label-custom">
-              <i class="fa-solid fa-shield-halved"></i> Acceso y Seguridad
-            </label>
-            <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">
-              Información crucial para el conductor al llegar al sitio.
-            </p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label for="inpNivelSeguridad" class="form-label-custom" style="font-size:0.7rem;">Nivel de Seguridad</label>
-                <select class="form-control-custom" id="inpNivelSeguridad">
-                  <option value="Básico">Básico (Solo candado/llave)</option>
-                  <option value="Estándar" selected>Estándar (Vigilancia parcial)</option>
-                  <option value="Premium">Premium (CCTV + Seguridad 24/7)</option>
+              <div class="wz-field" style="margin-bottom:0">
+                <label class="wz-label">Validez del descuento</label>
+                <select class="wz-select" id="inpFidelidadValidez">
+                  <option value="30">30 días</option>
+                  <option value="60">60 días</option>
+                  <option value="90">90 días</option>
+                  <option value="">Sin vencimiento (permanente)</option>
                 </select>
               </div>
-              <div>
-                <label for="inpMetodoAcceso" class="form-label-custom" style="font-size:0.7rem;">Método de Entrada</label>
-                <select class="form-control-custom" id="inpMetodoAcceso">
-                  <option value="Manual">Manual (El anfitrión abre)</option>
-                  <option value="Código">Código Digital</option>
-                  <option value="QR" selected>Escaneo de QR (Auto Check-in)</option>
+            </div>
+          </section>
+
+          <!-- ═══ PASO 3: Seguridad y Acceso ═══ -->
+          <section class="wizard-panel" data-step="3">
+            <h3 class="wz-step-title">Seguridad y Acceso</h3>
+            <p class="wz-step-subtitle">El conductor verá esta información al reservar para saber qué esperar al llegar.</p>
+
+            <div class="wz-row">
+              <div class="wz-field">
+                <label class="wz-label">Nivel de Seguridad</label>
+                <select class="wz-select" id="inpNivelSeguridad">
+                  <option value="Básico">Básico — Solo candado o acceso simple</option>
+                  <option value="Estándar" selected>Estándar — Cámara o vigilancia parcial</option>
+                  <option value="Premium">Premium — CCTV 24/7 y seguridad continua</option>
                 </select>
+                <p id="nivelSeguridadHint" style="display:none;font-size:0.75rem;color:#0369a1;margin-top:5px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:4px 8px;"></p>
               </div>
-            </div>
-            <div class="mt-3">
-              <label for="inpInstrucciones" class="form-label-custom" style="font-size:0.7rem;">Instrucciones de Acceso</label>
-              <textarea class="form-control-custom" id="inpInstrucciones" 
-                        placeholder="Ej: El código de la puerta es 1234. Llame al timbre 2B al llegar." rows="2"></textarea>
-            </div>
-          </div>
-
-          <hr class="form-divider">
-
-          <!-- ==============================
-               Sección de Confianza (Módulo Trust)
-          ============================== -->
-          <div class="form-group">
-            <label class="form-label-custom">
-              <i class="fa-solid fa-handshake-angle"></i> Información de Confianza y Reglas
-            </label>
-            <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">
-              Establece las expectativas claras para los conductores y mejora tu perfil como anfitrión.
-            </p>
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-3">
-              <div>
-                <label for="inpDimensiones" class="form-label-custom" style="font-size:0.7rem;">Dimensiones máximas del vehículo</label>
-                <input type="text" class="form-control-custom" id="inpDimensiones" placeholder="Ej: Ancho 2.5m, Alto 2.2m, Largo 5m">
-              </div>
-              <div>
-                <label for="inpPolitica" class="form-label-custom" style="font-size:0.7rem;">Política de Cancelación</label>
-                <select class="form-control-custom" id="inpPolitica">
-                  <option value="Flexible: Reembolso total hasta 2h antes">Flexible: Reembolso total hasta 2h antes</option>
-                  <option value="Moderada: Reembolso 50% hasta 24h antes" selected>Moderada: Reembolso 50% hasta 24h antes</option>
-                  <option value="Estricta: Sin reembolso una vez confirmado">Estricta: Sin reembolso una vez confirmado</option>
+              <div class="wz-field">
+                <label class="wz-label">Método de acceso al garaje</label>
+                <select class="wz-select" id="inpMetodoAcceso">
+                  <option value="Manual">Manual — Llave física o apertura presencial</option>
+                  <option value="Código">Código — Teclado numérico o contraseña</option>
+                  <option value="QR" selected>QR — Lectura QR en puerta inteligente</option>
                 </select>
+                <p style="font-size:0.75rem;color:#64748b;margin-top:5px;"><i class="fa-solid fa-circle-info" style="margin-right:3px"></i>Es el método físico para entrar al garaje, no el método de pago.</p>
               </div>
             </div>
-            <div class="mt-3">
-              <label for="inpReglas" class="form-label-custom" style="font-size:0.7rem;">Reglas de la casa</label>
-              <textarea class="form-control-custom" id="inpReglas" placeholder="Ej: Prohibido lavar el auto, no dejar basura, respetar el límite de velocidad a 10km/h." rows="2"></textarea>
+
+            <div class="wz-field">
+              <label class="wz-label">Instrucciones de Acceso</label>
+              <textarea class="wz-textarea" id="inpInstrucciones" placeholder="Ej: Toca el timbre 2B al llegar. La puerta abre con el código 1234. Estacionamiento al fondo a la derecha." rows="3"></textarea>
+              <p style="font-size:0.75rem;color:#64748b;margin-top:5px;">El conductor las recibirá una vez confirmada la reserva.</p>
             </div>
-          </div>
 
-          <hr class="form-divider">
+            <hr class="wz-divider">
 
-          <!-- ==============================
-               Tilemap Editor 2D — Premium
-          ============================== -->
-          <div class="form-group" id="espacioBuilderSection">
-            <label class="form-label-custom">
-              <i class="fa-solid fa-map"></i> Editor Visual de Plano 2D
-            </label>
-            <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:16px;">
-              Dibuja el plano real de tu garaje. Selecciona una herramienta y <strong>haz clic o arrastra</strong> sobre la cuadrícula para pintar. Define dónde están los parqueos, las paredes, el pasillo y la entrada.
-            </p>
-
-            <!-- ═══ Tilemap Editor Wrapper ═══ -->
-            <div id="tilemapEditor" class="tm-editor-wrapper">
-
-              <!-- ── Header Bar ── -->
-              <div class="tm-header-bar" style="flex-wrap:wrap;">
-                <div class="tm-header-title">
-                  <span class="tm-header-dot"></span>
-                  <i class="fa-solid fa-drafting-compass"></i>
-                  Garage Blueprint Editor
-                </div>
-
-                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                  <!-- Grid Size -->
-                  <div class="tm-grid-controls">
-                    <label>Filas</label>
-                    <input type="number" id="tmFilas" min="3" max="12" value="6">
-                    <span class="tm-divider">×</span>
-                    <input type="number" id="tmColumnas" min="3" max="12" value="8">
-                    <label>Cols</label>
-                  </div>
-                  <button type="button" id="btnTmGenerar" class="tm-action-btn">
-                    <i class="fa-solid fa-rotate"></i> Regenerar
-                  </button>
-                </div>
-              </div>
-
-              <!-- ── Presets Toolbar ── -->
-              <div class="tm-toolbar-section">
-                <div class="tm-toolbar-label">Plantillas Rápidas</div>
-                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                  <button type="button" class="tm-preset-btn" data-preset="linea" title="Línea recta de parqueos">
-                    <i class="fa-solid fa-grip-lines-vertical"></i> Línea
-                  </button>
-                  <button type="button" class="tm-preset-btn" data-preset="ele" title="Distribución en forma de L">
-                    <i class="fa-solid fa-angle-up" style="transform:rotate(-90deg);"></i> En L
-                  </button>
-                  <button type="button" class="tm-preset-btn" data-preset="patio" title="Patio cuadrado con pasillo central">
-                    <i class="fa-solid fa-border-all"></i> Patio
-                  </button>
-                  <div style="flex:1;"></div>
-                  <button type="button" id="btnTmLimpiar" class="tm-action-btn danger" title="Limpiar todo">
-                    <i class="fa-solid fa-broom"></i> Limpiar Todo
-                  </button>
-                </div>
-              </div>
-
-              <!-- ── Brushes Toolbar ── -->
-              <div class="tm-toolbar-section" style="border-bottom:none;">
-                <div class="tm-toolbar-label">Herramientas de Dibujo</div>
-                <div id="tmToolbar" style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                  <button type="button" class="tm-tool-btn active" data-tool="parking"
-                          style="--tool-color:#22c55e; --tool-bg:rgba(20,83,45,0.35);">
-                    <span class="tm-tool-icon">🅿️</span>
-                    <span>Parqueo</span>
-                  </button>
-                  <button type="button" class="tm-tool-btn" data-tool="wall"
-                          style="--tool-color:#94a3b8; --tool-bg:rgba(30,41,59,0.6);">
-                    <span class="tm-tool-icon">🧱</span>
-                    <span>Pared</span>
-                  </button>
-                  <button type="button" class="tm-tool-btn" data-tool="entrance"
-                          style="--tool-color:#f59e0b; --tool-bg:rgba(120,53,15,0.35);">
-                    <span class="tm-tool-icon">🚪</span>
-                    <span>Entrada</span>
-                  </button>
-                  <button type="button" class="tm-tool-btn" data-tool="aisle"
-                          style="--tool-color:#38bdf8; --tool-bg:rgba(12,74,110,0.35);">
-                    <span class="tm-tool-icon">🛤️</span>
-                    <span>Pasillo</span>
-                  </button>
-                  <button type="button" class="tm-tool-btn" data-tool="eraser"
-                          style="--tool-color:#f43f5e; --tool-bg:rgba(76,5,25,0.45);">
-                    <span class="tm-tool-icon">🧹</span>
-                    <span>Borrar</span>
-                  </button>
-
-                  <!-- Vehicle type selector -->
-                  <div id="tmVehicleSelector" class="tm-vehicle-selector" style="margin-left:auto;">
-                    <label>Vehículo</label>
-                    <select id="tmTipoVehiculo">
-                      <option value="auto">🚗 Auto</option>
-                      <option value="moto">🏍️ Moto</option>
-                      <option value="camioneta">🚙 SUV</option>
-                    </select>
+            <div class="wz-field">
+              <label class="wz-label"><i class="fa-solid fa-ruler-combined" style="margin-right:5px;color:#006a62"></i>Dimensiones de la entrada del garaje <span style="font-size:0.75rem;font-weight:400;color:#64748b">(opcional)</span></label>
+              <p style="font-size:0.78rem;color:#64748b;margin-bottom:10px;">Indica el tamaño del acceso. El conductor lo usará para saber si su vehículo puede ingresar.</p>
+              <div class="wz-dim-group">
+                <div class="wz-dim-item">
+                  <span class="wz-dim-label">Altura libre</span>
+                  <div class="wz-dim-control">
+                    <input type="number" class="wz-input" id="inpDimAltura" placeholder="2.2" min="0.1" max="10" step="0.1">
+                    <span class="wz-dim-unit">m</span>
                   </div>
                 </div>
-              </div>
-
-              <!-- ── Grid Canvas ── -->
-              <div class="tm-canvas-area">
-                <div id="tmGrid" style="display:inline-grid; gap:4px; cursor:crosshair; user-select:none; width:100%;">
-                  <!-- Cells generated by JS -->
-                </div>
-              </div>
-
-              <!-- ── Footer: Legend + Stats ── -->
-              <div class="tm-footer-area">
-                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px;">
-                  <!-- Legend -->
-                  <div style="display:flex; flex-wrap:wrap; gap:12px;">
-                    <span class="tm-legend-item" style="--lc:#22c55e;"><span class="tm-legend-dot"></span>Parqueo</span>
-                    <span class="tm-legend-item" style="--lc:#64748b;"><span class="tm-legend-dot"></span>Pared</span>
-                    <span class="tm-legend-item" style="--lc:#f59e0b;"><span class="tm-legend-dot"></span>Entrada</span>
-                    <span class="tm-legend-item" style="--lc:#38bdf8;"><span class="tm-legend-dot"></span>Pasillo</span>
-                    <span class="tm-legend-item" style="--lc:#1e293b;"><span class="tm-legend-dot"></span>Vacío</span>
+                <div class="wz-dim-item">
+                  <span class="wz-dim-label">Ancho de entrada</span>
+                  <div class="wz-dim-control">
+                    <input type="number" class="wz-input" id="inpDimAncho" placeholder="2.5" min="0.1" max="10" step="0.1">
+                    <span class="wz-dim-unit">m</span>
                   </div>
-                  <!-- Stat cards -->
-                  <div style="display:flex; gap:10px; flex-wrap:wrap;">
-                    <div class="tm-stat-card">
-                      <div class="tm-stat-icon" style="background:rgba(20,83,45,0.4); color:#22c55e;">
-                        <i class="fa-solid fa-square-parking"></i>
-                      </div>
-                      <div>
-                        <div class="tm-stat-value" id="tmCountParking">0</div>
-                        <div class="tm-stat-label">Parqueos</div>
-                      </div>
-                    </div>
-                    <div class="tm-stat-card">
-                      <div class="tm-stat-icon" style="background:rgba(12,74,110,0.4); color:#38bdf8;">
-                        <i class="fa-solid fa-table-cells"></i>
-                      </div>
-                      <div>
-                        <div class="tm-stat-value" id="tmCountTotal">0</div>
-                        <div class="tm-stat-label">Pintadas</div>
-                      </div>
-                    </div>
+                </div>
+                <div class="wz-dim-item">
+                  <span class="wz-dim-label">Largo del espacio</span>
+                  <div class="wz-dim-control">
+                    <input type="number" class="wz-input" id="inpDimLargo" placeholder="5.0" min="0.5" max="20" step="0.1">
+                    <span class="wz-dim-unit">m</span>
                   </div>
                 </div>
               </div>
             </div>
 
-            <p id="tilemapError" class="text-error text-xs mt-2 hidden">Debes colocar al menos 1 espacio de parqueo (🟩) en el mapa.</p>
-          </div>
-
-
-          <hr class="form-divider">
-
-          <!-- Comodidades y Reglas -->
-          <div class="form-group">
-            <label class="form-label-custom">
-              <i class="fa-solid fa-tags"></i> Comodidades y Características
-            </label>
-            <p style="font-size:0.8rem;color:var(--text-secondary);margin-bottom:12px;">
-              Selecciona las comodidades que ofrece tu parqueo.
-            </p>
-            <div class="comodidades-grid" id="comodidadesGrid">
-              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="techado"><i class="fa-solid fa-warehouse"></i> Techado</label>
-              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="cctv"><i class="fa-solid fa-video"></i> CCTV</label>
-              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="vigilancia"><i class="fa-solid fa-shield-halved"></i> Vigilancia 24/7</label>
-              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="iluminado"><i class="fa-solid fa-lightbulb"></i> Iluminado</label>
-              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="acceso_24h"><i class="fa-solid fa-clock"></i> Acceso 24h</label>
-              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="cargador_ev"><i class="fa-solid fa-charging-station"></i> Cargador EV</label>
-              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="lavado"><i class="fa-solid fa-droplet"></i> Lavado</label>
-              <label class="comodidad-chip"><input type="checkbox" name="comodidad" value="acceso_discapacidad"><i class="fa-solid fa-wheelchair"></i> Accesible</label>
+            <div class="wz-field">
+              <label class="wz-label">Política del anfitrión <span style="font-size:0.75rem;font-weight:400;color:#64748b">(informativa)</span></label>
+              <select class="wz-select" id="inpPolitica">
+                <option value="Flexible: Reembolso total hasta 2h antes">Flexible — El conductor puede cancelar hasta 2 h antes sin penalización</option>
+                <option value="Moderada: Reembolso 50% hasta 24h antes" selected>Moderada — Penalización si cancela con menos de 24 h de anticipación</option>
+                <option value="Estricta: Sin reembolso una vez confirmado">Estricta — No se aceptan cambios una vez confirmada la reserva</option>
+              </select>
+              <p style="font-size:0.75rem;color:#64748b;margin-top:5px;"><i class="fa-solid fa-circle-info" style="margin-right:3px"></i>El conductor verá esta política antes de reservar. Se aplica como referencia informativa.</p>
             </div>
-          </div>
 
-          <hr class="form-divider">
-
-          <!-- Fotos -->
-          <div class="form-group">
-            <label class="form-label-custom">Fotos del espacio</label>
-            <div class="file-upload-zone" id="uploadZone">
-              <div class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-              <div class="upload-text">Arrastra tus fotos aquí o haz clic para seleccionar</div>
-              <div class="upload-hint">JPG, PNG o WEBP · Máximo 5 fotos · 5 MB cada una</div>
-              <input type="file" id="inpFotos" name="fotos" multiple
-                     accept="image/jpeg,image/png,image/webp">
+            <div class="wz-field">
+              <label class="wz-label">Reglas del garaje <span style="font-size:0.75rem;font-weight:400;color:#64748b">(opcional)</span></label>
+              <textarea class="wz-textarea" id="inpReglas" placeholder="Ej: Prohibido lavar el auto dentro. No dejar basura. Respetar los límites de velocidad." rows="2"></textarea>
             </div>
-            <div class="photo-preview-grid" id="photoPreviewGrid"></div>
-          </div>
+          </section>
 
-          <hr class="form-divider">
+          <!-- ═══ PASO 4: Plano 2D del Garaje ═══ -->
+          <section class="wizard-panel" data-step="4" id="espacioBuilderSection">
+            <h3 class="wz-step-title">Plano 2D del Garaje</h3>
+            <p class="wz-step-subtitle">Define cuántos espacios tendrá tu parqueo y opcionalmente personaliza el plano.</p>
 
-          <!-- Submit -->
-          <div class="d-flex justify-content-end">
-            <button type="submit" class="btn-save" id="btnPublicar">
-              <i class="fa-solid fa-paper-plane"></i> Publicar Espacio
+            <!-- Capacity selector -->
+            <label class="wz-label">¿Cuántos vehículos caben en tu parqueo?</label>
+            <div class="wz-capacity-input">
+              <button type="button" class="wz-cap-btn" id="wzCapMinus">−</button>
+              <div class="wz-cap-display">
+                <span class="wz-cap-number" id="wzCapNumber">4</span>
+                <span class="wz-cap-label">espacios</span>
+              </div>
+              <button type="button" class="wz-cap-btn" id="wzCapPlus">+</button>
+            </div>
+
+            <button type="button" class="wz-btn wz-btn-primary" id="btnAutoGenPlano" style="width:100%;margin-bottom:12px">
+              <span class="material-symbols-outlined">auto_fix_high</span> Generar plano automáticamente
             </button>
+            <div id="wzAutoGenResult" style="display:none;align-items:center;gap:12px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin-bottom:20px">
+              <span class="material-symbols-outlined" style="color:#16a34a;font-size:22px;flex-shrink:0">check_circle</span>
+              <div>
+                <div id="wzAutoGenMsg" style="font-size:0.875rem;font-weight:700;color:#15803d"></div>
+                <div style="font-size:0.75rem;color:#16a34a;margin-top:2px">Puedes personalizar el diseño manualmente si lo deseas.</div>
+              </div>
+            </div>
+
+            <!-- Toggle: customize map -->
+            <div class="wz-toggle-card" id="wzToggleMapCard">
+              <div class="wz-toggle-icon"><span class="material-symbols-outlined">edit_square</span></div>
+              <div class="wz-toggle-text">
+                <h4>Personalizar plano manualmente</h4>
+                <p>Dibuja paredes, entradas, salidas y carriles a tu gusto.</p>
+              </div>
+              <div class="wz-toggle-switch"></div>
+            </div>
+
+            <!-- Tilemap Editor (hidden by default) -->
+            <div id="wzMapEditorSection" style="display:none">
+              <div id="tilemapEditor">
+                <div class="gb-shell">
+                  <div class="gb-bar">
+                    <div class="gb-bar-title"><span class="gb-live"></span>Editor de Plano 2D</div>
+                    <button type="button" class="gb-ibtn danger" id="btnTmLimpiar">✕ Limpiar</button>
+                  </div>
+                  <div class="gb-presets">
+                    <span class="gb-plabel">Plantillas</span>
+                    <button type="button" class="gb-preset tm-preset-btn" data-preset="linea">║ En línea</button>
+                    <button type="button" class="gb-preset tm-preset-btn" data-preset="ele">⌐ En L</button>
+                    <button type="button" class="gb-preset tm-preset-btn" data-preset="patio">⊞ Patio</button>
+                  </div>
+                  <div class="gb-tools" id="tmToolbar">
+                    <button type="button" class="gb-tool tm-tool-btn active" data-tool="parking" data-t="parking"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" stroke="#16a34a" stroke-width="1.5"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7" font-weight="700" fill="#16a34a">P</text></svg> Parqueo</button>
+                    <button type="button" class="gb-tool tm-tool-btn" data-tool="wall" data-t="wall"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" fill="#334155"/></svg> Pared</button>
+                    <button type="button" class="gb-tool tm-tool-btn" data-tool="entrance" data-t="entrance"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" fill="#064e3b" stroke="#10b981" stroke-width="1"/><path d="M4 6.5h5M7 4.5l2 2-2 2" stroke="#10b981" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Entrada</button>
+                    <button type="button" class="gb-tool tm-tool-btn" data-tool="exit" data-t="exit"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" fill="#7f1d1d" stroke="#ef4444" stroke-width="1"/><path d="M9 6.5H4M6 4.5l-2 2 2 2" stroke="#ef4444" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Salida</button>
+                    <button type="button" class="gb-tool tm-tool-btn" data-tool="aisle" data-t="aisle"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" fill="#1e293b"/><line x1="2" y1="6.5" x2="5" y2="6.5" stroke="#f59e0b" stroke-width="1.5"/><line x1="6.5" y1="2" x2="6.5" y2="5" stroke="#f59e0b" stroke-width="1.5"/><line x1="8" y1="6.5" x2="11" y2="6.5" stroke="#f59e0b" stroke-width="1.5"/><line x1="6.5" y1="8" x2="6.5" y2="11" stroke="#f59e0b" stroke-width="1.5"/></svg> Carril</button>
+                    <button type="button" class="gb-tool tm-tool-btn" data-tool="eraser" data-t="eraser"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 11L9 3.5l1.5 1.5L4 11H2z" stroke="#9333ea" stroke-width="1.2" stroke-linejoin="round"/></svg> Borrar</button>
+                    <div class="gb-vsel" id="tmVehicleSelector"><select id="tmTipoVehiculo"><option value="auto">Auto</option><option value="moto">Moto</option><option value="suv">SUV</option></select></div>
+                    <div class="gb-tip"><span class="gb-tip-icon">↔</span>Arrastra para pintar</div>
+                  </div>
+                  <div class="gb-canvas"><div id="tmGrid"></div></div>
+                  <div class="gb-foot">
+                    <div class="gb-legend">
+                      <span class="gb-leg"><span class="gb-ldot" style="background:#14532d;border-left:3px solid #22c55e;border-radius:0"></span>Parqueo</span>
+                      <span class="gb-leg"><span class="gb-ldot" style="background:#0f172a"></span>Pared</span>
+                      <span class="gb-leg"><span class="gb-ldot" style="background:#064e3b;border:1px solid #10b981"></span>Entrada</span>
+                      <span class="gb-leg"><span class="gb-ldot" style="background:#7f1d1d;border:1px solid #ef4444"></span>Salida</span>
+                      <span class="gb-leg"><span class="gb-ldot" style="background:#1e293b;border:1px dashed #f59e0b"></span>Carril</span>
+                    </div>
+                    <div class="gb-stats">
+                      <div class="gb-stat"><div class="gb-sv" id="tmCountParking">0</div><div class="gb-sl">parqueos</div></div>
+                      <div class="gb-stat"><div class="gb-sv" id="tmCountTotal">0</div><div class="gb-sl">pintadas</div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <p id="tilemapError" style="color:#dc2626;font-size:0.75rem;margin-top:6px;display:none">Coloca al menos 1 espacio de parqueo.</p>
+          </section>
+
+          <!-- ═══ PASO 5: Fotos ═══ -->
+          <section class="wizard-panel" data-step="5">
+            <h3 class="wz-step-title">Fotos del Espacio</h3>
+            <p class="wz-step-subtitle">Sube fotos de tu estacionamiento para que los conductores lo vean. (Opcional)</p>
+
+            <div class="wz-field">
+              <label class="wz-label">Fotos del espacio</label>
+              <div class="wz-upload-zone" id="uploadZone">
+                <div class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                <div class="upload-text">Arrastra tus fotos aquí o haz clic</div>
+                <div class="upload-hint">JPG, PNG o WEBP · Máx. 5 fotos · 5 MB c/u</div>
+                <input type="file" id="inpFotos" name="fotos" multiple accept="image/jpeg,image/png,image/webp">
+              </div>
+              <div class="wz-photo-grid" id="photoPreviewGrid"></div>
+            </div>
+          </section>
+
+          <!-- ═══ PASO 6: Resumen y Confirmación ═══ -->
+          <section class="wizard-panel" data-step="6">
+            <h3 class="wz-step-title">Resumen y Confirmación</h3>
+            <p class="wz-step-subtitle">Revisa todos los detalles antes de publicar tu espacio.</p>
+
+            <div style="display:flex;align-items:center;gap:14px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:18px;margin-bottom:24px">
+              <span class="material-symbols-outlined" style="color:#16a34a;font-size:28px;flex-shrink:0">verified</span>
+              <div>
+                <div style="font-size:0.95rem;font-weight:700;color:#15803d">¡Todo listo para publicar!</div>
+                <div style="font-size:0.8rem;color:#16a34a;margin-top:3px">Confirma que toda la información sea correcta. Puedes volver atrás si necesitas corregir algo.</div>
+              </div>
+            </div>
+
+            <label class="wz-label" style="margin-bottom:12px"><i class="fa-solid fa-clipboard-check" style="margin-right:4px"></i> Resumen de tu publicación</label>
+            <div class="wz-summary">
+              <div class="wz-summary-item full"><div class="wz-summary-label">Dirección</div><div class="wz-summary-value" id="sumDireccion">—</div></div>
+              <div class="wz-summary-item"><div class="wz-summary-label">Descripción</div><div class="wz-summary-value" id="sumDescripcion">—</div></div>
+              <div class="wz-summary-item"><div class="wz-summary-label">Precio</div><div class="wz-summary-value highlight" id="sumPrecio">—</div></div>
+              <div class="wz-summary-item"><div class="wz-summary-label">Horarios</div><div class="wz-summary-value" id="sumHorarios">—</div></div>
+              <div class="wz-summary-item"><div class="wz-summary-label">Seguridad</div><div class="wz-summary-value" id="sumSeguridad">—</div></div>
+              <div class="wz-summary-item"><div class="wz-summary-label">Acceso</div><div class="wz-summary-value" id="sumAcceso">—</div></div>
+              <div class="wz-summary-item"><div class="wz-summary-label">Espacios</div><div class="wz-summary-value highlight" id="sumEspacios">—</div></div>
+              <div class="wz-summary-item"><div class="wz-summary-label">Comodidades</div><div class="wz-summary-value" id="sumComodidades">—</div></div>
+              <div class="wz-summary-item"><div class="wz-summary-label">Fotos</div><div class="wz-summary-value" id="sumFotos">—</div></div>
+            </div>
+          </section>
+
+        </div><!-- end wizard-body -->
+
+        <!-- Wizard Footer -->
+        <div class="wizard-footer">
+          <div class="wizard-footer-left">
+            <button type="button" class="wz-btn wz-btn-ghost" id="btnWizardPrev" style="display:none"><span class="material-symbols-outlined">arrow_back</span> Anterior</button>
+            <span class="wz-step-counter" id="wizardStepCounter">Paso 1 de 5</span>
           </div>
+          <div class="wizard-footer-right">
+            <button type="button" class="wz-btn wz-btn-primary" id="btnWizardNext">Siguiente <span class="material-symbols-outlined">arrow_forward</span></button>
+            <button type="submit" class="wz-btn wz-btn-success" id="btnWizardSubmit" style="display:none"><span class="material-symbols-outlined">rocket_launch</span> Publicar Garaje</button>
+          </div>
+        </div>
 
         </form>
-
-      </div>
-    </section>
-        </div>
-      </div>
-    </div>
+      </div><!-- end wizard-container -->
+    </div><!-- end wizard-overlay -->
 
     <!-- ========================
          Sección 2: Mis Parqueos
@@ -832,7 +611,7 @@
     <!-- ========================
          Sección 3: Reservas Recibidas
     ======================== -->
-    <section class="settings-card" id="sectionReservas">
+    <section class="settings-card" id="sectionReservas" style="display:none;">
       <div class="card-header-custom">
         <h2><i class="fa-solid fa-calendar-check"></i> Reservas Recibidas</h2>
         <span id="contadorReservas" style="font-size:0.82rem;font-weight:600;color:var(--text-secondary);"></span>
@@ -862,10 +641,170 @@
       </div>
     </section>
 
+    <!-- ========================
+         Modal: Editar Garaje
+    ======================== -->
+    <div id="editGarajeOverlay" class="wizard-overlay">
+      <div class="wizard-container" style="max-width:580px;max-height:90vh;overflow-y:auto;">
+        <div class="wizard-header">
+          <h2><span class="material-symbols-outlined">edit</span> Editar Espacio</h2>
+          <button type="button" class="wizard-close-btn" onclick="closeEditModal()"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
+        </div>
+        <div class="wizard-body" style="padding:24px;">
+          <input type="hidden" id="editGarajeId">
+          <div class="wz-field">
+            <label class="wz-label" for="editDireccion">Dirección <span class="required">*</span></label>
+            <input type="text" class="wz-input" id="editDireccion" maxlength="255" required>
+          </div>
+          <div class="wz-field">
+            <label class="wz-label" for="editDescripcion">Descripción</label>
+            <textarea class="wz-textarea" id="editDescripcion" rows="2" maxlength="500"></textarea>
+          </div>
+          <div class="wz-row">
+            <div class="wz-field">
+              <label class="wz-label" for="editPrecio">Precio por hora (Bs.) <span class="required">*</span></label>
+              <input type="number" class="wz-input" id="editPrecio" min="1" step="0.01" required>
+            </div>
+            <div class="wz-field">
+              <label class="wz-label" for="editNivelSeguridad">Nivel de Seguridad</label>
+              <select class="wz-select" id="editNivelSeguridad">
+                <option value="Básico">Básico — Solo candado o acceso simple</option>
+                <option value="Estándar">Estándar — Cámara o vigilancia parcial</option>
+                <option value="Premium">Premium — CCTV 24/7 y seguridad continua</option>
+              </select>
+            </div>
+          </div>
+          <div class="wz-row">
+            <div class="wz-field">
+              <label class="wz-label" for="editMetodoAcceso">Método de acceso al garaje</label>
+              <select class="wz-select" id="editMetodoAcceso">
+                <option value="Manual">Manual — Llave física o apertura presencial</option>
+                <option value="Código">Código — Teclado numérico o contraseña</option>
+                <option value="QR">QR — Lectura QR en puerta inteligente</option>
+              </select>
+            </div>
+            <div class="wz-field">
+              <label class="wz-label" for="editPolitica">Política del anfitrión (informativa)</label>
+              <select class="wz-select" id="editPolitica">
+                <option value="Flexible: Reembolso total hasta 2h antes">Flexible — Cancelación hasta 2 h antes</option>
+                <option value="Moderada: Reembolso 50% hasta 24h antes">Moderada — Penalización bajo 24 h</option>
+                <option value="Estricta: Sin reembolso una vez confirmado">Estricta — Sin cambios al confirmar</option>
+              </select>
+            </div>
+          </div>
+          <div class="wz-field">
+            <label class="wz-label" for="editInstrucciones">Instrucciones de Acceso</label>
+            <textarea class="wz-textarea" id="editInstrucciones" rows="2" maxlength="500"></textarea>
+          </div>
+          <hr class="wz-divider">
+          <!-- Loyalty section in edit modal -->
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <label class="wz-label" style="margin-bottom:0"><i class="fa-solid fa-medal" style="color:#f59e0b;margin-right:6px"></i> Programa de Fidelidad</label>
+            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.82rem;font-weight:600;">
+              <input type="checkbox" id="editFidelidadActivo" style="width:16px;height:16px;accent-color:#006a62;cursor:pointer">
+              Activar
+            </label>
+          </div>
+          <div id="editFidelidadConfig" style="display:none;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:16px;">
+            <div class="wz-row">
+              <div class="wz-field">
+                <label class="wz-label">Visitas requeridas</label>
+                <select class="wz-select" id="editFidelidadVisitas">
+                  <option value="5">5 visitas</option>
+                  <option value="10">10 visitas</option>
+                  <option value="15">15 visitas</option>
+                  <option value="20">20 visitas</option>
+                </select>
+              </div>
+              <div class="wz-field">
+                <label class="wz-label">Descuento (%)</label>
+                <input type="number" class="wz-input" id="editFidelidadDescuento" value="10" min="1" max="50">
+              </div>
+            </div>
+            <div class="wz-field" style="margin-bottom:0">
+              <label class="wz-label">Validez del descuento</label>
+              <select class="wz-select" id="editFidelidadValidez">
+                <option value="30">30 días</option>
+                <option value="60">60 días</option>
+                <option value="90">90 días</option>
+                <option value="">Sin vencimiento</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div class="wizard-footer">
+          <div class="wizard-footer-left">
+            <button type="button" class="wz-btn wz-btn-ghost" onclick="closeEditModal()">Cancelar</button>
+          </div>
+          <div class="wizard-footer-right">
+            <button type="button" class="wz-btn wz-btn-success" id="btnGuardarEdit" onclick="guardarEdicionGaraje()">
+              <span class="material-symbols-outlined">save</span> Guardar Cambios
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ========================
+         Modal: Registrar Salida + Multa
+    ======================== -->
+    <div id="multaOverlay" class="wizard-overlay">
+      <div class="wizard-container" style="max-width:500px;">
+        <div class="wizard-header">
+          <h2><span class="material-symbols-outlined">flag</span> Registrar Salida</h2>
+          <button type="button" class="wizard-close-btn" onclick="closeMultaModal()"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
+        </div>
+        <div class="wizard-body" style="padding:24px;">
+          <input type="hidden" id="multaReservaId">
+          <input type="hidden" id="multaPrecioHora">
+          <div style="background:#f1f5f9;border-radius:10px;padding:14px;margin-bottom:16px">
+            <div style="font-size:0.8rem;color:#64748b;margin-bottom:4px">Reserva finaliza según lo acordado:</div>
+            <div style="font-size:1rem;font-weight:700;color:#1e293b" id="multaFechaFinDisplay">—</div>
+          </div>
+          <div class="wz-field">
+            <label class="wz-label" for="inpHoraSalidaReal">Hora real de salida del conductor <span class="required">*</span></label>
+            <input type="datetime-local" class="wz-input" id="inpHoraSalidaReal">
+          </div>
+          <div id="multaResultado" style="display:none;margin-top:12px;padding:14px;border-radius:10px;">
+            <div id="multaOk" style="display:none;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:8px;padding:12px;">
+              <i class="fa-solid fa-circle-check" style="color:#16a34a;margin-right:6px"></i>
+              <strong style="color:#15803d">Sin exceso de tiempo — sin multa.</strong>
+            </div>
+            <div id="multaExceso" style="display:none;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:8px;padding:12px;">
+              <div style="font-size:0.85rem;color:#c2410c;font-weight:700;margin-bottom:8px">
+                <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px"></i>Exceso de tiempo detectado
+              </div>
+              <div style="font-size:0.82rem;color:#9a3412">Minutos extra: <strong id="multaMinutosExtra">0</strong></div>
+              <div style="font-size:0.82rem;color:#9a3412">Intervalos de 30 min: <strong id="multaIntervalos">0</strong></div>
+              <div style="font-size:1rem;font-weight:700;color:#c2410c;margin-top:8px">
+                Multa total: <span id="multaMontoDisplay">Bs. 0.00</span>
+              </div>
+              <div style="font-size:0.75rem;color:#9a3412;margin-top:4px">Precio hora × 1.5 × 0.5h × intervalos de 30 min</div>
+            </div>
+          </div>
+        </div>
+        <div class="wizard-footer">
+          <div class="wizard-footer-left">
+            <button type="button" class="wz-btn wz-btn-ghost" onclick="closeMultaModal()">Cancelar</button>
+          </div>
+          <div class="wizard-footer-right">
+            <button type="button" class="wz-btn" style="background:#475569;color:#fff;border:none;" onclick="calcularMulta()">
+              <i class="fa-solid fa-calculator"></i> Calcular
+            </button>
+            <button type="button" class="wz-btn wz-btn-success" id="btnConfirmarSalida" onclick="confirmarSalida()" disabled>
+              <span class="material-symbols-outlined">flag</span> Confirmar Salida
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
   </main>
 
   <!-- Bootstrap 5 JS Bundle -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <!-- Wizard Logic -->
+  <script src="/js/wizard-garaje.js"></script>
   <!-- Mis Garajes Logic -->
   <script src="/js/mis-garajes.js"></script>
 

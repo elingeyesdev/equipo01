@@ -23,6 +23,26 @@
     return;
   }
 
+  // ─── Toast helper (styled, no browser dialogs) ───
+  function showToast(msg, type = 'success') {
+    const isErr = type === 'error';
+    let el = document.getElementById('_appToast');
+    if (!el) {
+      el = document.createElement('div');
+      el.id = '_appToast';
+      el.style.cssText = 'position:fixed;top:24px;right:24px;z-index:99999;display:flex;align-items:center;gap:12px;padding:14px 20px;border-radius:12px;font-family:Inter,sans-serif;font-size:0.875rem;font-weight:600;color:#fff;max-width:380px;line-height:1.4;box-shadow:0 8px 32px rgba(0,0,0,0.18);transform:translateX(calc(100% + 32px));transition:transform 0.4s cubic-bezier(0.16,1,0.3,1);pointer-events:none';
+      document.body.appendChild(el);
+    }
+    const icon = isErr
+      ? '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex-shrink:0"><circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1.5"/><path d="M10 6v4M10 14h.01" stroke="#fff" stroke-width="2" stroke-linecap="round"/></svg>'
+      : '<svg width="20" height="20" viewBox="0 0 20 20" fill="none" style="flex-shrink:0"><circle cx="10" cy="10" r="9" stroke="#fff" stroke-width="1.5"/><path d="M7 10l2 2 4-4" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+    el.style.background = isErr ? '#dc2626' : '#006a62';
+    el.innerHTML = icon + `<span>${msg}</span>`;
+    clearTimeout(el._timer);
+    requestAnimationFrame(() => requestAnimationFrame(() => { el.style.transform = 'translateX(0)'; }));
+    el._timer = setTimeout(() => { el.style.transform = 'translateX(calc(100% + 32px))'; }, 3500);
+  }
+
   // ─── DOM References ───
   const loadingDetalle   = document.getElementById('loadingDetalle');
   const detalleContent   = document.getElementById('detalleContent');
@@ -47,34 +67,185 @@
   // Reseñas
   const contenedorResenas = document.getElementById('contenedor-resenas');
   const promedioResenas   = document.getElementById('promedioResenas');
-  
-  // Reserva elements
-  const fechaEntrada     = document.getElementById('fechaEntrada');
-  const fechaSalida      = document.getElementById('fechaSalida');
-  const resumenPrecio    = document.getElementById('resumenPrecio');
-  const textoHoras       = document.getElementById('textoHoras');
-  const textoTotal       = document.getElementById('textoTotal');
-  const btnReserva       = document.getElementById('btnReserva');
-  const reservaAlert     = document.getElementById('reservaAlert');
 
-  // Modal elements
-  const modalCheckout       = document.getElementById('modalCheckout');
-  const modalEntrada        = document.getElementById('modalEntrada');
-  const modalSalida         = document.getElementById('modalSalida');
-  const modalHoras          = document.getElementById('modalHoras');
-  const modalSubtotal       = document.getElementById('modalSubtotal');
-  const modalTarifa         = document.getElementById('modalTarifa');
-  const modalTotal          = document.getElementById('modalTotal');
-  const checkAcepto         = document.getElementById('checkAcepto');
-  const btnConfirmarReserva = document.getElementById('btnConfirmarReserva');
-
-  // Mapa 2D elements
+  // Mapa 2D elements (inside wizard)
   const mapaParqueo              = document.getElementById('mapa-parqueo');
   const espacioSeleccionadoInfo  = document.getElementById('espacioSeleccionadoInfo');
   const espacioSeleccionadoLabel = document.getElementById('espacioSeleccionadoLabel');
 
   let garajeCargado = null;
-  let espacioSeleccionadoId = null; // ← Variable global del espacio elegido
+  let espacioSeleccionadoId = null;
+  let espacioSeleccionadoNumero = null;
+
+  // ─── Booking Wizard State ───
+  let reservaWizardStep = 1;
+  const RESERVA_TOTAL_STEPS = 3;
+  let cuponAplicado = null;
+
+  // ─── Booking Wizard: Open / Close ───
+  window.openReservaWizard = function() {
+    const overlay = document.getElementById('reservaWizardOverlay');
+    if (!overlay) return;
+    cuponAplicado = null;
+    const ic = document.getElementById('inputCupon');
+    const fb = document.getElementById('cuponFeedback');
+    const rd = document.getElementById('rowDescuento');
+    if (ic) ic.value = '';
+    if (fb) { fb.style.display = 'none'; fb.textContent = ''; }
+    if (rd) rd.style.display = 'none';
+    reservaWizardGoTo(1);
+    overlay.classList.add('open');
+    overlay.setAttribute('aria-hidden', 'false');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeReservaWizard = function() {
+    const overlay = document.getElementById('reservaWizardOverlay');
+    if (!overlay) return;
+    overlay.classList.remove('open');
+    overlay.setAttribute('aria-hidden', 'true');
+    document.body.style.overflow = '';
+  };
+
+  function reservaWizardGoTo(step) {
+    reservaWizardStep = step;
+    document.querySelectorAll('.reserva-panel').forEach(p => {
+      p.classList.toggle('active', parseInt(p.dataset.step) === step);
+    });
+    document.querySelectorAll('.reserva-step-item').forEach(item => {
+      const s = parseInt(item.dataset.step);
+      item.classList.remove('active', 'completed');
+      if (s === step) item.classList.add('active');
+      else if (s < step) item.classList.add('completed');
+    });
+    const counter = document.getElementById('reservaStepCounter');
+    if (counter) counter.textContent = `Paso ${step} de ${RESERVA_TOTAL_STEPS}`;
+    const btnPrev = document.getElementById('btnReservaPrev');
+    const btnNext = document.getElementById('btnReservaNext');
+    const btnConfirm = document.getElementById('btnConfirmarReserva');
+    if (btnPrev) btnPrev.style.display = step === 1 ? 'none' : '';
+    if (btnNext) btnNext.style.display = step === RESERVA_TOTAL_STEPS ? 'none' : '';
+    if (btnConfirm) btnConfirm.style.display = step === RESERVA_TOTAL_STEPS ? '' : 'none';
+    const body = document.querySelector('.reserva-wizard-body');
+    if (body) body.scrollTop = 0;
+  }
+
+  function reservaWizardNext() {
+    if (!validateReservaStep(reservaWizardStep)) return;
+    if (reservaWizardStep < RESERVA_TOTAL_STEPS) {
+      if (reservaWizardStep === 2) buildReservaSummary();
+      reservaWizardGoTo(reservaWizardStep + 1);
+    }
+  }
+
+  function reservaWizardPrev() {
+    if (reservaWizardStep > 1) reservaWizardGoTo(reservaWizardStep - 1);
+  }
+
+  function validateReservaStep(step) {
+    if (step === 1) {
+      if (!espacioSeleccionadoId) {
+        showToast('Selecciona un espacio en el mapa para continuar.', 'error');
+        return false;
+      }
+    }
+    if (step === 2) {
+      const fe = document.getElementById('fechaEntrada');
+      const fs = document.getElementById('fechaSalida');
+      if (!fe?.value || !fs?.value) {
+        showToast('Ingresa la fecha de llegada y salida.', 'error');
+        return false;
+      }
+      if (new Date(fs.value) <= new Date(fe.value)) {
+        showToast('La salida debe ser posterior a la llegada.', 'error');
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function buildReservaSummary() {
+    const fe = document.getElementById('fechaEntrada');
+    const fs = document.getElementById('fechaSalida');
+    if (!fe?.value || !fs?.value || !garajeCargado) return;
+    const start = new Date(fe.value);
+    const end   = new Date(fs.value);
+    const difHoras = Math.ceil((end - start) / (1000 * 60 * 60));
+    const subtotal  = difHoras * parseFloat(garajeCargado.precio_hora);
+    const tarifa    = subtotal * 0.10;
+    const baseConTarifa = subtotal + tarifa;
+    let descuento = 0;
+    if (cuponAplicado) {
+      descuento = subtotal * (cuponAplicado.descuento_porcentaje / 100);
+    }
+    const total = baseConTarifa - descuento;
+    const fmt = dt => dt.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
+    const setEl = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val; };
+    setEl('sumEspacio',  `Espacio ${espacioSeleccionadoNumero || '--'}`);
+    setEl('sumEntrada',  fmt(start));
+    setEl('sumSalida',   fmt(end));
+    setEl('sumHoras',    difHoras);
+    setEl('sumSubtotal', `Bs. ${subtotal.toFixed(2)}`);
+    setEl('sumTarifa',   `Bs. ${tarifa.toFixed(2)}`);
+    setEl('sumTotal',    `Bs. ${total.toFixed(2)}`);
+    const rowDescuento = document.getElementById('rowDescuento');
+    if (cuponAplicado && rowDescuento) {
+      setEl('sumDescuentoLabel', `Descuento (${cuponAplicado.codigo} −${cuponAplicado.descuento_porcentaje}%)`);
+      setEl('sumDescuento', `-Bs. ${descuento.toFixed(2)}`);
+      rowDescuento.style.display = '';
+    } else if (rowDescuento) {
+      rowDescuento.style.display = 'none';
+    }
+    const checkAcepto = document.getElementById('checkAcepto');
+    const btnConfirm  = document.getElementById('btnConfirmarReserva');
+    if (checkAcepto) checkAcepto.checked = false;
+    if (btnConfirm) btnConfirm.disabled = true;
+  }
+
+  async function handleCuponApply() {
+    const input = document.getElementById('inputCupon');
+    const fb    = document.getElementById('cuponFeedback');
+    const btn   = document.getElementById('btnAplicarCupon');
+    if (!input || !fb) return;
+    const codigo = input.value.trim().toUpperCase();
+    if (!codigo) {
+      cuponAplicado = null;
+      fb.style.display = 'none';
+      buildReservaSummary();
+      return;
+    }
+    if (btn) { btn.style.opacity = '0.6'; btn.disabled = true; }
+    try {
+      const res  = await fetch(`/api/cupones/${encodeURIComponent(codigo)}`);
+      const json = await res.json();
+      if (res.ok && json.status === 'ok') {
+        cuponAplicado = json.data;
+        fb.style.cssText = 'display:block;margin-top:6px;font-size:.8rem;font-weight:600;padding:6px 10px;border-radius:8px;background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;';
+        // Calcular ahorro si ya se seleccionaron fechas
+        let ahorroStr = '';
+        const feEl = document.getElementById('fechaEntrada');
+        const fsEl = document.getElementById('fechaSalida');
+        if (feEl?.value && fsEl?.value && garajeCargado) {
+          const difH = Math.ceil((new Date(fsEl.value) - new Date(feEl.value)) / (1000 * 60 * 60));
+          const base = difH * parseFloat(garajeCargado.precio_hora);
+          const ahorro = base * (cuponAplicado.descuento_porcentaje / 100);
+          ahorroStr = ` — Ahorras Bs. ${ahorro.toFixed(2)}`;
+        }
+        fb.textContent = `✓ Cupón aplicado: ${cuponAplicado.descuento_porcentaje}% de descuento${ahorroStr}`;
+      } else {
+        cuponAplicado = null;
+        fb.style.cssText = 'display:block;margin-top:6px;font-size:.8rem;font-weight:600;padding:6px 10px;border-radius:8px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;';
+        fb.textContent = json.message || 'Cupón inválido o expirado.';
+      }
+    } catch {
+      cuponAplicado = null;
+      fb.style.cssText = 'display:block;margin-top:6px;font-size:.8rem;font-weight:600;padding:6px 10px;border-radius:8px;background:#fef2f2;color:#dc2626;border:1px solid #fecaca;';
+      fb.textContent = 'Error al verificar el cupón.';
+    } finally {
+      if (btn) { btn.style.opacity = ''; btn.disabled = false; }
+    }
+    buildReservaSummary();
+  }
 
   const btnThemeToggle   = document.getElementById('btnThemeToggle');
   const themeIcon        = document.getElementById('themeIcon');
@@ -252,7 +423,7 @@
       // Mejora Real-Life: Nivel de Seguridad y Acceso
       const securityIcons = { 'Básico': 'fa-lock', 'Estándar': 'fa-shield-halved', 'Premium': 'fa-shield-heart' };
       const accessIcons = { 'Manual': 'fa-hand', 'Código': 'fa-hashtag', 'QR': 'fa-qrcode' };
-      
+
       garajeDescripcion.innerHTML += `
         <div style="margin-top:24px; padding:20px; background: #f8fafc; border-radius:12px; border: 1px solid #e2e8f0;">
           <h4 style="font-size: 0.9rem; font-weight: 700; color: #1e293b; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Seguridad y Acceso</h4>
@@ -277,6 +448,17 @@
             </div>
           </div>
         </div>
+      `;
+    }
+
+    // Quick info chips for the CTA card
+    const quickInfo = document.getElementById('garajeQuickInfo');
+    if (quickInfo) {
+      const chipStyle = 'display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;font-size:0.75rem;font-weight:600;';
+      quickInfo.innerHTML = `
+        <span style="${chipStyle}background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;"><i class="fa-solid fa-shield-halved" style="color:#16a34a"></i> ${garaje.nivel_seguridad || 'Estándar'}</span>
+        <span style="${chipStyle}background:#eff6ff;color:#1e3a5f;border:1px solid #bfdbfe;"><i class="fa-solid fa-key" style="color:#2563eb"></i> ${garaje.metodo_acceso || 'Manual'}</span>
+        ${garaje.tipo_vehiculo ? `<span style="${chipStyle}background:#fefce8;color:#713f12;border:1px solid #fde68a;"><i class="fa-solid fa-car" style="color:#ca8a04"></i> ${TIPO_CONFIG[garaje.tipo_vehiculo]?.label || garaje.tipo_vehiculo}</span>` : ''}
       `;
     }
   }
@@ -343,145 +525,155 @@
 
   function renderTilemap(matriz, espacios) {
     if (!mapaParqueo) return;
-
-    // Build a lookup from (fila,col) → espacio data
     const espacioMap = {};
-    espacios.forEach(e => {
-      espacioMap[`${e.fila}-${e.columna}`] = e;
-    });
-
+    espacios.forEach(e => { espacioMap[`${e.fila}-${e.columna}`] = e; });
     const filas = matriz.length;
-    const cols  = filas > 0 ? matriz[0].length : 0;
+    const cols = filas > 0 ? matriz[0].length : 0;
 
-    // Container styles — Blueprint dark theme
-    mapaParqueo.style.cssText = `
-      display: inline-grid;
-      grid-template-columns: repeat(${cols}, 1fr);
-      gap: 2px;
-      background: #0f172a;
-      padding: 14px;
-      border-radius: 12px;
-      width: 100%;
-      border: 1px solid #1e293b;
-    `;
+    // Inject Adaptive Lanes CSS if not present
+    if (!document.getElementById('gc-adaptive-style')) {
+      const style = document.createElement('style');
+      style.id = 'gc-adaptive-style';
+      style.innerHTML = `
+        .gc{aspect-ratio:1.15;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;position:relative;transition:filter 0.08s,transform 0.08s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;overflow:hidden}
+        .gc[data-t=empty]{background:#1e293b;border:1px dashed rgba(255,255,255,0.06)}
+        .gc[data-t=parking]{background:#14532d;border-left:3px solid #22c55e;border-right:3px solid #22c55e;border-top:1px solid rgba(34,197,94,0.25);border-bottom:1px solid rgba(34,197,94,0.25)}
+        .gc[data-t=wall]{background:#0f172a;border:1.5px solid #020617;background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(255,255,255,0.025) 4px,rgba(255,255,255,0.025) 5px)}
+        .gc[data-t=entrance]{background:#064e3b;border:2px solid #10b981}
+        .gc[data-t=exit]{background:#7f1d1d;border:2px solid #ef4444}
+        .gc[data-t=aisle]{background:#1e293b;border:none}
+        .gc-num{font-size:10px;font-weight:700;color:rgba(255,255,255,0.9);line-height:1;letter-spacing:0.03em}
+        .gc-ico{width:18px;height:18px;display:flex;align-items:center;justify-content:center}
+        .gc-lbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:rgba(255,255,255,0.8);margin-top:2px}
+        .gc-aisle-inner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
+        .gc-aisle-h{width:86%;height:2px;background:repeating-linear-gradient(90deg,#f59e0b 0,#f59e0b 7px,transparent 7px,transparent 12px);border-radius:1px}
+        .gc-aisle-v{width:2px;height:86%;background:repeating-linear-gradient(180deg,#f59e0b 0,#f59e0b 7px,transparent 7px,transparent 12px);border-radius:1px}
+        .gc-aisle-cross{position:absolute;inset:0}
+        .gc-aisle-cross::before{content:'';position:absolute;top:50%;left:7%;right:7%;height:2px;background:repeating-linear-gradient(90deg,#f59e0b 0,#f59e0b 7px,transparent 7px,transparent 12px);transform:translateY(-50%);border-radius:1px}
+        .gc-aisle-cross::after{content:'';position:absolute;left:50%;top:7%;bottom:7%;width:2px;background:repeating-linear-gradient(180deg,#f59e0b 0,#f59e0b 7px,transparent 7px,transparent 12px);transform:translateX(-50%);border-radius:1px}
+      `;
+      document.head.appendChild(style);
+    }
 
-    const TILE_STYLES = {
-      empty:    { bg: '#111827', border: '#1f2937', html: '' },
-      wall:     { bg: '#334155', border: '#475569', html: '<span style="font-size:1rem">🧱</span>' },
-      entrance: { bg: '#78350f', border: '#92400e', html: '<span style="font-size:0.9rem">🚪</span><span style="font-size:0.5rem;color:#fde68a;font-weight:700;">ENT</span>' },
-      aisle:    { bg: '#0c4a6e', border: '#075985', html: '<span style="font-size:0.7rem;color:#7dd3fc;">↔</span>' },
+    mapaParqueo.style.cssText = 'background:#16213e;padding:12px;border-radius:12px;border:1px solid #4b5563;overflow-x:auto;-webkit-overflow-scrolling:touch;';
+    mapaParqueo.innerHTML = '';
+
+    const grid = document.createElement('div');
+    grid.style.cssText = `display:inline-grid;grid-template-columns:repeat(${cols},minmax(0,1fr));gap:2px;min-width:100%;`;
+
+    const vCfg = { 
+      auto: { icon:'directions_car', color:'#3b82f6', sz:'15px' }, 
+      moto: { icon:'two_wheeler', color:'#f59e0b', sz:'13px' }, 
+      camioneta: { icon:'local_shipping', color:'#8b5cf6', sz:'15px' }, 
+      techado: { icon:'garage', color:'#10b981', sz:'15px' } 
     };
 
     for (let f = 0; f < filas; f++) {
       for (let c = 0; c < cols; c++) {
-        const cellData = matriz[f][c] || { tile: 'empty', tipo_vehiculo: 'auto' };
-        const tile = cellData.tile || 'empty';
+        const cd = matriz[f][c] || { tile:'empty', tipo_vehiculo:'auto' };
+        const tile = cd.tile || 'empty';
         const key = `${f+1}-${c+1}`;
-        const espacio = espacioMap[key];
-
+        const esp = espacioMap[key];
         const cell = document.createElement('div');
-        cell.style.cssText = `
-          aspect-ratio: 1;
-          min-width: 32px; min-height: 32px;
-          border-radius: 4px;
-          display: flex; flex-direction: column; align-items: center; justify-content: center;
-          font-size: 0.55rem; font-weight: 700;
-          transition: transform 0.1s, box-shadow 0.1s;
-          position: relative;
-        `;
+        cell.className = 'gc';
+        cell.setAttribute('data-t', tile);
 
-        if (tile === 'parking' && espacio) {
-          const isLibre = espacio.estado === 'libre';
-          const vehicleIcons = { auto: '🚗', moto: '🏍️', camioneta: '🚙', techado: '🛖' };
-          const icon = vehicleIcons[espacio.tipo_vehiculo] || '🚗';
-          cell.style.background = isLibre ? '#14532d' : '#7f1d1d';
-          cell.style.border = `1px solid ${isLibre ? '#166534' : '#991b1b'}`;
-          cell.style.cursor = isLibre ? 'pointer' : 'not-allowed';
-          cell.innerHTML = `
-            <span style="font-size:1rem;line-height:1;">${icon}</span>
-            <span style="font-size:0.6rem;font-weight:800;color:${isLibre ? '#86efac' : '#fca5a5'};">${espacio.numero_espacio}</span>
-          `;
-          cell.title = isLibre ? `Espacio ${espacio.numero_espacio} — Libre` : `Espacio ${espacio.numero_espacio} — Ocupado`;
+        if (tile === 'parking' && esp) {
+          const libre = esp.estado === 'libre';
+          const mantenimiento = esp.estado === 'mantenimiento';
+          const v = vCfg[esp.tipo_vehiculo] || vCfg.auto;
+          
+          if (mantenimiento) {
+             cell.style.background = '#422006';
+             cell.style.borderLeft = '3px solid #f59e0b';
+             cell.style.borderRight = '3px solid #f59e0b';
+             cell.style.borderTop = '1px solid rgba(245,158,11,0.25)';
+             cell.style.borderBottom = '1px solid rgba(245,158,11,0.25)';
+          } else if (!libre) {
+             cell.style.background = '#450a0a';
+             cell.style.borderLeft = '3px solid #ef4444';
+             cell.style.borderRight = '3px solid #ef4444';
+             cell.style.borderTop = '1px solid rgba(239,68,68,0.25)';
+             cell.style.borderBottom = '1px solid rgba(239,68,68,0.25)';
+          }
+          cell.style.cursor = libre ? 'pointer' : 'not-allowed';
 
-          if (isLibre) {
-            cell.addEventListener('mouseenter', () => { cell.style.transform = 'scale(1.1)'; cell.style.boxShadow = '0 0 0 2px #22c55e'; });
-            cell.addEventListener('mouseleave', () => { cell.style.transform = 'scale(1)'; cell.style.boxShadow = 'none'; });
+          const top = document.createElement('div');
+          top.className = 'gc-ico';
+          let iconColor = libre ? v.color : (mantenimiento ? '#fbbf24' : '#f87171');
+          top.style.cssText = `color:${iconColor};display:flex;align-items:center;justify-content:center`;
+          top.innerHTML = `<span class="material-symbols-outlined" style="font-size:${v.sz};">${v.icon}</span>`;
+          
+          const num = document.createElement('div');
+          num.className = 'gc-num';
+          num.style.color = libre ? 'rgba(255,255,255,0.9)' : (mantenimiento ? '#fde68a' : '#fca5a5');
+          num.style.fontSize = mantenimiento ? '8px' : '10px';
+          num.textContent = mantenimiento ? 'MANT' : esp.numero_espacio;
+          
+          cell.appendChild(top); cell.appendChild(num);
+
+          let estadoText = 'Ocupado';
+          if (libre) estadoText = 'Libre';
+          if (mantenimiento) estadoText = 'En Mantenimiento';
+          cell.title = `${esp.numero_espacio} — ${estadoText}`;
+          
+          if (libre) {
+            cell.addEventListener('mouseenter', () => { cell.style.filter = 'brightness(1.18)'; cell.style.transform = 'scale(1.06)'; cell.style.zIndex = '3'; });
+            cell.addEventListener('mouseleave', () => { if (cell.dataset.selected !== 'true') { cell.style.filter = ''; cell.style.transform = ''; cell.style.zIndex = ''; } });
             cell.addEventListener('click', () => {
-              // Deselect all
-              mapaParqueo.querySelectorAll('[data-selected="true"]').forEach(el => {
-                el.dataset.selected = 'false';
-                el.style.boxShadow = 'none';
-                el.style.transform = 'scale(1)';
-              });
+              grid.querySelectorAll('[data-selected="true"]').forEach(el => { el.dataset.selected = 'false'; el.style.filter = ''; el.style.transform = ''; el.style.zIndex = ''; });
               cell.dataset.selected = 'true';
-              cell.style.boxShadow = '0 0 0 3px #22c55e, 0 0 12px rgba(34,197,94,0.4)';
-              seleccionarEspacio(cell, espacio);
+              cell.style.filter = 'brightness(1.3)';
+              cell.style.transform = 'scale(1.08)';
+              cell.style.zIndex = '4';
+              seleccionarEspacio(cell, esp);
             });
           }
-        } else if (tile === 'parking' && !espacio) {
-          // Parking tile but no DB espacio (shouldn't happen often)
-          cell.style.background = '#1c1c2e';
-          cell.style.border = '1px dashed #334155';
-          cell.innerHTML = `<span style="font-size:0.7rem;color:#4b5563;">?</span>`;
-        } else {
-          const tileStyle = TILE_STYLES[tile] || TILE_STYLES.empty;
-          cell.style.background = tileStyle.bg;
-          cell.style.border = `1px solid ${tileStyle.border}`;
-          cell.innerHTML = tileStyle.html;
+        } else if (tile === 'entrance') {
+          cell.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3 8h10M10 5l3 3-3 3" stroke="#10b981" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="gc-lbl" style="color:#10b981">ENT</div>';
+        } else if (tile === 'exit') {
+          cell.innerHTML = '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M13 8H3M6 5L3 8l3 3" stroke="#ef4444" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg><div class="gc-lbl" style="color:#ef4444">SAL</div>';
+        } else if (tile === 'wall') {
+          cell.innerHTML = '<div style="font-size:8px;color:rgba(255,255,255,0.15);font-weight:700;letter-spacing:0.05em">▪▪▪</div>';
+        } else if (tile === 'aisle') {
+          const inner = document.createElement('div');
+          inner.className = 'gc-aisle-inner';
+          if (cd.adir === 'cross') {
+            inner.innerHTML = '<div class="gc-aisle-cross"></div>';
+          } else if (cd.adir === 'v') {
+            inner.innerHTML = '<div class="gc-aisle-v"></div>';
+          } else {
+            inner.innerHTML = '<div class="gc-aisle-h"></div>';
+          }
+          cell.appendChild(inner);
         }
-
-        mapaParqueo.appendChild(cell);
+        grid.appendChild(cell);
       }
     }
+    mapaParqueo.appendChild(grid);
 
-    // Legend for the conductor
-    const legend = document.createElement('div');
-    legend.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;';
-    legend.innerHTML = `
-      <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:#64748b;font-weight:600;">
-        <span style="width:10px;height:10px;border-radius:2px;background:#14532d;display:inline-block;"></span>Libre
-      </span>
-      <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:#64748b;font-weight:600;">
-        <span style="width:10px;height:10px;border-radius:2px;background:#7f1d1d;display:inline-block;"></span>Ocupado
-      </span>
-      <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:#64748b;font-weight:600;">
-        <span style="width:10px;height:10px;border-radius:2px;background:#334155;display:inline-block;"></span>Pared
-      </span>
-      <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:#64748b;font-weight:600;">
-        <span style="width:10px;height:10px;border-radius:2px;background:#0c4a6e;display:inline-block;"></span>Pasillo
-      </span>
-      <span style="display:flex;align-items:center;gap:5px;font-size:0.72rem;color:#64748b;font-weight:600;">
-        <span style="width:10px;height:10px;border-radius:2px;background:#78350f;display:inline-block;"></span>Entrada
-      </span>
+    // Leyenda
+    const leg = document.createElement('div');
+    leg.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;padding:8px 12px;background:#1e293b;border-radius:8px;border:1px solid #334155;';
+    leg.innerHTML = `
+      <span style="display:flex;align-items:center;gap:4px;font-size:.68rem;color:#94a3b8;font-weight:600;"><span style="width:12px;height:8px;border-radius:2px;background:#14532d;border-left:3px solid #22c55e;border-right:3px solid #22c55e;display:inline-block;"></span>Libre</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:.68rem;color:#94a3b8;font-weight:600;"><span style="width:12px;height:8px;border-radius:2px;background:#450a0a;border-left:3px solid #ef4444;border-right:3px solid #ef4444;display:inline-block;"></span>Ocupado</span>
+      <span style="display:flex;align-items:center;gap:4px;font-size:.68rem;color:#94a3b8;font-weight:600;"><span style="width:12px;height:8px;border-radius:2px;background:#422006;border-left:3px solid #f59e0b;border-right:3px solid #f59e0b;display:inline-block;"></span>Mantenimiento</span>
     `;
-    mapaParqueo.insertAdjacentElement('afterend', legend);
+    mapaParqueo.appendChild(leg);
   }
 
 
+
+
   function seleccionarEspacio(slotEl, espacio) {
-    // Deseleccionar anterior
     const prev = mapaParqueo.querySelector('.espacio-btn.seleccionado');
-    if (prev) {
-      prev.classList.remove('seleccionado');
-    }
-
-    // Marcar nuevo
+    if (prev) prev.classList.remove('seleccionado');
     slotEl.classList.add('seleccionado');
-
-    // Guardar selección
     espacioSeleccionadoId = espacio.id;
-
-    // Actualizar UI info
-    if (espacioSeleccionadoLabel) {
-      espacioSeleccionadoLabel.textContent = espacio.numero_espacio;
-    }
-    if (espacioSeleccionadoInfo) {
-      // Use Tailwind hidden class
-      espacioSeleccionadoInfo.classList.remove('hidden');
-    }
-
-    // Re-evaluar si el botón de reserva puede habilitarse
-    evaluarBotonReserva();
+    espacioSeleccionadoNumero = espacio.numero_espacio;
+    if (espacioSeleccionadoLabel) espacioSeleccionadoLabel.textContent = espacio.numero_espacio;
+    if (espacioSeleccionadoInfo) espacioSeleccionadoInfo.classList.remove('hidden');
   }
 
   // ─── Fetch Garaje Detail ───
@@ -544,47 +736,33 @@
     }
   }
 
-  // ─── Lógica de Precios en Vivo ───
-  function calcularPrecio() {
-    if (reservaAlert) reservaAlert.classList.add('hidden');
-    
-    if (!fechaEntrada || !fechaSalida || !fechaEntrada.value || !fechaSalida.value || !garajeCargado) {
-      if (resumenPrecio) resumenPrecio.classList.add('hidden');
-      evaluarBotonReserva();
-      return;
-    }
-
-    const start = new Date(fechaEntrada.value).getTime();
-    const end = new Date(fechaSalida.value).getTime();
-
+  // ─── Precio en vivo en el wizard (Step 2) ───
+  function calcularPrecioEnWizard() {
+    const fe = document.getElementById('fechaEntrada');
+    const fs = document.getElementById('fechaSalida');
+    const liveEl = document.getElementById('reservaPrecioLive');
+    const textoH = document.getElementById('textoHoras');
+    const textoT = document.getElementById('textoTotal');
+    const alertEl = document.getElementById('reservaAlert');
+    if (!fe || !fs || !garajeCargado) return;
+    if (alertEl) alertEl.classList.add('hidden');
+    if (!fe.value || !fs.value) { if (liveEl) liveEl.classList.add('hidden'); return; }
+    const start = new Date(fe.value), end = new Date(fs.value);
     if (end <= start) {
-      if (resumenPrecio) resumenPrecio.classList.add('hidden');
-      evaluarBotonReserva();
+      if (liveEl) liveEl.classList.add('hidden');
+      if (alertEl) { alertEl.textContent = 'La salida debe ser posterior a la llegada.'; alertEl.classList.remove('hidden'); }
       return;
     }
-
-    const difMs = end - start;
-    const difHoras = Math.ceil(difMs / (1000 * 60 * 60));
+    const difHoras = Math.ceil((end - start) / (1000 * 60 * 60));
     const total = difHoras * parseFloat(garajeCargado.precio_hora);
-
-    if (textoHoras) textoHoras.textContent = `${difHoras} hora${difHoras > 1 ? 's' : ''} x Bs. ${parseFloat(garajeCargado.precio_hora).toFixed(2)}`;
-    if (textoTotal) textoTotal.textContent = `Bs. ${total.toFixed(2)}`;
-    
-    if (resumenPrecio) resumenPrecio.classList.remove('hidden');
-    evaluarBotonReserva();
+    if (textoH) textoH.textContent = `${difHoras} hora${difHoras > 1 ? 's' : ''} × Bs. ${parseFloat(garajeCargado.precio_hora).toFixed(2)}`;
+    if (textoT) textoT.textContent = `Bs. ${total.toFixed(2)}`;
+    if (liveEl) liveEl.classList.remove('hidden');
   }
 
-  // ─── Evaluar condiciones del botón de reserva ───
-  function evaluarBotonReserva() {
-    if (!btnReserva) return;
-    const tieneFechas = fechaEntrada && fechaSalida && fechaEntrada.value && fechaSalida.value;
-    const fechasValidas = tieneFechas && new Date(fechaSalida.value) > new Date(fechaEntrada.value);
-    const tieneEspacio = espacioSeleccionadoId !== null;
-    btnReserva.disabled = !(fechasValidas && tieneEspacio);
-  }
-
-  if (fechaEntrada) fechaEntrada.addEventListener('change', calcularPrecio);
-  if (fechaSalida) fechaSalida.addEventListener('change', calcularPrecio);
+  document.addEventListener('change', e => {
+    if (e.target.id === 'fechaEntrada' || e.target.id === 'fechaSalida') calcularPrecioEnWizard();
+  });
 
   // ─── Verificar si ya tiene reserva ───
   async function verificarReservaExistente() {
@@ -601,11 +779,13 @@
   }
 
   function mostrarUIReservaExistente() {
-    // Find the booking card (right column)
-    const bookingCard = btnReserva ? btnReserva.closest('.sticky') : null;
-    if (bookingCard) {
-      bookingCard.innerHTML = `
-        <div class="text-center p-6">
+    const ctaCard = document.getElementById('bookingCtaCard');
+    const existCard = document.getElementById('reservaExistenteCard');
+    if (ctaCard) ctaCard.style.display = 'none';
+    if (existCard) {
+      existCard.classList.remove('hidden');
+      existCard.innerHTML = `
+        <div class="text-center p-2">
           <span class="material-symbols-outlined text-4xl text-secondary mb-3 block">check_circle</span>
           <h5 class="text-lg font-bold text-primary mb-2">¡Ya tienes una reserva aquí!</h5>
           <p class="text-sm text-on-surface-variant mb-4">Revisa tu panel de reservas para más detalles.</p>
@@ -617,97 +797,84 @@
     }
   }
 
-  // ─── Interceptar Botón para abrir el Checkout ───
-  if (btnReserva) {
-    btnReserva.addEventListener('click', () => {
-      if (!garajeCargado || !fechaEntrada.value || !fechaSalida.value || !espacioSeleccionadoId) return;
+  // ─── Wizard event bindings (after DOM is ready) ───
+  function initWizardBindings() {
+    const btnAbrir  = document.getElementById('btnAbrirWizardReserva');
+    const btnCerrar = document.getElementById('btnCerrarWizardReserva');
+    const btnNext   = document.getElementById('btnReservaNext');
+    const btnPrev   = document.getElementById('btnReservaPrev');
+    const btnConfirm = document.getElementById('btnConfirmarReserva');
+    const checkAcepto = document.getElementById('checkAcepto');
+    const overlay   = document.getElementById('reservaWizardOverlay');
 
-      const start = new Date(fechaEntrada.value);
-      const end = new Date(fechaSalida.value);
+    if (btnAbrir)  btnAbrir.addEventListener('click', window.openReservaWizard);
+    if (btnCerrar) btnCerrar.addEventListener('click', window.closeReservaWizard);
+    if (btnNext)   btnNext.addEventListener('click', reservaWizardNext);
+    if (btnPrev)   btnPrev.addEventListener('click', reservaWizardPrev);
 
-      if (end <= start) {
-        alert('Las fechas seleccionadas son inválidas.');
-        return;
-      }
+    // Close on overlay click
+    if (overlay) {
+      overlay.addEventListener('click', e => {
+        if (e.target === overlay) window.closeReservaWizard();
+      });
+    }
 
-      const difMs = end.getTime() - start.getTime();
-      const difHoras = Math.ceil(difMs / (1000 * 60 * 60));
-      
-      // Cálculo de Costos Oficiales
-      const subtotal = difHoras * parseFloat(garajeCargado.precio_hora);
-      const tarifa_servicio = subtotal * 0.10; // 10%
-      const total = subtotal + tarifa_servicio;
+    // Coupon apply button
+    const btnCupon = document.getElementById('btnAplicarCupon');
+    if (btnCupon) {
+      btnCupon.addEventListener('click', handleCuponApply);
+    }
+    const inputCupon = document.getElementById('inputCupon');
+    if (inputCupon) {
+      inputCupon.addEventListener('keydown', e => { if (e.key === 'Enter') handleCuponApply(); });
+    }
 
-      // Pintar Modal
-      if (modalEntrada) modalEntrada.textContent = start.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
-      if (modalSalida) modalSalida.textContent = end.toLocaleString('es-ES', { dateStyle: 'short', timeStyle: 'short' });
-      
-      if (modalHoras) modalHoras.textContent = difHoras;
-      if (modalSubtotal) modalSubtotal.textContent = `Bs. ${subtotal.toFixed(2)}`;
-      if (modalTarifa) modalTarifa.textContent = `Bs. ${tarifa_servicio.toFixed(2)}`;
-      if (modalTotal) modalTotal.textContent = `Bs. ${total.toFixed(2)}`;
+    // Checkbox enables confirm button
+    if (checkAcepto && btnConfirm) {
+      checkAcepto.addEventListener('change', e => {
+        btnConfirm.disabled = !e.target.checked;
+      });
+    }
 
-      // Resetear Controles del Modal
-      if (checkAcepto) checkAcepto.checked = false;
-      if (btnConfirmarReserva) btnConfirmarReserva.disabled = true;
-
-      // Abrir Modal
-      if (modalCheckout) {
-        const modalIns = new bootstrap.Modal(modalCheckout);
-        modalIns.show();
-      }
-    });
-  }
-
-  // ─── Checkbox Aceptación ───
-  if (checkAcepto) {
-    checkAcepto.addEventListener('change', (e) => {
-      if (btnConfirmarReserva) btnConfirmarReserva.disabled = !e.target.checked;
-    });
-  }
-
-  // ─── Confirmar y Llamar a la API ───
-  if (btnConfirmarReserva) {
-    btnConfirmarReserva.addEventListener('click', async () => {
-      if (!garajeCargado || !fechaEntrada.value || !fechaSalida.value || !espacioSeleccionadoId) return;
-
-      const originalText = btnConfirmarReserva.innerHTML;
-      btnConfirmarReserva.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirmando...';
-      btnConfirmarReserva.disabled = true;
-
-      try {
-        const response = await fetch('/api/reservas', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            espacio_id: espacioSeleccionadoId,
-            conductor_id: currentUser.id,
-            fecha_inicio: fechaEntrada.value,
-            fecha_fin: fechaSalida.value
-          })
-        });
-
-        const json = await response.json();
-
-        if (response.ok && json.status === 'ok') {
-          const modalIns = bootstrap.Modal.getInstance(modalCheckout);
-          if (modalIns) modalIns.hide();
-          
-          mostrarUIReservaExistente();
-          alert('Reserva solicitada exitosamente. El anfitrión será notificado.');
-        } else {
-          alert(json.message || 'Error al procesar la reserva.');
-          btnConfirmarReserva.innerHTML = originalText;
-          btnConfirmarReserva.disabled = false;
+    // Confirm button → API call
+    if (btnConfirm) {
+      btnConfirm.addEventListener('click', async () => {
+        const fe = document.getElementById('fechaEntrada');
+        const fs = document.getElementById('fechaSalida');
+        if (!garajeCargado || !fe?.value || !fs?.value || !espacioSeleccionadoId) return;
+        const originalHTML = btnConfirm.innerHTML;
+        btnConfirm.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirmando...';
+        btnConfirm.disabled = true;
+        try {
+          const response = await fetch('/api/reservas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              espacio_id: espacioSeleccionadoId,
+              conductor_id: currentUser.id,
+              fecha_inicio: fe.value,
+              fecha_fin: fs.value,
+              cupon_codigo: cuponAplicado?.codigo || null
+            })
+          });
+          const json = await response.json();
+          if (response.ok && json.status === 'ok') {
+            window.closeReservaWizard();
+            mostrarUIReservaExistente();
+            showToast('¡Reserva solicitada! El anfitrión será notificado.');
+          } else {
+            showToast(json.message || 'No se pudo procesar la reserva.', 'error');
+            btnConfirm.innerHTML = originalHTML;
+            btnConfirm.disabled = false;
+          }
+        } catch (err) {
+          console.error(err);
+          showToast('Error de red. Verifica tu conexión.', 'error');
+          btnConfirm.innerHTML = originalHTML;
+          btnConfirm.disabled = false;
         }
-
-      } catch (err) {
-        console.error(err);
-        alert('Error de red al procesar tu solicitud.');
-        btnConfirmarReserva.innerHTML = originalText;
-        btnConfirmarReserva.disabled = false;
-      }
-    });
+      });
+    }
   }
 
   // ─── Lógica de Reseñas ───
@@ -766,6 +933,7 @@
 
   // ─── Init ───
   initTheme();
+  initWizardBindings();
   cargarDetalle();
 
 })();

@@ -1418,3 +1418,190 @@ select.form-control-custom {
     font-size: 2.4rem;
   }
 }
+
+/* ============================
+   Host Tab Navigation
+============================ */
+.host-tabs-nav {
+  display: flex;
+  gap: 4px;
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 6px;
+  margin-bottom: 24px;
+  box-shadow: var(--card-shadow);
+  border: 1px solid var(--sidebar-border);
+}
+
+.host-tab {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 12px 20px;
+  border-radius: 8px;
+  border: none;
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.host-tab:hover {
+  background: var(--sidebar-hover);
+  color: var(--text-primary);
+}
+
+.host-tab.active {
+  background: var(--accent);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(24, 119, 242, 0.3);
+}
+
+.host-tab .material-symbols-outlined {
+  font-size: 18px;
+}
+
+.tab-badge {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+  border-radius: 20px;
+  padding: 2px 8px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.host-tab:not(.active) .tab-badge {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+
+.tab-badge.urgent {
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+.host-tab.active .tab-badge.urgent {
+  background: rgba(255, 255, 255, 0.35);
+  animation: pulse 1.5s ease-in-out infinite;
+}
+
+/* ============================
+   Reserva Cards (mobile-friendly)
+============================ */
+.reserva-card {
+  background: var(--card-bg);
+  border-radius: 12px;
+  padding: 16px 18px;
+  border: 1px solid var(--sidebar-border);
+  margin-bottom: 12px;
+  transition: box-shadow 0.2s;
+}
+
+.reserva-card:hover {
+  box-shadow: var(--card-shadow-hover);
+}
+
+.reserva-card-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.reserva-card-conductor {
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: var(--text-primary);
+}
+
+.reserva-card-telefono {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  margin-top: 2px;
+}
+
+.reserva-card-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 12px;
+  font-size: 0.82rem;
+  color: var(--text-secondary);
+}
+
+.reserva-card-meta span {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.reserva-card-total {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--accent);
+  margin-bottom: 4px;
+}
+
+.reserva-multa-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  background: rgba(220, 53, 69, 0.1);
+  color: var(--danger);
+  margin-left: 8px;
+}
+
+.reserva-card-actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  border-top: 1px solid var(--sidebar-border);
+  padding-top: 12px;
+  margin-top: 4px;
+}
+
+/* Pendiente highlight */
+.reserva-card.is-pendiente {
+  border-left: 4px solid #f59e0b;
+}
+
+.reserva-card.is-confirmada {
+  border-left: 4px solid var(--success);
+}
+
+/* Edit button on garage cards */
+.btn-edit-garaje {
+  width: 100%;
+  padding: 8px 16px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  border: 1.5px solid var(--sidebar-border);
+  background: var(--input-bg);
+  color: var(--text-secondary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  margin-bottom: 6px;
+}
+
+.btn-edit-garaje:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+  background: rgba(24, 119, 242, 0.04);
+}

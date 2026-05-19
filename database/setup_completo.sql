@@ -14,8 +14,10 @@
 -- DIAGRAMA DE TABLAS:
 --   Credenciales ──┬── UsuarioAnfitrion ──── Garajes ──┬── FotosGaraje
 --                  │                                    ├── Espacios ──── Reservas
---                  │                                    └── ComodidadesGaraje
---                  └── UsuarioConductor ────────────────────── Reservas
+--                  │                                    ├── ComodidadesGaraje
+--                  │                                    ├── Resenas
+--                  │                                    └── Favoritos ←─┐
+--                  └── UsuarioConductor ────────────────────────────────┘
 -- ============================================================
 
 -- ── 1. Base de datos ────────────────────────────────────────
