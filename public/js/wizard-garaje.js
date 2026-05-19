@@ -301,6 +301,33 @@ function buildWizardSummary() {
   setVal('sumFotos', selectedFiles.length + ' foto(s)');
 }
 
+// ── Sync comodidades de seguridad → Nivel de Seguridad (paso 3) ─
+function sincronizarNivelSeguridad() {
+  const hasCCTV      = !!document.querySelector('input[name="comodidad"][value="cctv"]')?.checked;
+  const hasVigilancia = !!document.querySelector('input[name="comodidad"][value="vigilancia"]')?.checked;
+  const nivelEl      = document.getElementById('inpNivelSeguridad');
+  const nivelHint    = document.getElementById('nivelSeguridadHint');
+  if (!nivelEl) return;
+
+  let nuevoNivel;
+  if (hasCCTV && hasVigilancia)       nuevoNivel = 'Premium';
+  else if (hasCCTV || hasVigilancia)  nuevoNivel = 'Estándar';
+  else                                nuevoNivel = 'Básico';
+
+  nivelEl.value = nuevoNivel;
+
+  if (nivelHint) {
+    const autoSet = hasCCTV || hasVigilancia;
+    nivelHint.style.display = autoSet ? 'block' : 'none';
+    if (autoSet) {
+      const motivo = hasCCTV && hasVigilancia
+        ? 'CCTV + Vigilancia 24/7'
+        : hasCCTV ? 'CCTV seleccionado' : 'Vigilancia 24/7 seleccionada';
+      nivelHint.textContent = `ℹ️ Ajustado a ${nuevoNivel} por: ${motivo}`;
+    }
+  }
+}
+
 // ── Init wizard events ──────────────────────────────────────
 function initWizard() {
   const btnNext = document.getElementById('btnWizardNext');
@@ -329,6 +356,10 @@ function initWizard() {
   // Auto-generate button
   const btnAutoGen = document.getElementById('btnAutoGenPlano');
   if (btnAutoGen) btnAutoGen.addEventListener('click', aplicarAutoPlano);
+
+  // Sync comodidades de seguridad → Nivel de Seguridad
+  document.querySelectorAll('input[name="comodidad"][value="cctv"], input[name="comodidad"][value="vigilancia"]')
+    .forEach(cb => cb.addEventListener('change', sincronizarNivelSeguridad));
 
   // Initialize at step 1
   wizardGoTo(1);

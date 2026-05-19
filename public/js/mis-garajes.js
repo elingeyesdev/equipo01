@@ -1043,13 +1043,27 @@ async function cargarReservasRecibidas() {
 
         let accionesHTML = '';
         if (r.estado === 'pendiente') {
-          accionesHTML = `
-            <button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)">
-              <i class="fa-solid fa-check"></i> Confirmar
-            </button>
-            <button class="btn-reserva rechazar" onclick="cambiarEstadoReserva(${r.id}, 'rechazada', this)">
-              <i class="fa-solid fa-xmark"></i> Rechazar
-            </button>`;
+          if (r.estado_pago === 'pagado') {
+            accionesHTML =
+              `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-qrcode"></i> Pago QR recibido</span><br>` +
+              `<button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)"><i class="fa-solid fa-check"></i> Confirmar</button>` +
+              `<button class="btn-reserva rechazar"  onclick="cambiarEstadoReserva(${r.id}, 'rechazada',  this)"><i class="fa-solid fa-xmark"></i> Rechazar</button>`;
+          } else if (r.estado_pago === 'efectivo_pendiente') {
+            accionesHTML =
+              `<span style="display:inline-flex;align-items:center;gap:4px;background:#fff7ed;color:#92400e;border:1px solid #fed7aa;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-money-bill-wave"></i> Efectivo pendiente de confirmar</span><br>` +
+              `<button class="btn-reserva confirmar" onclick="confirmarPagoEfectivo(${r.id}, this)"><i class="fa-solid fa-hand-holding-dollar"></i> Confirmar efectivo recibido</button>` +
+              `<button class="btn-reserva rechazar"  onclick="cambiarEstadoReserva(${r.id}, 'rechazada', this)"><i class="fa-solid fa-xmark"></i> Rechazar</button>`;
+          } else if (r.estado_pago === 'efectivo_confirmado') {
+            accionesHTML =
+              `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-circle-check"></i> Efectivo recibido ✓</span><br>` +
+              `<button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)"><i class="fa-solid fa-check"></i> Confirmar reserva</button>` +
+              `<button class="btn-reserva rechazar"  onclick="cambiarEstadoReserva(${r.id}, 'rechazada',  this)"><i class="fa-solid fa-xmark"></i> Rechazar</button>`;
+          } else {
+            accionesHTML =
+              `<span style="display:inline-flex;align-items:center;gap:4px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-clock"></i> Pago pendiente</span><br>` +
+              `<button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)"><i class="fa-solid fa-check"></i> Confirmar</button>` +
+              `<button class="btn-reserva rechazar"  onclick="cambiarEstadoReserva(${r.id}, 'rechazada',  this)"><i class="fa-solid fa-xmark"></i> Rechazar</button>`;
+          }
         } else if (r.estado === 'confirmada') {
           accionesHTML = `
             <button class="btn-reserva" style="background:#475569;color:white;border:none;"
@@ -1135,6 +1149,36 @@ async function cambiarEstadoReserva(reservaId, nuevoEstado, btnElement) {
     }
   } catch (err) {
     console.error('Error al cambiar estado reserva:', err);
+    showToast('No se pudo conectar con el servidor.', 'error');
+    btnElement.disabled = false;
+    btnElement.innerHTML = origHTML;
+  }
+}
+
+// ============================================================
+// Confirmar recepción de pago en efectivo (anfitrión)
+// ============================================================
+async function confirmarPagoEfectivo(reservaId, btnElement) {
+  btnElement.disabled = true;
+  const origHTML = btnElement.innerHTML;
+  btnElement.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirmando...';
+  try {
+    const res = await fetch(`/api/reservas/${reservaId}/confirmar-efectivo`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ anfitrion_id: currentUser.id }),
+    });
+    const data = await res.json();
+    if (res.ok && data.status === 'ok') {
+      showToast('¡Efectivo confirmado! Ahora puedes aceptar o rechazar la reserva.');
+      await cargarReservasRecibidas();
+    } else {
+      showToast(data.message || 'Error al confirmar el efectivo.', 'error');
+      btnElement.disabled = false;
+      btnElement.innerHTML = origHTML;
+    }
+  } catch (err) {
+    console.error('Error al confirmar efectivo:', err);
     showToast('No se pudo conectar con el servidor.', 'error');
     btnElement.disabled = false;
     btnElement.innerHTML = origHTML;

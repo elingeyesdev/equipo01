@@ -350,6 +350,9 @@
   font-weight: 700;
   text-decoration: none;
   transition: all 0.2s ease;
+  border: none;
+  cursor: pointer;
+  font-family: inherit;
 }
 
 .fav-card-action:hover {

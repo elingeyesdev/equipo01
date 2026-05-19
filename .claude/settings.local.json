@@ -11,7 +11,17 @@
       "Bash(Remove-Item database\\\\init.sql, database\\\\garajes_module.sql -Force)",
       "PowerShell(cd \"C:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\"; Get-ChildItem -Recurse -Exclude node_modules,.git | Where-Object { $_.FullName -notmatch 'node_modules|\\\\.git' } | Select-Object -ExpandProperty FullName | ForEach-Object { $_.Replace\\(\"C:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\\\\\", \"\"\\) } | Sort-Object)",
       "Bash(Get-ChildItem -Path \"C:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\\\\public\" -Recurse -Include \"*.html\", \"*.css\")",
-      "Bash(Select-Object FullName)"
+      "Bash(Select-Object FullName)",
+      "Bash(xargs grep -l \"tmPincel\\\\|tile.*parking\\\\|tile.*wall\")",
+      "Bash(Get-ChildItem -Path \"c:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\" -Recurse -Force)",
+      "Bash(ConvertTo-Json -Depth 100)",
+      "Bash(Out-String)",
+      "Bash(grep -E \"\\\\.html$\")",
+      "Bash(dir \"c:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\\\\public\" /b)",
+      "Bash(findstr /i \"mantenimiento garaje wizard\")",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)",
+      "Bash(node -e ' *)"
     ]
   }
 }

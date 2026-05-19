@@ -216,6 +216,73 @@ tailwind.config = {
   .btn-confirmar:hover { opacity: 0.9; }
   .btn-rechazar  { background: #fef2f2; color: #991b1b; border: 1px solid #fca5a5; }
   .btn-rechazar:hover  { background: #fee2e2; }
+
+  /* ── Estado Stepper ── */
+  .estado-stepper { display:flex; align-items:center; padding:14px 22px 0; margin-bottom:2px; }
+  .step-dot { display:flex; flex-direction:column; align-items:center; gap:3px; flex-shrink:0; }
+  .step-circle { width:20px; height:20px; border-radius:50%; border:2px solid #e2e8f0; background:#f8fafc; display:flex; align-items:center; justify-content:center; font-size:0.62rem; color:#fff; font-weight:800; }
+  .step-circle.done   { background:#006a62; border-color:#006a62; }
+  .step-circle.active { background:#f59e0b; border-color:#f59e0b; }
+  .step-circle.fail   { background:#ba1a1a; border-color:#ba1a1a; }
+  .step-label { font-size:0.56rem; font-weight:700; text-transform:uppercase; letter-spacing:.06em; color:#cbd5e1; white-space:nowrap; }
+  .step-label.done   { color:#006a62; }
+  .step-label.active { color:#92400e; }
+  .step-label.fail   { color:#ba1a1a; }
+  .step-connector { flex:1; height:2px; background:#e2e8f0; margin-bottom:11px; min-width:16px; }
+  .step-connector.done { background:#006a62; }
+
+  /* ── Calendario Visual ── */
+  .cal-wrap { background:#fff; border-radius:16px; border:1px solid #e2e8f0; padding:20px 24px; margin-bottom:24px; box-shadow:0 1px 6px rgba(0,37,66,.05); animation:fadeInCal .25s ease; }
+  @keyframes fadeInCal { from{opacity:0;transform:translateY(-8px)} to{opacity:1;transform:translateY(0)} }
+  .cal-nav { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+  .cal-titulo { font-size:1rem; font-weight:800; color:#002542; }
+  .cal-btn { background:none; border:1px solid #e2e8f0; border-radius:8px; width:32px; height:32px; cursor:pointer; display:flex; align-items:center; justify-content:center; color:#73777e; transition:.15s; font-family:inherit; }
+  .cal-btn:hover { background:#f1f5f9; color:#002542; }
+  .cal-headers { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; margin-bottom:4px; }
+  .cal-hd { text-align:center; font-size:0.62rem; font-weight:700; text-transform:uppercase; letter-spacing:.08em; color:#94a3b8; padding:4px 0; }
+  .cal-days { display:grid; grid-template-columns:repeat(7,1fr); gap:3px; }
+  .cal-day { min-height:46px; border-radius:9px; display:flex; flex-direction:column; align-items:center; justify-content:center; padding:4px 2px; border:1px solid transparent; transition:.12s; }
+  .cal-day.has-reserva { background:#f0fdf4; border-color:#bbf7d0; cursor:pointer; }
+  .cal-day.has-reserva:hover { background:#dcfce7; border-color:#86efac; }
+  .cal-day.empty { background:transparent; }
+  .cal-day.cal-today .cal-num { background:#002542; color:#fff; border-radius:50%; width:22px; height:22px; display:flex; align-items:center; justify-content:center; font-weight:800; }
+  .cal-num { font-size:0.78rem; font-weight:600; color:#374151; }
+  .cal-dots { display:flex; gap:2px; margin-top:3px; }
+  .cal-dot { width:5px; height:5px; border-radius:50%; flex-shrink:0; }
+  .cal-legend { display:flex; gap:16px; margin-top:14px; padding-top:12px; border-top:1px solid #f1f5f9; flex-wrap:wrap; }
+  .cal-leg-item { display:flex; align-items:center; gap:5px; font-size:0.68rem; font-weight:600; color:#73777e; }
+
+  /* ── Pasarela de Pago ── */
+  .pasarela-overlay { position:fixed; inset:0; z-index:9000; background:rgba(0,0,0,.55); display:flex; align-items:center; justify-content:center; padding:20px; opacity:0; pointer-events:none; transition:opacity .25s; backdrop-filter:blur(4px); }
+  .pasarela-overlay.open { opacity:1; pointer-events:all; }
+  .pasarela-modal { background:#fff; border-radius:20px; width:100%; max-width:440px; overflow:hidden; transform:translateY(20px); transition:transform .3s cubic-bezier(.34,1.56,.64,1); box-shadow:0 24px 60px rgba(0,37,66,.22); }
+  .pasarela-overlay.open .pasarela-modal { transform:translateY(0); }
+  .pasarela-head { background:linear-gradient(135deg,#002542,#1b3b5a); padding:24px 28px 20px; color:#fff; }
+  .pasarela-head h3 { font-size:1.05rem; font-weight:800; margin:0 0 3px; }
+  .pasarela-head p  { font-size:0.78rem; opacity:.7; margin:0; }
+  .pasarela-body { padding:24px 28px; }
+  .pasarela-total { background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:14px 18px; margin-bottom:22px; display:flex; align-items:center; justify-content:space-between; }
+  .pasarela-total span { font-size:0.78rem; font-weight:600; color:#14532d; }
+  .pasarela-total strong { font-size:1.5rem; font-weight:900; color:#006a62; letter-spacing:-.02em; }
+  .pay-method-tabs { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin-bottom:18px; }
+  .pay-method-btn { padding:12px 8px; border:2px solid #e2e8f0; border-radius:12px; background:#f8fafc; cursor:pointer; display:flex; flex-direction:column; align-items:center; gap:5px; font-family:inherit; font-size:0.78rem; font-weight:700; color:#73777e; transition:.2s; }
+  .pay-method-btn:hover { border-color:#006a62; color:#006a62; background:#f0fdf4; }
+  .pay-method-btn.active { border-color:#006a62; background:#f0fdf4; color:#006a62; }
+  .pay-method-btn i { font-size:1.4rem; }
+  .pay-panel { display:none; animation:fadeInUp .25s ease; }
+  .pay-panel.active { display:block; }
+  .pay-qr-wrap { display:flex; flex-direction:column; align-items:center; gap:10px; padding:8px 0 14px; }
+  .pay-qr-img { width:160px; height:160px; background:#fff; border:4px solid #006a62; border-radius:12px; padding:6px; image-rendering:pixelated; }
+  .pay-qr-inst { font-size:0.8rem; color:#475569; text-align:center; line-height:1.5; }
+  .pay-efect-wrap { background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px 16px; font-size:0.83rem; color:#475569; line-height:1.7; }
+  .pay-efect-wrap strong { color:#002542; }
+  .pasarela-actions { display:flex; gap:10px; margin-top:6px; }
+  .btn-pagar-confirm { flex:1; padding:13px; background:linear-gradient(135deg,#006a62,#009688); color:#fff; border:none; border-radius:12px; font-size:0.88rem; font-weight:800; font-family:inherit; cursor:pointer; transition:.2s; display:flex; align-items:center; justify-content:center; gap:8px; }
+  .btn-pagar-confirm:hover:not(:disabled) { opacity:.9; transform:translateY(-1px); box-shadow:0 6px 20px rgba(0,106,98,.3); }
+  .btn-pagar-confirm:disabled { opacity:.6; cursor:not-allowed; transform:none; }
+  .btn-cancelar-pago { padding:13px 18px; background:#f1f5f9; color:#73777e; border:1px solid #e2e8f0; border-radius:12px; font-size:0.85rem; font-weight:600; font-family:inherit; cursor:pointer; }
+  .btn-cancelar-pago:hover { background:#e2e8f0; }
+  .pasarela-alert { display:none; padding:10px 14px; border-radius:9px; font-size:0.8rem; font-weight:600; margin-bottom:14px; }
 </style>
 
 </head>
@@ -294,6 +361,27 @@ tailwind.config = {
   <div id="filtroConteo" style="display:none;font-size:0.78rem;font-weight:600;color:#006a62;padding:8px 14px;background:#f0fdf4;border-radius:9px;border:1px solid #bbf7d0;white-space:nowrap;align-self:flex-end;">
     <i class="fa-solid fa-circle-check"></i> <span id="filtroConteoNum">0</span> resultado(s)
   </div>
+  <button id="btnToggleCalendar" onclick="toggleCalendario()" style="padding:9px 16px;background:#f1f5f9;color:#002542;border:1px solid #e2e8f0;border-radius:9px;font-size:0.82rem;font-weight:600;font-family:inherit;cursor:pointer;display:flex;align-items:center;gap:6px;align-self:flex-end;transition:.15s;">
+    <i class="fa-solid fa-calendar-days"></i> Calendario
+  </button>
+</div>
+
+<!-- ── Calendario Visual ── -->
+<div id="calendarSection" style="display:none;">
+  <div class="cal-wrap">
+    <div class="cal-nav">
+      <button class="cal-btn" onclick="navCalendario(-1)"><i class="fa-solid fa-chevron-left"></i></button>
+      <span class="cal-titulo" id="calendarTitulo"></span>
+      <button class="cal-btn" onclick="navCalendario(1)"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+    <div id="calendarGrid"></div>
+    <div class="cal-legend">
+      <div class="cal-leg-item"><span class="cal-dot" style="background:#f59e0b;width:10px;height:10px;border-radius:50%;display:inline-block;"></span> Pendiente</div>
+      <div class="cal-leg-item"><span class="cal-dot" style="background:#006a62;width:10px;height:10px;border-radius:50%;display:inline-block;"></span> Confirmada</div>
+      <div class="cal-leg-item"><span class="cal-dot" style="background:#64748b;width:10px;height:10px;border-radius:50%;display:inline-block;"></span> Finalizada</div>
+      <div class="cal-leg-item"><span class="cal-dot" style="background:#ba1a1a;width:10px;height:10px;border-radius:50%;display:inline-block;"></span> Rechazada</div>
+    </div>
+  </div>
 </div>
 
 <div class="flex flex-col gap-8">
@@ -371,6 +459,134 @@ tailwind.config = {
         <button type="button" class="px-4 py-2 text-sm font-medium text-on-surface-variant rounded-md" data-bs-dismiss="modal">Más tarde</button>
         <button type="button" class="px-4 py-2 text-sm font-medium bg-secondary text-white rounded-md hover:bg-[#005049] transition-colors" id="btnEnviarResena">Publicar Reseña</button>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Pago de Multa ── -->
+<div id="multaPagoOverlay" class="pasarela-overlay" onclick="if(event.target===this)cerrarModalMulta()">
+  <div class="pasarela-modal">
+    <div class="pasarela-head" style="background:linear-gradient(135deg,#7f1d1d,#991b1b);">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <h3><i class="fa-solid fa-triangle-exclamation" style="margin-right:8px;font-size:0.85rem;"></i>Pago de Multa</h3>
+          <p>Exceso de tiempo registrado por el anfitrión</p>
+        </div>
+        <button onclick="cerrarModalMulta()" style="background:none;border:none;color:rgba(255,255,255,.65);font-size:1.1rem;cursor:pointer;padding:0;line-height:1;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+    <div class="pasarela-body">
+      <div class="pasarela-total" style="background:#fef2f2;border-color:#fca5a5;">
+        <span style="color:#991b1b;"><i class="fa-solid fa-triangle-exclamation" style="margin-right:6px;"></i>Multa a pagar</span>
+        <strong id="multaPagoMonto" style="color:#dc2626;">Bs. 0.00</strong>
+      </div>
+
+      <div style="background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;padding:10px 14px;margin-bottom:16px;font-size:0.78rem;color:#9a3412;display:flex;align-items:flex-start;gap:8px;">
+        <i class="fa-solid fa-circle-info" style="margin-top:1px;color:#f59e0b;flex-shrink:0;"></i>
+        <span>Esta multa fue generada por exceder el tiempo de reserva acordado. El comprobante actualizado incluirá este cargo.</span>
+      </div>
+
+      <!-- Selector de método -->
+      <div class="pay-method-tabs">
+        <button type="button" class="pay-method-btn active" id="btnMetodoQRMulta" onclick="seleccionarMetodoMulta('qr')">
+          <i class="fa-solid fa-qrcode"></i> Pago QR
+        </button>
+        <button type="button" class="pay-method-btn" id="btnMetodoEfectivoMulta" onclick="seleccionarMetodoMulta('efectivo')">
+          <i class="fa-solid fa-money-bill-wave"></i> Efectivo
+        </button>
+      </div>
+
+      <!-- Panel QR -->
+      <div class="pay-panel active" id="panelQRMulta">
+        <div class="pay-qr-wrap">
+          <img class="pay-qr-img" id="multaQrImg" src="" alt="QR multa" style="border-color:#dc2626;">
+          <p class="pay-qr-inst">Escanea este código con tu app bancaria.<br>Monto a pagar: <strong id="multaQrLabel">Bs. 0.00</strong></p>
+        </div>
+      </div>
+
+      <!-- Panel Efectivo -->
+      <div class="pay-panel" id="panelEfectivoMulta">
+        <div class="pay-efect-wrap">
+          <div style="font-size:0.88rem;font-weight:700;color:#991b1b;margin-bottom:8px;"><i class="fa-solid fa-hand-holding-dollar" style="margin-right:6px;"></i>Pago en efectivo</div>
+          Entrega <strong id="multaEfectivoLabel">Bs. 0.00</strong> al anfitrión antes de retirarte del parqueo.
+        </div>
+      </div>
+
+      <div class="pasarela-alert" id="multaPagoAlert" style="margin-top:14px;"></div>
+
+      <div class="pasarela-actions" style="margin-top:16px;">
+        <button class="btn-cancelar-pago" onclick="cerrarModalMulta()">Cancelar</button>
+        <button class="btn-pagar-confirm" id="btnConfirmarPagoMulta" onclick="confirmarPagoMulta()" style="background:linear-gradient(135deg,#dc2626,#b91c1c);">
+          <i class="fa-solid fa-lock"></i> Confirmar Pago
+        </button>
+      </div>
+      <p style="text-align:center;font-size:0.66rem;color:#94a3b8;margin-top:12px;margin-bottom:0;">
+        <i class="fa-solid fa-shield-halved"></i> Simulación educativa — ningún dato real es procesado
+      </p>
+    </div>
+  </div>
+</div>
+
+<!-- ── Modal Pasarela de Pago ── -->
+<div id="pasarelaOverlay" class="pasarela-overlay" onclick="if(event.target===this)cerrarPasarela()">
+  <div class="pasarela-modal">
+    <div class="pasarela-head">
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+        <div>
+          <h3><i class="fa-solid fa-lock" style="margin-right:8px;font-size:0.85rem;"></i>Pago Seguro</h3>
+          <p>Simulación de pasarela EstAirbnb — Demo educativo</p>
+        </div>
+        <button onclick="cerrarPasarela()" style="background:none;border:none;color:rgba(255,255,255,.65);font-size:1.1rem;cursor:pointer;padding:0;line-height:1;">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+    <div class="pasarela-body">
+      <div class="pasarela-total">
+        <span><i class="fa-solid fa-coins" style="margin-right:6px;"></i>Total a pagar</span>
+        <strong id="pasarelaMonto">Bs. 0.00</strong>
+      </div>
+
+      <!-- Selector de método de pago -->
+      <div class="pay-method-tabs">
+        <button type="button" class="pay-method-btn active" id="btnMetodoQR" onclick="seleccionarMetodo('qr')">
+          <i class="fa-solid fa-qrcode"></i> Pago QR
+        </button>
+        <button type="button" class="pay-method-btn" id="btnMetodoEfectivo" onclick="seleccionarMetodo('efectivo')">
+          <i class="fa-solid fa-money-bill-wave"></i> Efectivo
+        </button>
+      </div>
+
+      <!-- Panel QR -->
+      <div class="pay-panel active" id="panelQR">
+        <div class="pay-qr-wrap">
+          <img class="pay-qr-img" id="qrCodeImg" src="" alt="QR de pago">
+          <p class="pay-qr-inst">Escanea este código con tu app bancaria.<br>El monto exacto a pagar es <strong id="qrMontoLabel">Bs. 0.00</strong>.<br><span style="font-size:0.7rem;color:#94a3b8;">EstAirbnb — Simulación educativa</span></p>
+        </div>
+      </div>
+
+      <!-- Panel Efectivo -->
+      <div class="pay-panel" id="panelEfectivo">
+        <div class="pay-efect-wrap">
+          <div style="font-size:0.88rem;font-weight:700;color:#002542;margin-bottom:8px;"><i class="fa-solid fa-hand-holding-dollar" style="color:#006a62;margin-right:6px;"></i>Pago en efectivo</div>
+          Presenta el monto de <strong id="efectivoMontoLabel">Bs. 0.00</strong> al anfitrión al llegar al parqueo.<br>
+          El anfitrión confirmará tu reserva una vez reciba el pago.
+        </div>
+      </div>
+
+      <div class="pasarela-alert" id="pasarelaAlert" style="margin-top:14px;"></div>
+
+      <div class="pasarela-actions" style="margin-top:16px;">
+        <button class="btn-cancelar-pago" onclick="cerrarPasarela()">Cancelar</button>
+        <button class="btn-pagar-confirm" id="btnConfirmarPago" onclick="confirmarPago()">
+          <i class="fa-solid fa-lock"></i> Confirmar Pago
+        </button>
+      </div>
+      <p style="text-align:center;font-size:0.66rem;color:#94a3b8;margin-top:12px;margin-bottom:0;">
+        <i class="fa-solid fa-shield-halved"></i> Simulación educativa — ningún dato real es procesado
+      </p>
     </div>
   </div>
 </div>

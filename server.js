@@ -1698,8 +1698,10 @@ app.post('/api/reservas', requireSession, async (req, res) => {
 // ============================================================
 app.put('/api/reservas/:id/confirmar-pago', async (req, res) => {
   const reserva_id = parseInt(req.params.id, 10);
-  const { conductor_id } = req.body;
-  console.log(`\n💳 [PUT /api/reservas/${reserva_id}/confirmar-pago]`);
+  const { conductor_id, metodo_pago } = req.body;
+  const metodoPago      = metodo_pago === 'efectivo' ? 'efectivo' : 'qr';
+  const nuevoEstadoPago = metodoPago === 'qr' ? 'pagado' : 'efectivo_pendiente';
+  console.log(`\n💳 [PUT /api/reservas/${reserva_id}/confirmar-pago] metodo=${metodoPago}`);
 
   if (!reserva_id || !conductor_id)
     return res.status(400).json({ status: 'error', message: 'reserva_id y conductor_id requeridos.' });
@@ -1716,14 +1718,50 @@ app.put('/api/reservas/:id/confirmar-pago', async (req, res) => {
 
     await db.request()
       .input('id', sql.Int, reserva_id)
-      .query("UPDATE Reservas SET estado_pago = 'pagado' WHERE id = @id");
+      .input('ep', sql.VarChar(30), nuevoEstadoPago)
+      .query('UPDATE Reservas SET estado_pago = @ep WHERE id = @id');
 
-    console.log(`   ✅ Pago simulado confirmado para reserva ${reserva_id}`);
-    return res.json({ status: 'ok', message: 'Pago confirmado exitosamente.', data: { reserva_id, estado_pago: 'pagado' } });
+    console.log(`   ✅ Pago registrado para reserva ${reserva_id} — estado_pago: ${nuevoEstadoPago}`);
+    return res.json({ status: 'ok', message: 'Pago registrado exitosamente.', data: { reserva_id, estado_pago: nuevoEstadoPago } });
 
   } catch (err) {
     console.error('❌ Error al confirmar pago:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al confirmar el pago.' });
+  }
+});
+
+// ============================================================
+// RESERVAS — Anfitrión confirma pago en efectivo
+// PUT /api/reservas/:id/confirmar-efectivo
+// Body: { anfitrion_id }
+// ============================================================
+app.put('/api/reservas/:id/confirmar-efectivo', async (req, res) => {
+  const reserva_id  = parseInt(req.params.id, 10);
+  const { anfitrion_id } = req.body;
+  console.log(`\n💵 [PUT /api/reservas/${reserva_id}/confirmar-efectivo]`);
+  if (!reserva_id || !anfitrion_id)
+    return res.status(400).json({ status: 'error', message: 'reserva_id y anfitrion_id requeridos.' });
+  try {
+    const db = await getPool();
+    const check = await db.request()
+      .input('id',  sql.Int, reserva_id)
+      .input('aid', sql.Int, parseInt(anfitrion_id, 10))
+      .query(`
+        SELECT r.id FROM Reservas r
+        JOIN Espacios e ON r.espacio_id = e.id
+        JOIN Garajes  g ON e.garaje_id  = g.id
+        WHERE r.id = @id AND g.anfitrion_id = @aid AND r.estado_pago = 'efectivo_pendiente'
+      `);
+    if (check.recordset.length === 0)
+      return res.status(404).json({ status: 'error', message: 'Reserva no encontrada o el pago no está pendiente de efectivo.' });
+    await db.request()
+      .input('id', sql.Int, reserva_id)
+      .query("UPDATE Reservas SET estado_pago = 'efectivo_confirmado' WHERE id = @id");
+    console.log(`   ✅ Efectivo confirmado para reserva ${reserva_id}`);
+    return res.json({ status: 'ok', message: 'Pago en efectivo confirmado correctamente.' });
+  } catch (err) {
+    console.error('❌ Error al confirmar efectivo:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno.' });
   }
 });
 
@@ -1766,8 +1804,8 @@ app.get('/api/reservas/mis-reservas', async (req, res) => {
       query = `
         SELECT
           r.id, r.fecha_inicio, r.fecha_fin, r.estado, r.precio_total,
-          r.descuento_aplicado, r.cupon_codigo,
-          g.id as garaje_id, g.direccion as garaje_direccion, g.tipo_vehiculo, g.instrucciones_acceso, g.metodo_acceso,
+          r.descuento_aplicado, r.cupon_codigo, r.estado_pago, r.multa_exceso,
+          g.id as garaje_id, g.direccion as garaje_direccion, g.tipo_vehiculo, g.instrucciones_acceso, g.metodo_acceso, g.precio_hora,
           e.numero_espacio,
           ua.nombre + ' ' + ua.apellidos as anfitrion_nombre,
           CAST(CASE WHEN EXISTS (SELECT 1 FROM Resenas res WHERE res.reserva_id = r.id) THEN 1 ELSE 0 END AS BIT) as ha_revisado
@@ -1782,7 +1820,7 @@ app.get('/api/reservas/mis-reservas', async (req, res) => {
       query = `
         SELECT
           r.id, r.fecha_inicio, r.fecha_fin, r.estado, r.precio_total,
-          r.descuento_aplicado, r.cupon_codigo,
+          r.descuento_aplicado, r.cupon_codigo, r.estado_pago,
           r.multa_exceso, r.hora_entrada_real, r.hora_salida_real,
           g.id as garaje_id, g.direccion as garaje_direccion,
           g.precio_hora,
@@ -1899,6 +1937,87 @@ app.get('/api/reservas/verificar-existente', async (req, res) => {
     return res.json({ status: 'ok', existe: result.recordset.length > 0 });
   } catch (err) {
     console.error('❌ Error al verificar reserva existente:', err.message);
+    return res.status(500).json({ status: 'error' });
+  }
+});
+
+// ============================================================
+// RESERVAS — Contar Activas (Conductor: confirmadas vigentes)
+// GET /api/reservas/activas-count?usuario_id=X
+// ============================================================
+app.get('/api/reservas/activas-count', async (req, res) => {
+  const { usuario_id } = req.query;
+  if (!usuario_id) return res.status(400).json({ status: 'error' });
+  try {
+    const db = await getPool();
+    const result = await db.request()
+      .input('usuario_id', sql.Int, parseInt(usuario_id, 10))
+      .query(`
+        SELECT COUNT(r.id) AS cuenta
+        FROM Reservas r
+        WHERE r.conductor_id = @usuario_id
+          AND r.estado = 'confirmada'
+          AND r.fecha_fin > GETDATE()
+      `);
+    return res.json({ status: 'ok', count: result.recordset[0].cuenta || 0 });
+  } catch (err) {
+    console.error('❌ Error al contar reservas activas:', err.message);
+    return res.status(500).json({ status: 'error' });
+  }
+});
+
+// ============================================================
+// RESERVAS — Pagar Multa por Exceso (Conductor)
+// PUT /api/reservas/:id/pagar-multa
+// Body: { conductor_id }
+// ============================================================
+app.put('/api/reservas/:id/pagar-multa', async (req, res) => {
+  const reserva_id = parseInt(req.params.id, 10);
+  const { conductor_id } = req.body;
+  console.log(`\n💸 [PUT /api/reservas/${reserva_id}/pagar-multa]`);
+  if (!reserva_id || !conductor_id)
+    return res.status(400).json({ status: 'error', message: 'reserva_id y conductor_id requeridos.' });
+  try {
+    const db = await getPool();
+    const check = await db.request()
+      .input('id', sql.Int, reserva_id)
+      .input('cid', sql.Int, parseInt(conductor_id, 10))
+      .query(`SELECT id, multa_exceso FROM Reservas WHERE id = @id AND conductor_id = @cid AND estado = 'finalizada'`);
+    if (check.recordset.length === 0)
+      return res.status(404).json({ status: 'error', message: 'Reserva no encontrada o sin multa.' });
+    await db.request()
+      .input('id', sql.Int, reserva_id)
+      .query(`UPDATE Reservas SET estado_pago = 'multa_pagada' WHERE id = @id`);
+    return res.json({ status: 'ok', message: 'Multa pagada correctamente.' });
+  } catch (err) {
+    console.error('❌ Error al pagar multa:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno.' });
+  }
+});
+
+// ============================================================
+// RESERVAS — Verificar reserva activa en un garaje (Conductor)
+// GET /api/reservas/check-garaje?conductor_id=X&garaje_id=Y
+// ============================================================
+app.get('/api/reservas/check-garaje', async (req, res) => {
+  const { conductor_id, garaje_id } = req.query;
+  if (!conductor_id || !garaje_id) return res.status(400).json({ status: 'error' });
+  try {
+    const db = await getPool();
+    const result = await db.request()
+      .input('conductor_id', sql.Int, parseInt(conductor_id, 10))
+      .input('garaje_id', sql.Int, parseInt(garaje_id, 10))
+      .query(`
+        SELECT COUNT(*) AS cuenta
+        FROM Reservas r
+        JOIN Espacios e ON r.espacio_id = e.id
+        WHERE r.conductor_id = @conductor_id
+          AND e.garaje_id = @garaje_id
+          AND r.estado IN ('pendiente', 'confirmada')
+      `);
+    return res.json({ status: 'ok', tiene_reserva: result.recordset[0].cuenta > 0 });
+  } catch (err) {
+    console.error('❌ Error al verificar reserva en garaje:', err.message);
     return res.status(500).json({ status: 'error' });
   }
 });

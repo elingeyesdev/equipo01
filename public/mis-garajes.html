@@ -334,46 +334,79 @@
           <!-- ═══ PASO 3: Seguridad y Acceso ═══ -->
           <section class="wizard-panel" data-step="3">
             <h3 class="wz-step-title">Seguridad y Acceso</h3>
-            <p class="wz-step-subtitle">Información para que el conductor sepa cómo llegar y qué esperar.</p>
+            <p class="wz-step-subtitle">El conductor verá esta información al reservar para saber qué esperar al llegar.</p>
+
             <div class="wz-row">
-              <div class="wz-field"><label class="wz-label">Nivel de Seguridad</label><select class="wz-select" id="inpNivelSeguridad"><option value="Básico">Básico (Candado)</option><option value="Estándar" selected>Estándar (Vigilancia parcial)</option><option value="Premium">Premium (CCTV 24/7)</option></select></div>
-              <div class="wz-field"><label class="wz-label">Método de Entrada</label><select class="wz-select" id="inpMetodoAcceso"><option value="Manual">Manual</option><option value="Código">Código Digital</option><option value="QR" selected>Escaneo QR</option></select></div>
+              <div class="wz-field">
+                <label class="wz-label">Nivel de Seguridad</label>
+                <select class="wz-select" id="inpNivelSeguridad">
+                  <option value="Básico">Básico — Solo candado o acceso simple</option>
+                  <option value="Estándar" selected>Estándar — Cámara o vigilancia parcial</option>
+                  <option value="Premium">Premium — CCTV 24/7 y seguridad continua</option>
+                </select>
+                <p id="nivelSeguridadHint" style="display:none;font-size:0.75rem;color:#0369a1;margin-top:5px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:4px 8px;"></p>
+              </div>
+              <div class="wz-field">
+                <label class="wz-label">Método de acceso al garaje</label>
+                <select class="wz-select" id="inpMetodoAcceso">
+                  <option value="Manual">Manual — Llave física o apertura presencial</option>
+                  <option value="Código">Código — Teclado numérico o contraseña</option>
+                  <option value="QR" selected>QR — Lectura QR en puerta inteligente</option>
+                </select>
+                <p style="font-size:0.75rem;color:#64748b;margin-top:5px;"><i class="fa-solid fa-circle-info" style="margin-right:3px"></i>Es el método físico para entrar al garaje, no el método de pago.</p>
+              </div>
             </div>
-            <div class="wz-field"><label class="wz-label">Instrucciones de Acceso</label><textarea class="wz-textarea" id="inpInstrucciones" placeholder="Ej: Código de puerta 1234. Timbre 2B al llegar." rows="2"></textarea></div>
+
+            <div class="wz-field">
+              <label class="wz-label">Instrucciones de Acceso</label>
+              <textarea class="wz-textarea" id="inpInstrucciones" placeholder="Ej: Toca el timbre 2B al llegar. La puerta abre con el código 1234. Estacionamiento al fondo a la derecha." rows="3"></textarea>
+              <p style="font-size:0.75rem;color:#64748b;margin-top:5px;">El conductor las recibirá una vez confirmada la reserva.</p>
+            </div>
+
             <hr class="wz-divider">
-            <div class="wz-field"><label class="wz-label">Política de Cancelación</label><select class="wz-select" id="inpPolitica"><option value="Flexible: Reembolso total hasta 2h antes">Flexible</option><option value="Moderada: Reembolso 50% hasta 24h antes" selected>Moderada</option><option value="Estricta: Sin reembolso una vez confirmado">Estricta</option></select></div>
-            <details class="wz-advanced-toggle">
-              <summary>Configuración avanzada <span style="color:#94a3b8;font-weight:400;font-size:0.75rem">(opcional)</span></summary>
-              <div style="margin-top:14px;display:flex;flex-direction:column;gap:14px">
-                <div class="wz-field">
-                  <label class="wz-label">Dimensiones máx. del vehículo</label>
-                  <div class="wz-dim-group">
-                    <div class="wz-dim-item">
-                      <span class="wz-dim-label">Altura</span>
-                      <div class="wz-dim-control">
-                        <input type="number" class="wz-input" id="inpDimAltura" placeholder="2.2" min="0.1" max="10" step="0.1">
-                        <span class="wz-dim-unit">m</span>
-                      </div>
-                    </div>
-                    <div class="wz-dim-item">
-                      <span class="wz-dim-label">Ancho</span>
-                      <div class="wz-dim-control">
-                        <input type="number" class="wz-input" id="inpDimAncho" placeholder="2.5" min="0.1" max="10" step="0.1">
-                        <span class="wz-dim-unit">m</span>
-                      </div>
-                    </div>
-                    <div class="wz-dim-item">
-                      <span class="wz-dim-label">Largo</span>
-                      <div class="wz-dim-control">
-                        <input type="number" class="wz-input" id="inpDimLargo" placeholder="5.0" min="0.5" max="20" step="0.1">
-                        <span class="wz-dim-unit">m</span>
-                      </div>
-                    </div>
+
+            <div class="wz-field">
+              <label class="wz-label"><i class="fa-solid fa-ruler-combined" style="margin-right:5px;color:#006a62"></i>Dimensiones de la entrada del garaje <span style="font-size:0.75rem;font-weight:400;color:#64748b">(opcional)</span></label>
+              <p style="font-size:0.78rem;color:#64748b;margin-bottom:10px;">Indica el tamaño del acceso. El conductor lo usará para saber si su vehículo puede ingresar.</p>
+              <div class="wz-dim-group">
+                <div class="wz-dim-item">
+                  <span class="wz-dim-label">Altura libre</span>
+                  <div class="wz-dim-control">
+                    <input type="number" class="wz-input" id="inpDimAltura" placeholder="2.2" min="0.1" max="10" step="0.1">
+                    <span class="wz-dim-unit">m</span>
                   </div>
                 </div>
-                <div class="wz-field"><label class="wz-label">Reglas de la casa</label><textarea class="wz-textarea" id="inpReglas" placeholder="Ej: Prohibido lavar el auto, no dejar basura..." rows="2"></textarea></div>
+                <div class="wz-dim-item">
+                  <span class="wz-dim-label">Ancho de entrada</span>
+                  <div class="wz-dim-control">
+                    <input type="number" class="wz-input" id="inpDimAncho" placeholder="2.5" min="0.1" max="10" step="0.1">
+                    <span class="wz-dim-unit">m</span>
+                  </div>
+                </div>
+                <div class="wz-dim-item">
+                  <span class="wz-dim-label">Largo del espacio</span>
+                  <div class="wz-dim-control">
+                    <input type="number" class="wz-input" id="inpDimLargo" placeholder="5.0" min="0.5" max="20" step="0.1">
+                    <span class="wz-dim-unit">m</span>
+                  </div>
+                </div>
               </div>
-            </details>
+            </div>
+
+            <div class="wz-field">
+              <label class="wz-label">Política del anfitrión <span style="font-size:0.75rem;font-weight:400;color:#64748b">(informativa)</span></label>
+              <select class="wz-select" id="inpPolitica">
+                <option value="Flexible: Reembolso total hasta 2h antes">Flexible — El conductor puede cancelar hasta 2 h antes sin penalización</option>
+                <option value="Moderada: Reembolso 50% hasta 24h antes" selected>Moderada — Penalización si cancela con menos de 24 h de anticipación</option>
+                <option value="Estricta: Sin reembolso una vez confirmado">Estricta — No se aceptan cambios una vez confirmada la reserva</option>
+              </select>
+              <p style="font-size:0.75rem;color:#64748b;margin-top:5px;"><i class="fa-solid fa-circle-info" style="margin-right:3px"></i>El conductor verá esta política antes de reservar. Se aplica como referencia informativa.</p>
+            </div>
+
+            <div class="wz-field">
+              <label class="wz-label">Reglas del garaje <span style="font-size:0.75rem;font-weight:400;color:#64748b">(opcional)</span></label>
+              <textarea class="wz-textarea" id="inpReglas" placeholder="Ej: Prohibido lavar el auto dentro. No dejar basura. Respetar los límites de velocidad." rows="2"></textarea>
+            </div>
           </section>
 
           <!-- ═══ PASO 4: Plano 2D del Garaje ═══ -->
@@ -635,27 +668,27 @@
             <div class="wz-field">
               <label class="wz-label" for="editNivelSeguridad">Nivel de Seguridad</label>
               <select class="wz-select" id="editNivelSeguridad">
-                <option value="Básico">Básico</option>
-                <option value="Estándar">Estándar</option>
-                <option value="Premium">Premium</option>
+                <option value="Básico">Básico — Solo candado o acceso simple</option>
+                <option value="Estándar">Estándar — Cámara o vigilancia parcial</option>
+                <option value="Premium">Premium — CCTV 24/7 y seguridad continua</option>
               </select>
             </div>
           </div>
           <div class="wz-row">
             <div class="wz-field">
-              <label class="wz-label" for="editMetodoAcceso">Método de Acceso</label>
+              <label class="wz-label" for="editMetodoAcceso">Método de acceso al garaje</label>
               <select class="wz-select" id="editMetodoAcceso">
-                <option value="Manual">Manual</option>
-                <option value="Código">Código Digital</option>
-                <option value="QR">Escaneo QR</option>
+                <option value="Manual">Manual — Llave física o apertura presencial</option>
+                <option value="Código">Código — Teclado numérico o contraseña</option>
+                <option value="QR">QR — Lectura QR en puerta inteligente</option>
               </select>
             </div>
             <div class="wz-field">
-              <label class="wz-label" for="editPolitica">Política de Cancelación</label>
+              <label class="wz-label" for="editPolitica">Política del anfitrión (informativa)</label>
               <select class="wz-select" id="editPolitica">
-                <option value="Flexible: Reembolso total hasta 2h antes">Flexible</option>
-                <option value="Moderada: Reembolso 50% hasta 24h antes">Moderada</option>
-                <option value="Estricta: Sin reembolso una vez confirmado">Estricta</option>
+                <option value="Flexible: Reembolso total hasta 2h antes">Flexible — Cancelación hasta 2 h antes</option>
+                <option value="Moderada: Reembolso 50% hasta 24h antes">Moderada — Penalización bajo 24 h</option>
+                <option value="Estricta: Sin reembolso una vez confirmado">Estricta — Sin cambios al confirmar</option>
               </select>
             </div>
           </div>

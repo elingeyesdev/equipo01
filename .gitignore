@@ -18,3 +18,7 @@ npm-debug.log*
 # Sistema operativo
 .DS_Store
 Thumbs.db
+
+# Editor y herramientas locales
+.vscode/
+.claude/
