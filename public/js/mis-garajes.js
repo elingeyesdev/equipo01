@@ -34,6 +34,14 @@ const loadingGarajes    = document.getElementById('loadingGarajes');
 const emptyState        = document.getElementById('emptyState');
 const statsBar          = document.getElementById('statsBar');
 const contadorGarajes   = document.getElementById('contadorGarajes');
+const btnUbicarDireccionMapa = document.getElementById('btnUbicarDireccionMapa');
+const btnUbicarmeMapa = document.getElementById('btnUbicarmeMapa');
+const btnLimpiarUbicacionMapa = document.getElementById('btnLimpiarUbicacionMapa');
+const ubicacionSeleccionadaText = document.getElementById('ubicacionSeleccionadaText');
+const btnEditUbicarDireccionMapa = document.getElementById('btnEditUbicarDireccionMapa');
+const btnEditUbicarmeMapa = document.getElementById('btnEditUbicarmeMapa');
+const btnEditLimpiarUbicacionMapa = document.getElementById('btnEditLimpiarUbicacionMapa');
+const editUbicacionSeleccionadaText = document.getElementById('editUbicacionSeleccionadaText');
 
 // Cache garajes para modal de edición
 let _garajesCache = [];
@@ -75,6 +83,13 @@ const inpMetodoAcceso   = document.getElementById('inpMetodoAcceso');
 const inpInstrucciones  = document.getElementById('inpInstrucciones');
 
 let espaciosConfigurados = []; // derived from tilemap on submit
+let ubicacionGaraje = { lat: null, lng: null, label: '' };
+let ubicacionGarajeEdit = { lat: null, lng: null, label: '' };
+let garajeMap = null;
+let garajeMapMarker = null;
+let editGarajeMap = null;
+let editGarajeMapMarker = null;
+const DEFAULT_GARAJE_CENTER = { lat: -16.4897, lng: -68.1193 };
 
 // ============================================================
 // Navbar — User info & avatar
@@ -153,6 +168,354 @@ function showToast(msg, type = 'success') {
 
   const toast = new bootstrap.Toast(toastEl, { delay: 3500 });
   toast.show();
+}
+
+function pedirMotivoRechazo() {
+  return new Promise((resolve) => {
+    const existing = document.getElementById('rechazoReservaOverlay');
+    if (existing) existing.remove();
+
+    const overlay = document.createElement('div');
+    overlay.id = 'rechazoReservaOverlay';
+    overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.62);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px;';
+    overlay.innerHTML = `
+      <div style="width:100%;max-width:460px;background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(15,23,42,.24);overflow:hidden;">
+        <div style="padding:18px 20px 14px;border-bottom:1px solid #e2e8f0;">
+          <div style="font-size:1rem;font-weight:800;color:#0f172a;">Motivo del rechazo</div>
+          <div style="font-size:.82rem;color:#64748b;margin-top:4px;">Este mensaje se enviará al conductor para que sepa por qué no fue aceptada la reserva.</div>
+        </div>
+        <div style="padding:18px 20px;">
+          <textarea id="rechazoReservaInput" rows="4" placeholder="Ej: El espacio no estará disponible en ese horario por un cierre temporal del garaje." style="width:100%;resize:vertical;border:1.5px solid #cbd5e1;border-radius:12px;padding:12px 14px;font:inherit;font-size:.9rem;color:#0f172a;outline:none;"></textarea>
+          <div id="rechazoReservaError" style="display:none;margin-top:8px;font-size:.78rem;font-weight:700;color:#b91c1c;"></div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;padding:0 20px 18px;">
+          <button type="button" id="btnCancelarRechazoReserva" style="padding:10px 16px;border-radius:12px;border:1px solid #cbd5e1;background:#fff;color:#475569;font:inherit;font-size:.85rem;font-weight:700;cursor:pointer;">Cancelar</button>
+          <button type="button" id="btnConfirmarRechazoReserva" style="padding:10px 16px;border-radius:12px;border:none;background:#b91c1c;color:#fff;font:inherit;font-size:.85rem;font-weight:700;cursor:pointer;">Rechazar reserva</button>
+        </div>
+      </div>
+    `;
+
+    const cleanup = (value) => {
+      overlay.remove();
+      resolve(value);
+    };
+
+    overlay.addEventListener('click', (event) => {
+      if (event.target === overlay) cleanup(null);
+    });
+
+    document.body.appendChild(overlay);
+
+    const input = document.getElementById('rechazoReservaInput');
+    const errorEl = document.getElementById('rechazoReservaError');
+    const btnCancel = document.getElementById('btnCancelarRechazoReserva');
+    const btnConfirm = document.getElementById('btnConfirmarRechazoReserva');
+
+    if (input) input.focus();
+    if (btnCancel) btnCancel.addEventListener('click', () => cleanup(null));
+    if (btnConfirm) {
+      btnConfirm.addEventListener('click', () => {
+        const motivo = input ? input.value.trim() : '';
+        if (motivo.length < 5) {
+          if (errorEl) {
+            errorEl.textContent = 'Escribe un motivo de al menos 5 caracteres.';
+            errorEl.style.display = 'block';
+          }
+          if (input) input.focus();
+          return;
+        }
+        cleanup(motivo);
+      });
+    }
+  });
+}
+
+// ============================================================
+// Geolocalizacion del garaje
+// ============================================================
+function formatCoord(value) {
+  return Number(value).toFixed(6);
+}
+
+function updateLocationStatus(targetEl, location, idleMessage) {
+  if (!targetEl) return;
+  const hasCoords = Number.isFinite(location?.lat) && Number.isFinite(location?.lng);
+  targetEl.innerHTML = hasCoords
+    ? `<i class="fa-solid fa-location-dot" style="margin-top:2px;"></i><span>Punto seleccionado: ${formatCoord(location.lat)}, ${formatCoord(location.lng)}${location.label ? `<br><small style="display:block;margin-top:4px;color:#475569;font-weight:600;">${escapeHTML(location.label)}</small>` : ''}</span>`
+    : `<i class="fa-solid fa-location-dot" style="margin-top:2px;"></i><span>${idleMessage}</span>`;
+}
+
+function ensureBaseTileLayer(mapInstance) {
+  if (!mapInstance || mapInstance._estairbnbHasTiles) return;
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    maxZoom: 19,
+    attribution: '&copy; OpenStreetMap',
+  }).addTo(mapInstance);
+  mapInstance._estairbnbHasTiles = true;
+}
+
+function placeMapMarker(mapInstance, currentMarker, lat, lng, popupText) {
+  if (!mapInstance) return currentMarker;
+  if (!currentMarker) {
+    currentMarker = L.marker([lat, lng], { draggable: false }).addTo(mapInstance);
+  } else {
+    currentMarker.setLatLng([lat, lng]);
+  }
+  if (popupText) currentMarker.bindPopup(popupText);
+  return currentMarker;
+}
+
+async function updateDireccionFromReverseGeocode(inputEl, lat, lng) {
+  if (!window.EstAirbnbMapUtils || !inputEl) return '';
+  try {
+    const result = await window.EstAirbnbMapUtils.reverseGeocode(lat, lng);
+    if (!inputEl.value.trim()) inputEl.value = result.label;
+    return result.label;
+  } catch (_) {
+    return '';
+  }
+}
+
+function initGarajeLocationMap() {
+  const mapEl = document.getElementById('garajeLocationMap');
+  if (!mapEl || typeof L === 'undefined') return;
+
+  if (!garajeMap) {
+    garajeMap = L.map(mapEl, { zoomControl: true }).setView([DEFAULT_GARAJE_CENTER.lat, DEFAULT_GARAJE_CENTER.lng], 13);
+    ensureBaseTileLayer(garajeMap);
+    garajeMap.on('click', async (event) => {
+      const lat = event.latlng.lat;
+      const lng = event.latlng.lng;
+      ubicacionGaraje = { lat, lng, label: '' };
+      garajeMapMarker = placeMapMarker(garajeMap, garajeMapMarker, lat, lng, 'Ubicacion del garaje');
+      const label = await updateDireccionFromReverseGeocode(inpDireccion, lat, lng);
+      ubicacionGaraje.label = label || inpDireccion.value.trim();
+      updateLocationStatus(ubicacionSeleccionadaText, ubicacionGaraje, 'Marca la ubicacion exacta del garaje. Puedes buscar por direccion o hacer clic manualmente sobre el mapa.');
+    });
+  }
+
+  setTimeout(() => garajeMap.invalidateSize(), 120);
+}
+
+function initEditGarajeLocationMap() {
+  const mapEl = document.getElementById('editGarajeLocationMap');
+  if (!mapEl || typeof L === 'undefined') return;
+
+  if (!editGarajeMap) {
+    editGarajeMap = L.map(mapEl, { zoomControl: true }).setView([DEFAULT_GARAJE_CENTER.lat, DEFAULT_GARAJE_CENTER.lng], 13);
+    ensureBaseTileLayer(editGarajeMap);
+    editGarajeMap.on('click', async (event) => {
+      const lat = event.latlng.lat;
+      const lng = event.latlng.lng;
+      ubicacionGarajeEdit = { lat, lng, label: '' };
+      editGarajeMapMarker = placeMapMarker(editGarajeMap, editGarajeMapMarker, lat, lng, 'Ubicacion del garaje');
+      const label = await updateDireccionFromReverseGeocode(document.getElementById('editDireccion'), lat, lng);
+      ubicacionGarajeEdit.label = label || document.getElementById('editDireccion').value.trim();
+      updateLocationStatus(editUbicacionSeleccionadaText, ubicacionGarajeEdit, 'Ajusta la ubicacion exacta del garaje para las rutas del conductor.');
+    });
+  }
+}
+
+function resetGarajeLocation() {
+  ubicacionGaraje = { lat: null, lng: null, label: '' };
+  if (garajeMapMarker && garajeMap) {
+    garajeMap.removeLayer(garajeMapMarker);
+    garajeMapMarker = null;
+  }
+  updateLocationStatus(
+    ubicacionSeleccionadaText,
+    ubicacionGaraje,
+    'Marca la ubicacion exacta del garaje. Puedes buscar por direccion o hacer clic manualmente sobre el mapa.'
+  );
+  if (garajeMap) garajeMap.setView([DEFAULT_GARAJE_CENTER.lat, DEFAULT_GARAJE_CENTER.lng], 13);
+}
+
+function setGarajeLocationFromData(lat, lng, label) {
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || !garajeMap) return;
+  ubicacionGaraje = { lat, lng, label: label || inpDireccion.value.trim() };
+  garajeMapMarker = placeMapMarker(garajeMap, garajeMapMarker, lat, lng, 'Ubicacion del garaje');
+  garajeMap.setView([lat, lng], 16);
+  updateLocationStatus(
+    ubicacionSeleccionadaText,
+    ubicacionGaraje,
+    'Marca la ubicacion exacta del garaje. Puedes buscar por direccion o hacer clic manualmente sobre el mapa.'
+  );
+}
+
+function setEditGarajeLocationFromData(lat, lng, label) {
+  if (!editGarajeMap) return;
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) {
+    ubicacionGarajeEdit = { lat: null, lng: null, label: '' };
+    if (editGarajeMapMarker) {
+      editGarajeMap.removeLayer(editGarajeMapMarker);
+      editGarajeMapMarker = null;
+    }
+    updateLocationStatus(editUbicacionSeleccionadaText, ubicacionGarajeEdit, 'Ajusta la ubicacion exacta del garaje para las rutas del conductor.');
+    editGarajeMap.setView([DEFAULT_GARAJE_CENTER.lat, DEFAULT_GARAJE_CENTER.lng], 13);
+    return;
+  }
+
+  ubicacionGarajeEdit = { lat, lng, label: label || document.getElementById('editDireccion').value.trim() };
+  editGarajeMapMarker = placeMapMarker(editGarajeMap, editGarajeMapMarker, lat, lng, 'Ubicacion del garaje');
+  editGarajeMap.setView([lat, lng], 16);
+  updateLocationStatus(editUbicacionSeleccionadaText, ubicacionGarajeEdit, 'Ajusta la ubicacion exacta del garaje para las rutas del conductor.');
+}
+
+async function geocodeIntoMap(inputEl, mapInstance, applyLocation) {
+  const query = inputEl?.value?.trim();
+  if (!query || query.length < 5) {
+    showToast('Escribe una direccion valida antes de buscarla en el mapa.', 'error');
+    inputEl?.focus();
+    return;
+  }
+  if (!window.EstAirbnbMapUtils) {
+    showToast('El modulo de mapas no esta disponible en este momento.', 'error');
+    return;
+  }
+
+  const originalText = inputEl.value;
+  const triggerButton = inputEl?.id === 'editDireccion' ? btnEditUbicarDireccionMapa : btnUbicarDireccionMapa;
+  try {
+    if (triggerButton) {
+      triggerButton.disabled = true;
+      triggerButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Buscando...';
+    }
+    const result = await window.EstAirbnbMapUtils.geocodeAddress(query);
+    mapInstance?.setView([result.lat, result.lng], 16);
+    applyLocation(result.lat, result.lng, result.label);
+    showToast('Ubicacion encontrada y marcada en el mapa.');
+  } catch (err) {
+    console.error('Error geocodificando direccion:', err);
+    showToast('No se pudo ubicar esa direccion exacta. Corrige el texto o usa "Ubicarme" y marca manualmente.', 'error');
+  } finally {
+    if (triggerButton) {
+      triggerButton.disabled = false;
+      triggerButton.innerHTML = '<i class="fa-solid fa-magnifying-glass-location"></i> Buscar direccion en el mapa';
+      if (triggerButton === btnEditUbicarDireccionMapa) {
+        triggerButton.innerHTML = '<i class="fa-solid fa-magnifying-glass-location"></i> Buscar direccion';
+      }
+    }
+    if (inputEl.value !== originalText && !inputEl.value.trim()) {
+      inputEl.value = originalText;
+    }
+  }
+}
+
+function getCurrentPosition(options = {}) {
+  return new Promise((resolve, reject) => {
+    if (!navigator.geolocation) {
+      reject(new Error('Geolocalizacion no soportada'));
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(resolve, reject, {
+      enableHighAccuracy: true,
+      timeout: 12000,
+      maximumAge: 15000,
+      ...options,
+    });
+  });
+}
+
+async function centerMapToCurrentLocation(mapInstance, inputEl, applyLocation, buttonEl) {
+  if (!mapInstance || typeof applyLocation !== 'function') return;
+  try {
+    if (buttonEl) {
+      buttonEl.disabled = true;
+      buttonEl.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Ubicando...';
+    }
+    const position = await getCurrentPosition();
+    const lat = Number(position.coords.latitude);
+    const lng = Number(position.coords.longitude);
+    if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error('Coordenadas invalidas');
+    mapInstance.setView([lat, lng], 17);
+    const label = await updateDireccionFromReverseGeocode(inputEl, lat, lng);
+    applyLocation(lat, lng, label || inputEl?.value?.trim() || 'Ubicacion actual');
+    showToast('Tu ubicacion actual fue marcada en el mapa.');
+  } catch (err) {
+    console.error('Error ubicando posicion actual:', err);
+    showToast('No se pudo obtener tu ubicacion actual. Revisa permisos del navegador.', 'error');
+  } finally {
+    if (buttonEl) {
+      buttonEl.disabled = false;
+      buttonEl.innerHTML = '<i class="fa-solid fa-location-crosshairs"></i> Ubicarme';
+    }
+  }
+}
+
+function initLocationPickers() {
+  initGarajeLocationMap();
+  initEditGarajeLocationMap();
+  updateLocationStatus(
+    ubicacionSeleccionadaText,
+    ubicacionGaraje,
+    'Marca la ubicacion exacta del garaje. Puedes buscar por direccion o hacer clic manualmente sobre el mapa.'
+  );
+  updateLocationStatus(
+    editUbicacionSeleccionadaText,
+    ubicacionGarajeEdit,
+    'Ajusta la ubicacion exacta del garaje para las rutas del conductor.'
+  );
+
+  if (btnUbicarDireccionMapa && !btnUbicarDireccionMapa.dataset.bound) {
+    btnUbicarDireccionMapa.dataset.bound = '1';
+    btnUbicarDireccionMapa.addEventListener('click', () => {
+      geocodeIntoMap(inpDireccion, garajeMap, (lat, lng, label) => setGarajeLocationFromData(lat, lng, label));
+    });
+  }
+
+  if (btnLimpiarUbicacionMapa && !btnLimpiarUbicacionMapa.dataset.bound) {
+    btnLimpiarUbicacionMapa.dataset.bound = '1';
+    btnLimpiarUbicacionMapa.addEventListener('click', resetGarajeLocation);
+  }
+
+  if (btnUbicarmeMapa && !btnUbicarmeMapa.dataset.bound) {
+    btnUbicarmeMapa.dataset.bound = '1';
+    btnUbicarmeMapa.addEventListener('click', () => {
+      centerMapToCurrentLocation(
+        garajeMap,
+        inpDireccion,
+        (lat, lng, label) => setGarajeLocationFromData(lat, lng, label),
+        btnUbicarmeMapa
+      );
+    });
+  }
+
+  if (btnEditUbicarDireccionMapa && !btnEditUbicarDireccionMapa.dataset.bound) {
+    btnEditUbicarDireccionMapa.dataset.bound = '1';
+    btnEditUbicarDireccionMapa.addEventListener('click', () => {
+      geocodeIntoMap(
+        document.getElementById('editDireccion'),
+        editGarajeMap,
+        (lat, lng, label) => setEditGarajeLocationFromData(lat, lng, label)
+      );
+    });
+  }
+
+  if (btnEditLimpiarUbicacionMapa && !btnEditLimpiarUbicacionMapa.dataset.bound) {
+    btnEditLimpiarUbicacionMapa.dataset.bound = '1';
+    btnEditLimpiarUbicacionMapa.addEventListener('click', () => {
+      setEditGarajeLocationFromData(null, null, '');
+    });
+  }
+
+  if (btnEditUbicarmeMapa && !btnEditUbicarmeMapa.dataset.bound) {
+    btnEditUbicarmeMapa.dataset.bound = '1';
+    btnEditUbicarmeMapa.addEventListener('click', () => {
+      centerMapToCurrentLocation(
+        editGarajeMap,
+        document.getElementById('editDireccion'),
+        (lat, lng, label) => setEditGarajeLocationFromData(lat, lng, label),
+        btnEditUbicarmeMapa
+      );
+    });
+  }
+
+  document.addEventListener('estairbnb:wizard-opened', () => {
+    initGarajeLocationMap();
+    if (Number.isFinite(ubicacionGaraje.lat) && Number.isFinite(ubicacionGaraje.lng)) {
+      setGarajeLocationFromData(ubicacionGaraje.lat, ubicacionGaraje.lng, ubicacionGaraje.label);
+    }
+  });
 }
 
 // ============================================================
@@ -284,10 +647,11 @@ function initTilemap() {
   document.addEventListener('touchend', () => { tmIsPainting = false; });
 }
 
-const VICO = { 
-  auto:      { icon: 'directions_car', color: '#3b82f6', sz: '15px' }, 
-  moto:      { icon: 'two_wheeler',    color: '#f59e0b', sz: '13px' }, 
-  camioneta: { icon: 'local_shipping', color: '#8b5cf6', sz: '15px' }
+const VICO = {
+  auto:      { icon: 'directions_car', color: '#2563eb', sz: '18px' },
+  moto:      { icon: 'two_wheeler',    color: '#d97706', sz: '16px' },
+  camioneta: { icon: 'local_shipping', color: '#475569', sz: '18px' },
+  suv:       { icon: 'local_shipping', color: '#475569', sz: '18px' }
 };
 
 function tmGenerarGrilla(filas, cols) {
@@ -335,6 +699,66 @@ function renderCellEl(cell, cellData) {
   }
 }
 
+function renderCellEl(cell, cellData) {
+  cell.setAttribute('data-t', cellData.tile);
+  cell.innerHTML = '';
+  cell.title = '';
+
+  if (cellData.tile === 'parking') {
+    const v = VICO[cellData.tipo_vehiculo] || VICO.auto;
+    const top = document.createElement('div');
+    top.className = 'gc-ico';
+    top.style.cssText = `color:${v.color};display:flex;align-items:center;justify-content:center`;
+    top.innerHTML = `<span class="material-symbols-outlined" style="font-size:${v.sz};">${v.icon}</span>`;
+
+    const num = document.createElement('div');
+    num.className = 'gc-num';
+    num.textContent = 'A' + (cellData.num || '');
+    cell.title = `Parqueo A${cellData.num || ''}`;
+    cell.appendChild(top);
+    cell.appendChild(num);
+    return;
+  }
+
+  if (cellData.tile === 'entrance') {
+    cell.title = 'Entrada';
+    cell.innerHTML = '<span class="material-symbols-outlined gc-symbol">login</span><div class="gc-lbl">Entrada</div>';
+    return;
+  }
+
+  if (cellData.tile === 'exit') {
+    cell.title = 'Salida';
+    cell.innerHTML = '<span class="material-symbols-outlined gc-symbol">logout</span><div class="gc-lbl">Salida</div>';
+    return;
+  }
+
+  if (cellData.tile === 'wall') {
+    cell.title = 'Pared';
+    cell.innerHTML = '<span class="material-symbols-outlined gc-symbol">density_large</span><div class="gc-lbl">Pared</div>';
+    return;
+  }
+
+  if (cellData.tile === 'aisle') {
+    cell.title = 'Carril de circulacion';
+    const inner = document.createElement('div');
+    inner.className = 'gc-aisle-inner';
+    if (cellData.adir === 'cross') {
+      const cross = document.createElement('div');
+      cross.className = 'gc-aisle-cross';
+      inner.appendChild(cross);
+    } else if (cellData.adir === 'v') {
+      const bar = document.createElement('div');
+      bar.className = 'gc-aisle-v';
+      inner.appendChild(bar);
+    } else {
+      const bar = document.createElement('div');
+      bar.className = 'gc-aisle-h';
+      inner.appendChild(bar);
+    }
+    cell.appendChild(inner);
+  }
+}
+
 function updateAisleNeighbors(r, c) {
   const dirs = [[0, 1], [0, -1], [1, 0], [-1, 0]];
   const R = tmMatriz.length, C = tmMatriz[0].length;
@@ -366,7 +790,7 @@ function tmRenderGrilla() {
   tmGrid.innerHTML = '';
   const filas = tmMatriz.length;
   const cols  = filas > 0 ? tmMatriz[0].length : 0;
-  tmGrid.style.gridTemplateColumns = `repeat(${cols}, minmax(0,1fr))`;
+  tmGrid.style.gridTemplateColumns = `repeat(${cols}, minmax(58px, 1fr))`;
 
   let parkingCounter = 1;
   for (let f = 0; f < filas; f++) {
@@ -458,6 +882,23 @@ function tmActualizarStats() {
 }
 
 function tmAplicarPreset(preset, filas, cols) {
+  const currentCount = parseInt(tmCountParking?.textContent, 10) || 4;
+  const cap = parseInt(document.getElementById('wzCapNumber')?.textContent, 10) || currentCount;
+  let generated = null;
+  if (preset === 'linea' && typeof autoGenerarLinea === 'function') generated = autoGenerarLinea(cap);
+  if (preset === 'ele' && typeof autoGenerarEle === 'function') generated = autoGenerarEle(cap);
+  if (preset === 'patio' && typeof autoGenerarPatio === 'function') generated = autoGenerarPatio(cap);
+  if (generated) {
+    tmFilasVal = generated.rows;
+    tmColsVal = generated.cols;
+    tmMatriz = generated.matrix;
+    if (tmFilas) tmFilas.value = generated.rows;
+    if (tmColumnas) tmColumnas.value = generated.cols;
+    tmRenderGrilla();
+    tmActualizarStats();
+    return;
+  }
+
   tmGenerarGrilla(filas, cols); 
   const halfway = Math.floor(cols / 2);
 
@@ -673,6 +1114,7 @@ function initFormSubmit() {
   const direccion     = inpDireccion.value.trim();
   const descripcion   = inpDescripcion.value.trim();
   const precio_hora   = inpPrecio.value;
+  const ubicacionValida = Number.isFinite(ubicacionGaraje.lat) && Number.isFinite(ubicacionGaraje.lng);
 
   // Validaciones del lado del cliente
   if (!direccion || direccion.length < 5) {
@@ -685,6 +1127,12 @@ function initFormSubmit() {
     inpPrecio.focus();
     return;
   }
+  if (!ubicacionValida) {
+    showToast('Marca la ubicacion exacta del garaje en el mapa antes de publicarlo.', 'error');
+    initGarajeLocationMap();
+    return;
+  }
+
   // Auto-generate map if no spots were manually placed
   let parkCheck = 0;
   tmMatriz.forEach(f => f.forEach(c => { if (c.tile === 'parking') parkCheck++; }));
@@ -716,6 +1164,8 @@ function initFormSubmit() {
   const formData = new FormData();
   formData.append('usuario_id', currentUser.id);
   formData.append('direccion', direccion);
+  formData.append('latitud', ubicacionGaraje.lat);
+  formData.append('longitud', ubicacionGaraje.lng);
   formData.append('descripcion', descripcion);
   formData.append('precio_hora', precio_hora);
   // Enviamos datos por defecto para los campos legacy, y el JSON real en horarios_flexibles
@@ -775,6 +1225,7 @@ function initFormSubmit() {
       selectedFiles = [];
       photoPreviewGrid.innerHTML = '';
       espaciosConfigurados = [];
+      resetGarajeLocation();
       // Reset Tilemap
       tmGenerarGrilla(6, 8);
       if (tmFilas) tmFilas.value = 6;
@@ -864,7 +1315,7 @@ async function cargarMisGarajes() {
 // ============================================================
 function crearTarjetaGaraje(garaje) {
   const card = document.createElement('div');
-  card.className = 'bg-surface-container-lowest rounded-xl overflow-hidden shadow-[0px_24px_48px_rgba(0,37,66,0.06)] border border-outline-variant/10 flex flex-col group transition-transform duration-300 hover:-translate-y-1';
+  card.className = 'host-garaje-card';
   card.id = `garaje-${garaje.id}`;
 
   const activo = garaje.estado_activo;
@@ -874,6 +1325,23 @@ function crearTarjetaGaraje(garaje) {
     camioneta: 'local_shipping',
   };
   const iconText = tipoIconos[garaje.tipo_vehiculo] || 'directions_car';
+  const direccionPrincipal = escapeHTML((garaje.direccion || '').split(',')[0] || garaje.direccion || '');
+  const horarioResumen = (() => {
+    if (garaje.horarios_flexibles) {
+      try {
+        const horarios = JSON.parse(garaje.horarios_flexibles);
+        if (Array.isArray(horarios) && horarios.length > 0) {
+          const first = horarios[0];
+          return `Flexible · ${first.inicio || '--:--'}-${first.fin || '--:--'}`;
+        }
+      } catch (_) {}
+      return 'Horario flexible';
+    }
+    if (garaje.hora_apertura && garaje.hora_cierre) {
+      return `${String(garaje.hora_apertura).substring(0, 5)} - ${String(garaje.hora_cierre).substring(0, 5)}`;
+    }
+    return 'Horario no especificado';
+  })();
 
   const fotoHTML = garaje.foto_principal
     ? `<img src="${garaje.foto_principal}" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Foto del parqueo" loading="lazy">`
@@ -945,6 +1413,107 @@ function crearTarjetaGaraje(garaje) {
 // ============================================================
 // Toggle Estado — PUT /api/garajes/:id/estado
 // ============================================================
+// Reemplazo moderno de la tarjeta de garaje
+function crearTarjetaGaraje(garaje) {
+  const card = document.createElement('div');
+  card.className = 'host-garaje-card';
+  card.id = `garaje-${garaje.id}`;
+
+  const activo = !!garaje.estado_activo;
+  const direccionPrincipal = escapeHTML((garaje.direccion || '').split(',')[0] || garaje.direccion || '');
+  const tipoLabel = (garaje.tipo_vehiculo || 'auto').toString();
+  const horarioResumen = (() => {
+    if (garaje.horarios_flexibles) {
+      try {
+        const horarios = JSON.parse(garaje.horarios_flexibles);
+        if (Array.isArray(horarios) && horarios.length > 0) {
+          const first = horarios[0];
+          return `Flexible · ${first.inicio || '--:--'}-${first.fin || '--:--'}`;
+        }
+      } catch (_) {}
+      return 'Horario flexible';
+    }
+    if (garaje.hora_apertura && garaje.hora_cierre) {
+      return `${String(garaje.hora_apertura).substring(0, 5)} - ${String(garaje.hora_cierre).substring(0, 5)}`;
+    }
+    return 'Horario no especificado';
+  })();
+
+  const fotoHTML = garaje.foto_principal
+    ? `<img src="${garaje.foto_principal}" class="w-full h-full object-cover transition-transform duration-500" alt="Foto del parqueo" loading="lazy">`
+    : `<div class="w-full h-full flex flex-col items-center justify-center bg-surface-container-highest text-on-surface-variant opacity-70">
+         <span class="material-symbols-outlined text-4xl mb-2">image</span>
+         <span class="font-label text-xs uppercase tracking-widest">Sin foto</span>
+       </div>`;
+
+  card.innerHTML = `
+    <div class="host-garaje-media">
+      ${fotoHTML}
+      <div class="host-garaje-overlay"></div>
+      <div class="host-garaje-topbar">
+        <span class="host-garaje-status ${activo ? 'is-active' : 'is-inactive'}">
+          <span class="host-garaje-dot"></span>
+          ${activo ? 'Activo' : 'Inactivo'}
+        </span>
+        <button type="button" class="host-garaje-preview-chip" onclick="abrirVistaPreviaGarajeById(${garaje.id})">
+          <span class="material-symbols-outlined">visibility</span>
+          Vista previa
+        </button>
+      </div>
+      <div class="host-garaje-price">
+        <span class="host-garaje-price-value">Bs. ${Number(garaje.precio_hora).toFixed(2)}</span>
+        <span class="host-garaje-price-label">/ hora</span>
+      </div>
+    </div>
+    <div class="host-garaje-body">
+      <div class="host-garaje-head">
+        <div class="host-garaje-head-copy">
+          <h3 class="host-garaje-title">${escapeHTML(garaje.direccion)}</h3>
+          <p class="host-garaje-subtitle">
+            <span class="material-symbols-outlined">location_on</span>
+            ${direccionPrincipal}
+          </p>
+        </div>
+        <button type="button" class="host-garaje-icon-btn" onclick="abrirEditModalById(${garaje.id})" title="Editar">
+          <span class="material-symbols-outlined">edit</span>
+        </button>
+      </div>
+      <p class="host-garaje-description">${garaje.descripcion ? escapeHTML(garaje.descripcion) : 'Sin descripción pública todavía.'}</p>
+      <div class="host-garaje-chip-row">
+        <span class="host-garaje-chip"><span class="material-symbols-outlined">directions_car</span>${escapeHTML(tipoLabel)}</span>
+        <span class="host-garaje-chip"><span class="material-symbols-outlined">schedule</span>${escapeHTML(horarioResumen)}</span>
+        <span class="host-garaje-chip"><span class="material-symbols-outlined">security</span>${escapeHTML(garaje.nivel_seguridad || 'Estándar')}</span>
+        <span class="host-garaje-chip"><span class="material-symbols-outlined">key</span>${escapeHTML(garaje.metodo_acceso || 'Manual')}</span>
+      </div>
+
+      ${garaje.fidelidad_activo ? `
+        <div class="host-garaje-loyalty">
+          <i class="fa-solid fa-medal"></i>
+          <span>Fidelidad activa: ${garaje.fidelidad_visitas} visitas → ${garaje.fidelidad_descuento_pct}% dto.</span>
+        </div>` : ''}
+
+      <div class="host-garaje-actions">
+        <div class="host-garaje-actions-grid">
+          <button type="button" class="host-garaje-action-btn" onclick="window.location.href='/panel-mantenimiento.html?id=${garaje.id}'">
+            <span class="material-symbols-outlined">build</span>
+            Espacios
+          </button>
+          <button type="button" class="host-garaje-action-btn ${activo ? 'warning' : 'success'}" onclick="toggleEstado(${garaje.id}, this)" id="btnEstado-${garaje.id}">
+            <span class="material-symbols-outlined">${activo ? 'pause_circle' : 'play_circle'}</span>
+            ${activo ? 'Pausar' : 'Activar'}
+          </button>
+          <button type="button" class="host-garaje-action-btn danger" onclick="abrirEliminarGarajeConfirm(${garaje.id})" style="grid-column:span 2">
+            <span class="material-symbols-outlined">delete</span>
+            Eliminar garaje
+          </button>
+        </div>
+      </div>
+    </div>
+  `;
+
+  return card;
+}
+
 async function toggleEstado(garajeId, btnElement) {
   btnElement.disabled = true;
   const origHTML = btnElement.innerHTML;
@@ -973,6 +1542,99 @@ async function toggleEstado(garajeId, btnElement) {
     showToast('No se pudo conectar con el servidor.', 'error');
     btnElement.disabled = false;
     btnElement.innerHTML = origHTML;
+  }
+}
+
+let previewGarajeActualId = null;
+let deleteGarajeActualId = null;
+
+function abrirVistaPreviaGarajeById(garajeId) {
+  const modal = document.getElementById('previewGarajeOverlay');
+  const iframe = document.getElementById('previewGarajeFrame');
+  const btnEditar = document.getElementById('btnPreviewEditar');
+  if (!modal || !iframe) return;
+
+  previewGarajeActualId = parseInt(garajeId, 10);
+  iframe.src = `/detalle-garaje.html?id=${previewGarajeActualId}&preview=1`;
+
+  if (btnEditar) {
+    const previewId = previewGarajeActualId;
+    btnEditar.onclick = () => {
+      closePreviewGarajeModal();
+      abrirEditModalById(previewId);
+    };
+  }
+
+  modal.classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closePreviewGarajeModal() {
+  const modal = document.getElementById('previewGarajeOverlay');
+  const iframe = document.getElementById('previewGarajeFrame');
+  if (modal) modal.classList.remove('open');
+  if (iframe) iframe.src = 'about:blank';
+  previewGarajeActualId = null;
+  document.body.style.overflow = '';
+}
+
+function abrirEliminarGarajeConfirm(garajeId) {
+  deleteGarajeActualId = parseInt(garajeId, 10);
+  const garaje = _garajesCache.find(g => String(g.id) === String(deleteGarajeActualId));
+  const titleEl = document.getElementById('deleteGarajeTitle');
+  const textEl = document.getElementById('deleteGarajeText');
+  if (titleEl) titleEl.textContent = garaje ? `Eliminar ${garaje.direccion}` : '¿Eliminar este garaje?';
+  if (textEl) {
+    textEl.textContent = garaje
+      ? 'Esta acción eliminará el listado y sus datos asociados. Si el garaje tiene reservas registradas, el sistema no permitirá borrarlo y te sugerirá desactivarlo.'
+      : 'Esta acción eliminará el listado y sus datos asociados.';
+  }
+  const modal = document.getElementById('deleteGarajeOverlay');
+  if (modal) modal.classList.add('open');
+  const btnConfirm = document.getElementById('btnDeleteGarajeConfirm');
+  if (btnConfirm) btnConfirm.onclick = eliminarGarajeConfirmado;
+  document.body.style.overflow = 'hidden';
+}
+
+function closeDeleteGarajeModal() {
+  const modal = document.getElementById('deleteGarajeOverlay');
+  if (modal) modal.classList.remove('open');
+  deleteGarajeActualId = null;
+  document.body.style.overflow = '';
+}
+
+async function eliminarGarajeConfirmado() {
+  if (!deleteGarajeActualId) return;
+  const btn = document.getElementById('btnDeleteGarajeConfirm');
+  const originalHTML = btn ? btn.innerHTML : '';
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Eliminando...';
+  }
+
+  try {
+    const res = await fetch(`/api/garajes/${deleteGarajeActualId}`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario_id: currentUser.id }),
+    });
+    const data = await res.json();
+
+    if (res.ok && data.status === 'ok') {
+      showToast(data.message || 'Garaje eliminado correctamente.');
+      closeDeleteGarajeModal();
+      await cargarMisGarajes();
+    } else {
+      showToast(data.message || 'No se pudo eliminar el garaje.', 'error');
+    }
+  } catch (err) {
+    console.error('Error al eliminar garaje:', err);
+    showToast('No se pudo conectar con el servidor.', 'error');
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = originalHTML;
+    }
   }
 }
 
@@ -1043,33 +1705,27 @@ async function cargarReservasRecibidas() {
 
         let accionesHTML = '';
         if (r.estado === 'pendiente') {
+          accionesHTML =
+            `<span style="display:inline-flex;align-items:center;gap:4px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-user-clock"></i> Esperando tu decisión</span><br>` +
+            `<button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)"><i class="fa-solid fa-check"></i> Aceptar</button>` +
+            `<button class="btn-reserva rechazar" onclick="rechazarReservaConMotivo(${r.id}, this)"><i class="fa-solid fa-xmark"></i> Rechazar</button>`;
+        } else if (r.estado === 'confirmada') {
           if (r.estado_pago === 'pagado') {
             accionesHTML =
-              `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-qrcode"></i> Pago QR recibido</span><br>` +
-              `<button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)"><i class="fa-solid fa-check"></i> Confirmar</button>` +
-              `<button class="btn-reserva rechazar"  onclick="cambiarEstadoReserva(${r.id}, 'rechazada',  this)"><i class="fa-solid fa-xmark"></i> Rechazar</button>`;
+              `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-qrcode"></i> Pago QR registrado</span><br>` +
+              `<button class="btn-reserva" style="background:#475569;color:white;border:none;" onclick="abrirMultaModal(${r.id}, '${r.fecha_fin}', ${r.precio_hora || 0})"><i class="fa-solid fa-flag-checkered"></i> Registrar Salida</button>`;
           } else if (r.estado_pago === 'efectivo_pendiente') {
             accionesHTML =
-              `<span style="display:inline-flex;align-items:center;gap:4px;background:#fff7ed;color:#92400e;border:1px solid #fed7aa;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-money-bill-wave"></i> Efectivo pendiente de confirmar</span><br>` +
-              `<button class="btn-reserva confirmar" onclick="confirmarPagoEfectivo(${r.id}, this)"><i class="fa-solid fa-hand-holding-dollar"></i> Confirmar efectivo recibido</button>` +
-              `<button class="btn-reserva rechazar"  onclick="cambiarEstadoReserva(${r.id}, 'rechazada', this)"><i class="fa-solid fa-xmark"></i> Rechazar</button>`;
+              `<span style="display:inline-flex;align-items:center;gap:4px;background:#fff7ed;color:#92400e;border:1px solid #fed7aa;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-money-bill-wave"></i> Pendiente de pago en efectivo</span><br>` +
+              `<button class="btn-reserva confirmar" onclick="confirmarPagoEfectivo(${r.id}, this)"><i class="fa-solid fa-hand-holding-dollar"></i> Confirmar efectivo recibido</button>`;
           } else if (r.estado_pago === 'efectivo_confirmado') {
             accionesHTML =
-              `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-circle-check"></i> Efectivo recibido ✓</span><br>` +
-              `<button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)"><i class="fa-solid fa-check"></i> Confirmar reserva</button>` +
-              `<button class="btn-reserva rechazar"  onclick="cambiarEstadoReserva(${r.id}, 'rechazada',  this)"><i class="fa-solid fa-xmark"></i> Rechazar</button>`;
+              `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-circle-check"></i> Efectivo confirmado</span><br>` +
+              `<button class="btn-reserva" style="background:#475569;color:white;border:none;" onclick="abrirMultaModal(${r.id}, '${r.fecha_fin}', ${r.precio_hora || 0})"><i class="fa-solid fa-flag-checkered"></i> Registrar Salida</button>`;
           } else {
             accionesHTML =
-              `<span style="display:inline-flex;align-items:center;gap:4px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-clock"></i> Pago pendiente</span><br>` +
-              `<button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)"><i class="fa-solid fa-check"></i> Confirmar</button>` +
-              `<button class="btn-reserva rechazar"  onclick="cambiarEstadoReserva(${r.id}, 'rechazada',  this)"><i class="fa-solid fa-xmark"></i> Rechazar</button>`;
+              `<span style="display:inline-flex;align-items:center;gap:4px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-hourglass-half"></i> Esperando pago del conductor</span>`;
           }
-        } else if (r.estado === 'confirmada') {
-          accionesHTML = `
-            <button class="btn-reserva" style="background:#475569;color:white;border:none;"
-              onclick="abrirMultaModal(${r.id}, '${r.fecha_fin}', ${r.precio_hora || 0})">
-              <i class="fa-solid fa-flag-checkered"></i> Registrar Salida
-            </button>`;
         }
 
         const multaBadge = multa > 0
@@ -1083,6 +1739,10 @@ async function cargarReservasRecibidas() {
         const cardClass = r.estado === 'pendiente' ? 'reserva-card is-pendiente'
                         : r.estado === 'confirmada' ? 'reserva-card is-confirmada'
                         : 'reserva-card';
+
+        const motivoRechazoHTML = (r.estado === 'rechazada' && r.motivo_rechazo)
+          ? `<div style="margin:8px 0 10px;padding:10px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;font-size:0.8rem;color:#991b1b;"><strong>Motivo enviado al conductor:</strong><br>${escapeHTML(r.motivo_rechazo)}</div>`
+          : '';
 
         const card = document.createElement('div');
         card.className = cardClass;
@@ -1107,6 +1767,7 @@ async function cargarReservasRecibidas() {
             ${multaBadge}
             ${cuponHTML}
           </div>
+          ${motivoRechazoHTML}
           ${accionesHTML ? `<div class="reserva-card-actions">${accionesHTML}</div>` : ''}
         `;
         container.appendChild(card);
@@ -1125,7 +1786,7 @@ async function cargarReservasRecibidas() {
 // ============================================================
 // Cambiar estado de reserva — PUT /api/reservas/:id/estado
 // ============================================================
-async function cambiarEstadoReserva(reservaId, nuevoEstado, btnElement) {
+async function cambiarEstadoReserva(reservaId, nuevoEstado, btnElement, motivoRechazo = '') {
   btnElement.disabled = true;
   const origHTML = btnElement.innerHTML;
   btnElement.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span>';
@@ -1134,7 +1795,11 @@ async function cambiarEstadoReserva(reservaId, nuevoEstado, btnElement) {
     const res = await fetch(`/api/reservas/${reservaId}/estado`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ estado: nuevoEstado }),
+      body: JSON.stringify({
+        estado: nuevoEstado,
+        anfitrion_id: currentUser.id,
+        motivo_rechazo: motivoRechazo || null,
+      }),
     });
     const data = await res.json();
 
@@ -1155,6 +1820,12 @@ async function cambiarEstadoReserva(reservaId, nuevoEstado, btnElement) {
   }
 }
 
+async function rechazarReservaConMotivo(reservaId, btnElement) {
+  const motivo = await pedirMotivoRechazo();
+  if (!motivo) return;
+  await cambiarEstadoReserva(reservaId, 'rechazada', btnElement, motivo);
+}
+
 // ============================================================
 // Confirmar recepción de pago en efectivo (anfitrión)
 // ============================================================
@@ -1170,7 +1841,7 @@ async function confirmarPagoEfectivo(reservaId, btnElement) {
     });
     const data = await res.json();
     if (res.ok && data.status === 'ok') {
-      showToast('¡Efectivo confirmado! Ahora puedes aceptar o rechazar la reserva.');
+      showToast('¡Efectivo confirmado! Ya puedes gestionar la salida de la reserva.');
       await cargarReservasRecibidas();
     } else {
       showToast(data.message || 'Error al confirmar el efectivo.', 'error');
@@ -1250,6 +1921,7 @@ function abrirEditModalById(garajeId) {
 }
 
 function abrirEditModal(garaje) {
+  initEditGarajeLocationMap();
   document.getElementById('editGarajeId').value = garaje.id;
   document.getElementById('editDireccion').value = garaje.direccion || '';
   document.getElementById('editDescripcion').value = garaje.descripcion || '';
@@ -1267,9 +1939,11 @@ function abrirEditModal(garaje) {
   document.getElementById('editFidelidadVisitas').value = garaje.fidelidad_visitas || 10;
   document.getElementById('editFidelidadDescuento').value = garaje.fidelidad_descuento_pct || 10;
   document.getElementById('editFidelidadValidez').value = garaje.fidelidad_dias_validez != null ? garaje.fidelidad_dias_validez : '';
+  setEditGarajeLocationFromData(Number(garaje.latitud), Number(garaje.longitud), garaje.direccion || '');
 
   document.getElementById('editGarajeOverlay').classList.add('open');
   document.body.style.overflow = 'hidden';
+  setTimeout(() => editGarajeMap?.invalidateSize(), 120);
 }
 
 function closeEditModal() {
@@ -1281,6 +1955,7 @@ async function guardarEdicionGaraje() {
   const garajeId = document.getElementById('editGarajeId').value;
   const direccion = document.getElementById('editDireccion').value.trim();
   const precio_hora = document.getElementById('editPrecio').value;
+  const ubicacionEditValida = Number.isFinite(ubicacionGarajeEdit.lat) && Number.isFinite(ubicacionGarajeEdit.lng);
 
   if (!direccion || direccion.length < 5) {
     showToast('La dirección debe tener al menos 5 caracteres.', 'error');
@@ -1288,6 +1963,12 @@ async function guardarEdicionGaraje() {
   }
   if (!precio_hora || Number(precio_hora) <= 0) {
     showToast('Ingresa un precio por hora válido.', 'error');
+    return;
+  }
+
+  if (!ubicacionEditValida) {
+    showToast('Selecciona la ubicacion exacta del garaje en el mapa antes de guardar.', 'error');
+    initEditGarajeLocationMap();
     return;
   }
 
@@ -1301,6 +1982,8 @@ async function guardarEdicionGaraje() {
     const payload = {
       usuario_id: currentUser.id,
       direccion,
+      latitud: ubicacionGarajeEdit.lat,
+      longitud: ubicacionGarajeEdit.lng,
       descripcion:           document.getElementById('editDescripcion').value,
       precio_hora,
       nivel_seguridad:       document.getElementById('editNivelSeguridad').value,
@@ -1429,6 +2112,7 @@ async function confirmarSalida() {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        anfitrion_id: currentUser.id,
         estado: 'finalizada',
         multa_exceso: multaExceso,
         hora_salida_real: salidaReal.toISOString(),
@@ -1462,6 +2146,7 @@ async function confirmarSalida() {
 document.addEventListener('DOMContentLoaded', () => {
   initNavbar();
   initTheme();
+  initLocationPickers();
   initFileUpload();
   initHorariosBuilder();
   initTilemap();

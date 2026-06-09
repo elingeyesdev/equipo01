@@ -1,0 +1,150 @@
+/* ============================================================
+   EstAirbnb — cupones.css
+   ============================================================ */
+
+body { font-family: 'Inter', sans-serif; background: #f7f9fb; }
+
+.page-header {
+  background: linear-gradient(135deg, #002542 0%, #003d60 100%);
+  color: white;
+  padding: 48px 0 40px;
+  margin-bottom: 40px;
+}
+.page-header h1 { font-size: 2rem; font-weight: 800; margin: 0 0 8px; }
+.page-header p  { font-size: 1rem; opacity: .75; margin: 0; }
+
+.cupon-card {
+  background: #fff;
+  border-radius: 16px;
+  border: 2px dashed #c3c6ce;
+  padding: 24px 28px;
+  position: relative;
+  overflow: hidden;
+  transition: border-color .2s, box-shadow .2s;
+}
+.cupon-card:hover { border-color: #006a62; box-shadow: 0 8px 24px rgba(0,106,98,.12); }
+.cupon-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0;
+  width: 6px; height: 100%;
+  background: linear-gradient(180deg, #006a62, #005049);
+  border-radius: 2px 0 0 2px;
+}
+.cupon-card.demo::before { background: linear-gradient(180deg, #002542, #003d60); }
+
+.cupon-pct {
+  font-size: 3rem;
+  font-weight: 900;
+  color: #006a62;
+  line-height: 1;
+  letter-spacing: -2px;
+}
+.cupon-card.demo .cupon-pct { color: #002542; }
+
+.cupon-codigo {
+  display: inline-block;
+  background: #f0fdf4;
+  border: 1.5px dashed #16a34a;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: .95rem;
+  font-weight: 800;
+  letter-spacing: .12em;
+  color: #166534;
+  font-family: 'Courier New', monospace;
+  cursor: pointer;
+  transition: background .2s;
+  margin: 8px 0;
+}
+.cupon-card.demo .cupon-codigo {
+  background: #eff6ff;
+  border-color: #3b82f6;
+  color: #1e3a5f;
+}
+
+.btn-copy {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 9px 18px;
+  border-radius: 10px;
+  border: none;
+  background: linear-gradient(135deg, #006a62, #005049);
+  color: white;
+  font-family: 'Inter', sans-serif;
+  font-size: .82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: opacity .2s, transform .15s;
+}
+.btn-copy:hover { opacity: .9; transform: translateY(-1px); }
+.btn-copy.copied { background: linear-gradient(135deg, #16a34a, #15803d); }
+
+.cupon-vence {
+  font-size: .75rem;
+  color: #94a3b8;
+  margin-top: 6px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.badge-demo {
+  display: inline-block;
+  background: #002542;
+  color: white;
+  font-size: .62rem;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 20px;
+  text-transform: uppercase;
+  letter-spacing: .08em;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.instrucciones-box {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 28px 32px;
+  margin-top: 40px;
+}
+.step-num {
+  width: 32px; height: 32px;
+  border-radius: 50%;
+  background: #006a62;
+  color: white;
+  font-weight: 800;
+  font-size: .85rem;
+  display: flex; align-items: center; justify-content: center;
+  flex-shrink: 0;
+}
+
+.dark body, .dark .cupon-card, .dark .instrucciones-box { background: #1e293b; color: #e2e8f0; }
+.dark .cupon-card { border-color: #334155; }
+.dark .cupon-codigo { background: #064e3b; border-color: #16a34a; }
+.dark .instrucciones-box { border-color: #334155; background: #1e293b; }
+
+/* ── AdminLTE Integration Patches ── */
+.est-nav-avatar {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: #1a6fc4; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.82rem; font-weight: 700; flex-shrink: 0;
+  cursor: pointer; user-select: none;
+}
+.est-sidebar-avatar {
+  width: 36px; height: 36px; border-radius: 50%;
+  background: #1a6fc4; color: #fff;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 0.82rem; font-weight: 700; flex-shrink: 0;
+}
+/* El page-header ahora vive dentro del container, ajustar border-radius */
+.page-header {
+  border-radius: 16px;
+  padding: 32px 28px;
+  margin-bottom: 1.5rem;
+}
+.app-content { font-family: 'Inter', sans-serif; }

@@ -48,6 +48,72 @@
     el._timer = setTimeout(() => { el.style.transform = 'translateX(calc(100% + 32px))'; }, 3500);
   }
 
+  function escapeHTML(value) {
+    const div = document.createElement('div');
+    div.textContent = value == null ? '' : String(value);
+    return div.innerHTML;
+  }
+
+  function pedirMotivoRechazo() {
+    return new Promise((resolve) => {
+      const existing = document.getElementById('rechazoReservaOverlay');
+      if (existing) existing.remove();
+
+      const overlay = document.createElement('div');
+      overlay.id = 'rechazoReservaOverlay';
+      overlay.style.cssText = 'position:fixed;inset:0;z-index:9999;background:rgba(15,23,42,.62);backdrop-filter:blur(4px);display:flex;align-items:center;justify-content:center;padding:16px;';
+      overlay.innerHTML = `
+        <div style="width:100%;max-width:460px;background:#fff;border-radius:18px;box-shadow:0 24px 60px rgba(15,23,42,.24);overflow:hidden;">
+          <div style="padding:18px 20px 14px;border-bottom:1px solid #e2e8f0;">
+            <div style="font-size:1rem;font-weight:800;color:#0f172a;">Motivo del rechazo</div>
+            <div style="font-size:.82rem;color:#64748b;margin-top:4px;">Este mensaje se enviara al conductor para que sepa por que no fue aceptada la reserva.</div>
+          </div>
+          <div style="padding:18px 20px;">
+            <textarea id="rechazoReservaInput" rows="4" placeholder="Ej: El espacio no estara disponible en ese horario por un cierre temporal del garaje." style="width:100%;resize:vertical;border:1.5px solid #cbd5e1;border-radius:12px;padding:12px 14px;font:inherit;font-size:.9rem;color:#0f172a;outline:none;"></textarea>
+            <div id="rechazoReservaError" style="display:none;margin-top:8px;font-size:.78rem;font-weight:700;color:#b91c1c;"></div>
+          </div>
+          <div style="display:flex;justify-content:flex-end;gap:10px;padding:0 20px 18px;">
+            <button type="button" id="btnCancelarRechazoReserva" style="padding:10px 16px;border-radius:12px;border:1px solid #cbd5e1;background:#fff;color:#475569;font:inherit;font-size:.85rem;font-weight:700;cursor:pointer;">Cancelar</button>
+            <button type="button" id="btnConfirmarRechazoReserva" style="padding:10px 16px;border-radius:12px;border:none;background:#b91c1c;color:#fff;font:inherit;font-size:.85rem;font-weight:700;cursor:pointer;">Rechazar reserva</button>
+          </div>
+        </div>
+      `;
+
+      const cleanup = (value) => {
+        overlay.remove();
+        resolve(value);
+      };
+
+      overlay.addEventListener('click', (event) => {
+        if (event.target === overlay) cleanup(null);
+      });
+
+      document.body.appendChild(overlay);
+
+      const input = document.getElementById('rechazoReservaInput');
+      const errorEl = document.getElementById('rechazoReservaError');
+      const btnCancel = document.getElementById('btnCancelarRechazoReserva');
+      const btnConfirm = document.getElementById('btnConfirmarRechazoReserva');
+
+      if (input) input.focus();
+      if (btnCancel) btnCancel.addEventListener('click', () => cleanup(null));
+      if (btnConfirm) {
+        btnConfirm.addEventListener('click', () => {
+          const motivo = input ? input.value.trim() : '';
+          if (motivo.length < 5) {
+            if (errorEl) {
+              errorEl.textContent = 'Escribe un motivo de al menos 5 caracteres.';
+              errorEl.style.display = 'block';
+            }
+            if (input) input.focus();
+            return;
+          }
+          cleanup(motivo);
+        });
+      }
+    });
+  }
+
   // ─── Estado Stepper ───
   function generarStepper(estado) {
     const idx = { pendiente: 0, confirmada: 1, finalizada: 2, rechazada: 1, cancelada: 0 };
@@ -240,6 +306,264 @@
     }
   };
 
+  // ─── Ruta en vivo dentro del proyecto ───
+  let _rutaMapa = null;
+  let _rutaUserMarker = null;
+  let _rutaDestinoMarker = null;
+  let _rutaPolyline = null;
+  let _rutaWatchId = null;
+  let _rutaDestino = null;
+  let _rutaReservaActiva = null;
+  let _rutaUltimoOrigen = null;
+  let _rutaUltimoCalculoAt = 0;
+  let _rutaDebeAjustarVista = true;
+
+  function ensureRouteMap() {
+    if (typeof L === 'undefined') return null;
+    if (_rutaMapa) {
+      setTimeout(() => _rutaMapa.invalidateSize(), 120);
+      return _rutaMapa;
+    }
+    _rutaMapa = L.map('routeMap', { zoomControl: true }).setView([-16.4897, -68.1193], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap',
+    }).addTo(_rutaMapa);
+    return _rutaMapa;
+  }
+
+  function updateRouteStat(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value;
+  }
+
+  function clearRouteWatch() {
+    if (_rutaWatchId != null && navigator.geolocation) {
+      navigator.geolocation.clearWatch(_rutaWatchId);
+      _rutaWatchId = null;
+    }
+  }
+
+  function renderRouteSteps(steps) {
+    const wrap = document.getElementById('routeSteps');
+    if (!wrap) return;
+    if (steps === null) {
+      wrap.innerHTML = `
+        <div class="route-step">
+          <div class="route-step-index">1</div>
+          <div class="route-step-text">Esperando tu ubicacion actual para dibujar el camino mas conveniente hacia el garaje.</div>
+        </div>
+      `;
+      return;
+    }
+    if (!steps || !steps.length) {
+      wrap.innerHTML = `
+        <div class="route-step">
+          <div class="route-step-index">1</div>
+          <div class="route-step-text">No se encontraron pasos detallados, pero el mapa ya muestra el camino sugerido.</div>
+        </div>
+      `;
+      return;
+    }
+
+    const modifierMap = {
+      left: 'a la izquierda',
+      right: 'a la derecha',
+      straight: 'recto',
+      slight_left: 'ligeramente a la izquierda',
+      slight_right: 'ligeramente a la derecha',
+      sharp_left: 'cerrado a la izquierda',
+      sharp_right: 'cerrado a la derecha',
+      uturn: 'en U',
+    };
+
+    function describeStep(step) {
+      const maneuver = step.maneuver || {};
+      const via = step.name ? ` por ${step.name}` : '';
+      switch (maneuver.type) {
+        case 'depart':
+          return `Sal y comienza el recorrido${via}.`;
+        case 'arrive':
+          return 'Llegaste al garaje reservado.';
+        case 'turn':
+          return `Gira ${modifierMap[maneuver.modifier] || maneuver.modifier || 'segun la via'}${via}.`;
+        case 'roundabout':
+          return `Ingresa a la rotonda y sigue${via}.`;
+        case 'merge':
+          return `Incorpórate${via}.`;
+        case 'fork':
+          return `Toma el desvío ${modifierMap[maneuver.modifier] || ''}${via}.`.trim();
+        case 'end of road':
+          return `Al final de la vía gira ${modifierMap[maneuver.modifier] || ''}${via}.`.trim();
+        default:
+          return `Continúa${via}.`;
+      }
+    }
+
+    wrap.innerHTML = steps.slice(0, 6).map((step, index) => `
+      <div class="route-step">
+        <div class="route-step-index">${index + 1}</div>
+        <div>
+          <div class="route-step-text">${describeStep(step)}</div>
+          <div class="route-step-meta">${window.EstAirbnbMapUtils ? window.EstAirbnbMapUtils.formatDistance(step.distance || 0) : ''}</div>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  async function resolveReservaDestino(reserva) {
+    const lat = Number(reserva?.garaje_latitud);
+    const lng = Number(reserva?.garaje_longitud);
+    if (Number.isFinite(lat) && Number.isFinite(lng)) {
+      return { lat, lng, label: reserva.garaje_direccion || 'Garaje reservado' };
+    }
+    if (!window.EstAirbnbMapUtils) {
+      throw new Error('Modulo de mapas no disponible');
+    }
+    return window.EstAirbnbMapUtils.geocodeAddress(reserva.garaje_direccion || '');
+  }
+
+  async function recalcularRutaEnVivo(origin) {
+    if (!_rutaDestino || !_rutaReservaActiva || !window.EstAirbnbMapUtils) return;
+
+    const mapa = ensureRouteMap();
+    if (!mapa) return;
+
+    if (!_rutaUserMarker) {
+      _rutaUserMarker = L.marker([origin.lat, origin.lng]).addTo(mapa).bindPopup('Tu ubicacion actual');
+    } else {
+      _rutaUserMarker.setLatLng([origin.lat, origin.lng]);
+    }
+
+    const now = Date.now();
+    if (_rutaUltimoOrigen && window.EstAirbnbMapUtils.haversineMeters(origin, _rutaUltimoOrigen) < 12 && (now - _rutaUltimoCalculoAt) < 5000) {
+      return;
+    }
+
+    _rutaUltimoOrigen = origin;
+    _rutaUltimoCalculoAt = now;
+    updateRouteStat('routeStatusLabel', 'Calculando ruta...');
+
+    try {
+      const route = await window.EstAirbnbMapUtils.fetchRoute(origin, _rutaDestino);
+      const latlngs = route.coordinates.map(([lng, lat]) => [lat, lng]);
+
+      if (_rutaPolyline) {
+        _rutaPolyline.setLatLngs(latlngs);
+      } else {
+        _rutaPolyline = L.polyline(latlngs, { color: '#006a62', weight: 5, opacity: 0.9 }).addTo(mapa);
+      }
+
+      updateRouteStat('routeEtaLabel', window.EstAirbnbMapUtils.formatDuration(route.durationSeconds));
+      updateRouteStat('routeDistanceLabel', window.EstAirbnbMapUtils.formatDistance(route.distanceMeters));
+      updateRouteStat('routeStatusLabel', 'Ruta actualizada');
+      renderRouteSteps(route.steps);
+
+      if (_rutaDebeAjustarVista) {
+        const bounds = L.latLngBounds([
+          [origin.lat, origin.lng],
+          [_rutaDestino.lat, _rutaDestino.lng],
+          ...latlngs,
+        ]);
+        mapa.fitBounds(bounds, { padding: [28, 28] });
+        _rutaDebeAjustarVista = false;
+      }
+    } catch (err) {
+      console.error('Error calculando ruta:', err);
+      updateRouteStat('routeStatusLabel', 'No se pudo calcular la ruta');
+      renderRouteSteps([]);
+    }
+  }
+
+  window.abrirRutaEnVivo = async function(reservaId) {
+    const reserva = todasLasReservas.find(r => Number(r.id) === Number(reservaId));
+    if (!reserva) {
+      showToast('No se encontraron los datos de la reserva.', 'error');
+      return;
+    }
+
+    const overlay = document.getElementById('routeOverlay');
+    if (!overlay) return;
+
+    overlay.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    _rutaReservaActiva = reserva;
+    _rutaDebeAjustarVista = true;
+    _rutaUltimoOrigen = null;
+    if (_rutaPolyline && _rutaMapa) {
+      _rutaMapa.removeLayer(_rutaPolyline);
+      _rutaPolyline = null;
+    }
+    updateRouteStat('routeDestinoLabel', reserva.garaje_direccion || 'Garaje reservado');
+    updateRouteStat('routeEtaLabel', '--');
+    updateRouteStat('routeDistanceLabel', '--');
+    updateRouteStat('routeStatusLabel', 'Preparando destino...');
+    renderRouteSteps(null);
+
+    const mapa = ensureRouteMap();
+    if (!mapa) {
+      showToast('El mapa interno no pudo inicializarse.', 'error');
+      return;
+    }
+
+    clearRouteWatch();
+
+    try {
+      _rutaDestino = await resolveReservaDestino(reserva);
+      if (!_rutaDestinoMarker) {
+        _rutaDestinoMarker = L.marker([_rutaDestino.lat, _rutaDestino.lng]).addTo(mapa).bindPopup('Garaje reservado');
+      } else {
+        _rutaDestinoMarker.setLatLng([_rutaDestino.lat, _rutaDestino.lng]);
+      }
+      updateRouteStat('routeDestinoLabel', _rutaDestino.label || reserva.garaje_direccion || 'Garaje reservado');
+      mapa.setView([_rutaDestino.lat, _rutaDestino.lng], 15);
+    } catch (err) {
+      console.error('Error resolviendo destino:', err);
+      updateRouteStat('routeStatusLabel', 'No se pudo ubicar el garaje');
+      showToast('No se pudo ubicar el garaje en el mapa. Revisa su direccion.', 'error');
+      return;
+    }
+
+    if (!navigator.geolocation) {
+      updateRouteStat('routeStatusLabel', 'Tu navegador no soporta geolocalizacion');
+      renderRouteSteps([]);
+      return;
+    }
+
+    const onPosition = (position) => {
+      const origin = {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude,
+      };
+      recalcularRutaEnVivo(origin);
+    };
+
+    const onError = (error) => {
+      console.error('Error geolocalizando:', error);
+      updateRouteStat('routeStatusLabel', 'Permiso de ubicacion no concedido');
+      showToast('Activa tu ubicacion para ver la ruta en vivo dentro del proyecto.', 'error');
+    };
+
+    navigator.geolocation.getCurrentPosition(onPosition, onError, {
+      enableHighAccuracy: true,
+      timeout: 12000,
+      maximumAge: 10000,
+    });
+
+    _rutaWatchId = navigator.geolocation.watchPosition(onPosition, onError, {
+      enableHighAccuracy: true,
+      timeout: 15000,
+      maximumAge: 5000,
+    });
+  };
+
+  window.cerrarRutaEnVivo = function() {
+    clearRouteWatch();
+    const overlay = document.getElementById('routeOverlay');
+    if (overlay) overlay.classList.remove('open');
+    document.body.style.overflow = '';
+  };
+
   // ─── Calendario Visual ───
   let _calMes  = new Date().getMonth();
   let _calAnio = new Date().getFullYear();
@@ -363,26 +687,29 @@
   let todasLasReservas = [];
 
   // ─── Filtros ───
-  const filtroEstado  = document.getElementById('filtroEstado');
-  const filtroDesde   = document.getElementById('filtroDesde');
-  const filtroHasta   = document.getElementById('filtroHasta');
-  const btnAplicar    = document.getElementById('btnAplicarFiltros');
-  const btnLimpiarF   = document.getElementById('btnLimpiarFiltros');
+  const filtroEstado   = document.getElementById('filtroEstado');
+  const filtroDesde    = document.getElementById('filtroDesde');
+  const filtroHasta    = document.getElementById('filtroHasta');
+  const filtroBusqueda = document.getElementById('filtroBusqueda');
+  const btnAplicar     = document.getElementById('btnAplicarFiltros');
+  const btnLimpiarF    = document.getElementById('btnLimpiarFiltros');
   const filtroConteo  = document.getElementById('filtroConteo');
   const filtroConteoN = document.getElementById('filtroConteoNum');
 
   function aplicarFiltros() {
-    const estado  = filtroEstado?.value || '';
-    const desde   = filtroDesde?.value  ? new Date(filtroDesde.value)  : null;
-    const hasta   = filtroHasta?.value  ? new Date(filtroHasta.value)  : null;
+    const estado   = filtroEstado?.value || '';
+    const busqueda = (filtroBusqueda?.value || '').trim().toLowerCase();
+    const desde    = filtroDesde?.value  ? new Date(filtroDesde.value)  : null;
+    const hasta    = filtroHasta?.value  ? new Date(filtroHasta.value)  : null;
     if (hasta) hasta.setHours(23, 59, 59, 999);
 
     let filtradas = todasLasReservas;
-    if (estado) filtradas = filtradas.filter(r => r.estado === estado);
-    if (desde)  filtradas = filtradas.filter(r => new Date(r.fecha_inicio) >= desde);
-    if (hasta)  filtradas = filtradas.filter(r => new Date(r.fecha_inicio) <= hasta);
+    if (estado)   filtradas = filtradas.filter(r => r.estado === estado);
+    if (busqueda) filtradas = filtradas.filter(r => (r.garaje_direccion || '').toLowerCase().includes(busqueda));
+    if (desde)    filtradas = filtradas.filter(r => new Date(r.fecha_inicio) >= desde);
+    if (hasta)    filtradas = filtradas.filter(r => new Date(r.fecha_inicio) <= hasta);
 
-    const hayFiltro = !!(estado || desde || hasta);
+    const hayFiltro = !!(estado || busqueda || desde || hasta);
 
     if (filtroConteo) {
       if (hayFiltro) {
@@ -401,12 +728,51 @@
   if (btnAplicar) btnAplicar.addEventListener('click', aplicarFiltros);
   if (btnLimpiarF) {
     btnLimpiarF.addEventListener('click', () => {
-      if (filtroEstado) filtroEstado.value = '';
-      if (filtroDesde)  filtroDesde.value  = '';
-      if (filtroHasta)  filtroHasta.value  = '';
-      if (filtroConteo) filtroConteo.style.display = 'none';
+      if (filtroEstado)   filtroEstado.value   = '';
+      if (filtroDesde)    filtroDesde.value    = '';
+      if (filtroHasta)    filtroHasta.value    = '';
+      if (filtroBusqueda) filtroBusqueda.value = '';
+      if (filtroConteo)   filtroConteo.style.display = 'none';
       renderizarReservas(todasLasReservas);
     });
+  }
+
+  // ─── Dashboard de Estadísticas (solo conductor) ───
+  function renderizarStats(reservas) {
+    const dashboard = document.getElementById('statsDashboard');
+    if (!dashboard || !esConductor) return;
+
+    const total = reservas.length;
+
+    const pagadas = reservas.filter(r => r.estado !== 'rechazada' && r.estado !== 'cancelada');
+    const gastado = pagadas.reduce((s, r) => s + parseFloat(r.precio_total || 0), 0);
+
+    let horas = 0;
+    reservas.filter(r => r.estado === 'finalizada').forEach(r => {
+      const diff = (new Date(r.fecha_fin) - new Date(r.fecha_inicio)) / (1000 * 60 * 60);
+      if (diff > 0) horas += diff;
+    });
+
+    const conteo = {};
+    pagadas.forEach(r => {
+      const key = r.garaje_id || r.garaje_direccion || 'desconocido';
+      if (!conteo[key]) conteo[key] = { dir: r.garaje_direccion || '—', n: 0 };
+      conteo[key].n++;
+    });
+    let garajeFav = '—';
+    const entries = Object.values(conteo).sort((a, b) => b.n - a.n);
+    if (entries.length > 0) {
+      garajeFav = entries[0].dir;
+      if (garajeFav.length > 24) garajeFav = garajeFav.substring(0, 22) + '…';
+    }
+
+    const setEl = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = v; };
+    setEl('statTotalReservas', total);
+    setEl('statTotalGastado', `Bs. ${gastado.toFixed(2)}`);
+    setEl('statHorasTotales', `${Math.round(horas)} h`);
+    setEl('statGarajeFav', garajeFav);
+
+    dashboard.style.display = 'block';
   }
 
   // ─── Renderizar (separado de cargar) ───
@@ -439,12 +805,14 @@
       seccionHistorial.style.display = 'block';
       reservasGrid.innerHTML = generarTarjetas(reservas);
     }
+
+    sincronizarAccionesReservasVisibles(reservas);
   }
 
   // ─── Cargar Datos ───
   async function cargarReservas() {
     try {
-      loadingReservas.style.display = 'block';
+      loadingReservas.style.display = 'flex';
       emptyReservas.style.display = 'none';
       seccionPendientes.style.display = 'none';
       seccionHistorial.style.display = 'none';
@@ -465,6 +833,7 @@
         tituloReservas.innerHTML = '<i class="fa-solid fa-list-check"></i> Panel de Alquileres';
       }
 
+      renderizarStats(todasLasReservas);
       renderizarReservas(todasLasReservas);
       const calSec = document.getElementById('calendarSection');
       if (calSec && calSec.style.display !== 'none') renderCalendario();
@@ -508,7 +877,6 @@
       }
 
       if (esAnfitrion) {
-        // Conductor info block
         const initial = (res.conductor_nombre || 'C')[0].toUpperCase();
         bloqueOpcional = `
           <div class="conductor-card">
@@ -517,161 +885,138 @@
               <div class="c-name"><i class="fa-solid fa-user" style="color:#006a62;margin-right:5px;font-size:0.75rem;"></i>${res.conductor_nombre || 'N/A'}</div>
               <div class="c-phone"><i class="fa-solid fa-phone" style="margin-right:5px;font-size:0.7rem;"></i>${res.conductor_telefono || 'Sin teléfono'}</div>
             </div>
-          </div>
-        `;
+          </div>`;
 
         if (res.estado === 'pendiente') {
           cardFooterHtml = `
-            <div class="card-footer-inner">
-              <button class="btn-action-card btn-rechazar" onclick="cambiarEstado(${res.id}, 'rechazada')">
-                <i class="fa-solid fa-xmark"></i> Rechazar
-              </button>
-              <button class="btn-action-card btn-confirmar" onclick="cambiarEstado(${res.id}, 'confirmada')">
-                <i class="fa-solid fa-check"></i> Confirmar
-              </button>
-            </div>
-          `;
+            <div class="card-actions">
+              <div class="card-actions-row">
+                <button class="btn-card btn-card--reject" onclick="cambiarEstado(${res.id}, 'rechazada')"><i class="fa-solid fa-xmark"></i> Rechazar</button>
+                <button class="btn-card btn-card--confirm" onclick="cambiarEstado(${res.id}, 'confirmada')"><i class="fa-solid fa-check"></i> Confirmar</button>
+              </div>
+            </div>`;
         } else if (res.estado === 'confirmada') {
-          cardFooterHtml = `
-            <div class="card-footer-inner">
-              <button class="btn-action-card btn-confirmar" style="background: #64748b;" onclick="cambiarEstado(${res.id}, 'finalizada')">
-                <i class="fa-solid fa-flag-checkered"></i> Finalizar Estancia
-              </button>
-            </div>
-          `;
+          if (res.estado_pago === 'pagado') {
+            cardFooterHtml = `
+              <div class="card-actions">
+                <div class="action-banner action-banner--success"><i class="fa-solid fa-qrcode"></i> Pago QR registrado</div>
+                <button class="btn-card btn-card--slate" onclick="cambiarEstado(${res.id}, 'finalizada')"><i class="fa-solid fa-flag-checkered"></i> Finalizar Estancia</button>
+              </div>`;
+          } else if (res.estado_pago === 'efectivo_pendiente') {
+            cardFooterHtml = `
+              <div class="card-actions">
+                <div class="action-banner action-banner--warning"><i class="fa-solid fa-money-bill-wave"></i> El conductor pagará en efectivo al llegar</div>
+              </div>`;
+          } else if (res.estado_pago === 'efectivo_confirmado') {
+            cardFooterHtml = `
+              <div class="card-actions">
+                <div class="action-banner action-banner--success"><i class="fa-solid fa-circle-check"></i> Efectivo confirmado por el anfitrión</div>
+                <button class="btn-card btn-card--slate" onclick="cambiarEstado(${res.id}, 'finalizada')"><i class="fa-solid fa-flag-checkered"></i> Finalizar Estancia</button>
+              </div>`;
+          } else {
+            cardFooterHtml = `
+              <div class="card-actions">
+                <div class="action-banner action-banner--info"><i class="fa-solid fa-hourglass-half"></i> Esperando pago del conductor</div>
+              </div>`;
+          }
         }
 
       } else if (esConductor) {
-        // Access instructions
         if (res.instrucciones_acceso) {
           bloqueOpcional = `
             <div class="access-card">
-              <div class="access-header">
-                <i class="fa-solid fa-key"></i> Instrucciones de Acceso
-              </div>
+              <div class="access-header"><i class="fa-solid fa-key"></i> Instrucciones de Acceso</div>
               <div class="access-text">${res.instrucciones_acceso}</div>
-            </div>
-          `;
+            </div>`;
+        }
+
+        if (res.estado === 'rechazada' && res.motivo_rechazo) {
+          bloqueOpcional += `
+            <div class="access-card" style="border-color:#fecaca;background:#fef2f2;">
+              <div class="access-header" style="color:#b91c1c;"><i class="fa-solid fa-circle-xmark"></i> Motivo del rechazo</div>
+              <div class="access-text" style="color:#991b1b;">${escapeHTML(res.motivo_rechazo)}</div>
+            </div>`;
         }
 
         const multaExceso    = parseFloat(res.multa_exceso || 0);
         const multaPagada    = res.estado_pago === 'multa_pagada';
         const multaPendiente = multaExceso > 0 && !multaPagada && res.estado === 'finalizada';
-        const addressEnc     = encodeURIComponent(res.garaje_direccion || '');
-        const llegarBtn      = `<a href="https://www.google.com/maps/search/?api=1&query=${addressEnc}" target="_blank" class="btn-action-card btn-navigate" style="flex:1 1 auto;">
-          <i class="fa-solid fa-location-arrow"></i> Cómo llegar
-        </a>`;
-
-        let pdfBtnHtml;
-        if (res.estado !== 'finalizada') {
-          pdfBtnHtml = `<button class="btn-action-card" style="flex:1 1 100%;opacity:0.55;cursor:not-allowed;background:#94a3b8;border:none;" disabled>
-            <i class="fa-solid fa-file-pdf"></i> Descarga disponible al finalizar
-          </button>`;
-        } else if (multaPendiente) {
-          pdfBtnHtml = `<button class="btn-action-card" style="flex:1 1 100%;opacity:0.7;cursor:not-allowed;background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;border:none;" disabled>
-            <i class="fa-solid fa-lock"></i> Paga la multa para descargar
-          </button>`;
-        } else {
-          pdfBtnHtml = `<button class="btn-action-card btn-confirmar" style="flex:1 1 100%;background:linear-gradient(135deg,#16a34a,#15803d);box-shadow:0 4px 12px rgba(22,163,74,.25);" onclick="descargarPDF(${res.id})">
-            <i class="fa-solid fa-file-pdf"></i> Descargar Comprobante
-          </button>`;
-        }
+        const llegarBtn      = `<button class="btn-card btn-card--nav" onclick="abrirRutaEnVivo(${res.id})"><i class="fa-solid fa-location-arrow"></i> Cómo llegar</button>`;
 
         if (res.estado === 'pendiente') {
           if (res.estado_pago === 'pagado') {
             cardFooterHtml = `
-              <div class="card-footer-inner flex-col gap-2">
-                <span style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;font-size:0.82rem;font-weight:700;color:#15803d;width:100%;">
-                  <i class="fa-solid fa-circle-check"></i> Pago QR confirmado — Esperando confirmación del anfitrión
-                </span>
-                <div style="display:flex;gap:8px;width:100%;">
+              <div class="card-actions">
+                <div class="action-banner action-banner--success"><i class="fa-solid fa-circle-check"></i> Pago QR confirmado — Esperando al anfitrión</div>
+                <div class="card-actions-row">
                   ${llegarBtn}
-                  <button class="btn-action-card btn-checkin" style="flex:1 1 auto;" onclick="abrirComprobantePago(${res.id})">
-                    <i class="fa-solid fa-receipt"></i> Ver comprobante
-                  </button>
+                  <button class="btn-card btn-card--checkin" onclick="abrirComprobantePago(${res.id})"><i class="fa-solid fa-receipt"></i> Ver comprobante</button>
                 </div>
               </div>`;
           } else if (res.estado_pago === 'efectivo_pendiente') {
             cardFooterHtml = `
-              <div class="card-footer-inner flex-col gap-2">
-                <span style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 16px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;font-size:0.82rem;font-weight:700;color:#c2410c;width:100%;">
-                  <i class="fa-solid fa-money-bill-wave"></i> Dirígete al garaje y entrega el efectivo al anfitrión
-                </span>
-                <div style="display:flex;gap:8px;width:100%;">
+              <div class="card-actions">
+                <div class="action-banner action-banner--warning"><i class="fa-solid fa-money-bill-wave"></i> Dirígete al garaje y entrega el efectivo</div>
+                <div class="card-actions-row">
                   ${llegarBtn}
-                  <button class="btn-action-card" style="flex:1 1 auto;background:#fff7ed;color:#c2410c;border:1.5px solid #fed7aa;font-family:inherit;" onclick="abrirComprobantePago(${res.id})">
-                    <i class="fa-solid fa-receipt"></i> Ver reserva
-                  </button>
+                  <button class="btn-card btn-card--warn" onclick="abrirComprobantePago(${res.id})"><i class="fa-solid fa-receipt"></i> Ver reserva</button>
                 </div>
               </div>`;
           } else if (res.estado_pago === 'efectivo_confirmado') {
             cardFooterHtml = `
-              <div class="card-footer-inner flex-col gap-2">
-                <span style="display:flex;align-items:center;justify-content:center;gap:8px;padding:11px 16px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;font-size:0.82rem;font-weight:700;color:#15803d;width:100%;">
-                  <i class="fa-solid fa-circle-check"></i> Efectivo confirmado — El anfitrión está confirmando tu reserva
-                </span>
-                <div style="display:flex;gap:8px;width:100%;">
+              <div class="card-actions">
+                <div class="action-banner action-banner--success"><i class="fa-solid fa-circle-check"></i> Efectivo confirmado — El anfitrión está confirmando</div>
+                <div class="card-actions-row">
                   ${llegarBtn}
-                  <button class="btn-action-card btn-checkin" style="flex:1 1 auto;" onclick="abrirComprobantePago(${res.id})">
-                    <i class="fa-solid fa-receipt"></i> Ver comprobante
-                  </button>
+                  <button class="btn-card btn-card--checkin" onclick="abrirComprobantePago(${res.id})"><i class="fa-solid fa-receipt"></i> Ver comprobante</button>
                 </div>
               </div>`;
           } else {
             cardFooterHtml = `
-              <div class="card-footer-inner">
-                <button class="btn-action-card" style="background:linear-gradient(135deg,#006a62,#009688);color:#fff;border:none;font-family:inherit;" onclick="abrirPasarela(${res.id}, ${res.precio_total}, ${res.precio_hora || 0})">
-                  <i class="fa-solid fa-qrcode"></i> Pagar Bs. ${parseFloat(res.precio_total).toFixed(2)}
-                </button>
+              <div class="card-actions">
+                <button class="btn-card btn-card--pay" onclick="abrirPasarela(${res.id}, ${res.precio_total}, ${res.precio_hora || 0})"><i class="fa-solid fa-qrcode"></i> Pagar Bs. ${parseFloat(res.precio_total).toFixed(2)}</button>
               </div>`;
           }
         } else if (res.estado === 'confirmada') {
           const metodoAcceso = res.metodo_acceso || 'QR';
           const checkinIcon  = metodoAcceso === 'QR' ? 'fa-qrcode' : metodoAcceso === 'Código' ? 'fa-hashtag' : 'fa-id-card';
-          const checkinLabel = metodoAcceso === 'QR' ? 'Check-in QR' : metodoAcceso === 'Código' ? 'Ver código de acceso' : 'Check-in — Mostrar al anfitrión';
+          const checkinLabel = metodoAcceso === 'QR' ? 'Check-in QR' : metodoAcceso === 'Código' ? 'Ver código' : 'Mostrar al anfitrión';
           cardFooterHtml = `
-            <div class="card-footer-inner" style="flex-wrap:wrap;gap:8px;">
-              <button class="btn-action-card btn-checkin" style="flex:1 1 auto;" onclick="mostrarCheckIn(${res.id})">
-                <i class="fa-solid ${checkinIcon}"></i> ${checkinLabel}
-              </button>
-              ${pdfBtnHtml}
-            </div>
-          `;
+            <div class="card-actions">
+              <div class="card-actions-row">
+                <button class="btn-card btn-card--nav" onclick="abrirRutaEnVivo(${res.id})"><i class="fa-solid fa-location-arrow"></i> Ruta en vivo</button>
+                <button class="btn-card btn-card--checkin" onclick="mostrarCheckIn(${res.id})"><i class="fa-solid ${checkinIcon}"></i> ${checkinLabel}</button>
+              </div>
+              <button class="btn-card btn-card--disabled" disabled><i class="fa-solid fa-file-pdf"></i> Descarga disponible al finalizar</button>
+            </div>`;
         } else if (res.estado === 'finalizada') {
           const reviewSection = res.ha_revisado
-            ? `<span style="text-align:center;font-size:0.72rem;font-weight:700;color:#006a62;text-transform:uppercase;padding:8px 0;display:flex;align-items:center;justify-content:center;gap:6px;"><i class="fa-solid fa-check-circle"></i> Reseña Publicada</span>`
-            : `<button class="btn-action-card btn-confirmar w-full" onclick="abrirModalResena(${res.id}, ${res.garaje_id})"><i class="fa-solid fa-star"></i> Calificar Espacio</button>`;
+            ? `<div class="action-banner action-banner--success"><i class="fa-solid fa-check-circle"></i> Reseña Publicada</div>`
+            : `<button class="btn-card btn-card--confirm" onclick="abrirModalResena(${res.id}, ${res.garaje_id})"><i class="fa-solid fa-star"></i> Calificar Espacio</button>`;
 
           let multaHtml = '';
           if (multaExceso > 0) {
             multaHtml = multaPagada
-              ? `<div style="display:flex;align-items:center;gap:8px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;font-size:0.8rem;font-weight:700;color:#15803d;">
-                  <i class="fa-solid fa-circle-check"></i> Multa de Bs. ${multaExceso.toFixed(2)} pagada
-                 </div>`
-              : `<div style="display:flex;flex-direction:column;gap:8px;padding:12px 14px;background:#fef2f2;border:1.5px solid #fca5a5;border-radius:10px;">
-                  <div style="display:flex;align-items:center;gap:6px;font-size:0.82rem;font-weight:800;color:#991b1b;">
-                    <i class="fa-solid fa-triangle-exclamation"></i> Multa por exceso de tiempo
-                  </div>
-                  <div style="font-size:0.78rem;color:#9a3412;">Debes pagar <strong>Bs. ${multaExceso.toFixed(2)}</strong> antes de salir del parqueo.</div>
-                  <button class="btn-action-card" style="background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;border:none;font-family:inherit;margin-top:2px;" onclick="abrirModalMulta(${res.id}, ${multaExceso})">
-                    <i class="fa-solid fa-money-bill-wave"></i> Pagar Multa Bs. ${multaExceso.toFixed(2)}
-                  </button>
-                 </div>`;
+              ? `<div class="action-banner action-banner--success"><i class="fa-solid fa-circle-check"></i> Multa de Bs. ${multaExceso.toFixed(2)} pagada</div>`
+              : `<div class="action-banner action-banner--error"><i class="fa-solid fa-triangle-exclamation"></i> Multa por exceso · Bs. ${multaExceso.toFixed(2)}</div>
+                 <button class="btn-card btn-card--danger" onclick="abrirModalMulta(${res.id}, ${multaExceso})"><i class="fa-solid fa-money-bill-wave"></i> Pagar Multa Bs. ${multaExceso.toFixed(2)}</button>`;
           }
 
+          const pdfBtnFinal = multaPendiente
+            ? `<button class="btn-card btn-card--disabled" disabled><i class="fa-solid fa-lock"></i> Paga la multa para descargar</button>`
+            : `<button class="btn-card btn-card--success" onclick="descargarPDF(${res.id})"><i class="fa-solid fa-file-pdf"></i> Descargar Comprobante</button>`;
+
           cardFooterHtml = `
-            <div class="card-footer-inner flex-col gap-2">
+            <div class="card-actions">
               ${multaHtml}
               ${reviewSection}
-              ${pdfBtnHtml}
-            </div>
-          `;
+              ${pdfBtnFinal}
+            </div>`;
         } else {
           cardFooterHtml = `
-            <div class="card-footer-inner">
-              ${pdfBtnHtml}
-            </div>
-          `;
+            <div class="card-actions">
+              <button class="btn-card btn-card--disabled" disabled><i class="fa-solid fa-file-pdf"></i> Descarga disponible al finalizar</button>
+            </div>`;
         }
       }
 
@@ -738,8 +1083,109 @@
   }
 
 
-  // ─── Actualizar Estado (Anfitrión) ───
+  // ─── Sincronizar acciones conductor post-render ───
+  function sincronizarAccionesReservasVisibles(reservas) {
+    if (!esConductor) return;
+
+    reservas.forEach((res) => {
+      const card = document.getElementById(`reserva-${res.id}`);
+      const footer = card ? card.querySelector('.card-actions') : null;
+      if (!footer) return;
+
+      const llegarBtn = `<button class=”btn-card btn-card--nav” onclick=”abrirRutaEnVivo(${res.id})”><i class=”fa-solid fa-location-arrow”></i> Cómo llegar</button>`;
+
+      if (res.estado === 'pendiente') {
+        footer.outerHTML = `
+          <div class=”card-actions”>
+            <div class=”action-banner action-banner--info”><i class=”fa-solid fa-hourglass-half”></i> Esperando la aceptación del anfitrión</div>
+            <p style=”text-align:center;font-size:0.75rem;color:#64748b;margin:0 0 2px;”>Tu reserva se activará cuando el anfitrión la acepte.</p>
+          </div>`;
+        return;
+      }
+
+      if (res.estado !== 'confirmada') return;
+
+      const metodoAcceso = res.metodo_acceso || 'QR';
+      const checkinIcon  = metodoAcceso === 'QR' ? 'fa-qrcode' : metodoAcceso === 'Código' ? 'fa-hashtag' : 'fa-id-card';
+      const checkinLabel = metodoAcceso === 'QR' ? 'Check-in QR' : metodoAcceso === 'Código' ? 'Ver código' : 'Mostrar al anfitrión';
+      const pdfDisabled  = `<button class=”btn-card btn-card--disabled” disabled><i class=”fa-solid fa-file-pdf”></i> Descarga disponible al finalizar</button>`;
+
+      if (res.estado_pago === 'pendiente') {
+        footer.outerHTML = `
+          <div class=”card-actions”>
+            <div class=”action-banner action-banner--success”><i class=”fa-solid fa-circle-check”></i> ¡Reserva aceptada! Ya puedes pagar.</div>
+            <button class=”btn-card btn-card--pay” onclick=”abrirPasarela(${res.id}, ${res.precio_total}, ${res.precio_hora || 0})”><i class=”fa-solid fa-wallet”></i> Elegir método de pago</button>
+          </div>`;
+        return;
+      }
+
+      if (res.estado_pago === 'pagado' || res.estado_pago === 'efectivo_confirmado') {
+        footer.outerHTML = `
+          <div class=”card-actions”>
+            <div class=”card-actions-row”>
+              <button class=”btn-card btn-card--nav” onclick=”abrirRutaEnVivo(${res.id})”><i class=”fa-solid fa-location-arrow”></i> Ruta en vivo</button>
+              <button class=”btn-card btn-card--checkin” onclick=”mostrarCheckIn(${res.id})”><i class=”fa-solid ${checkinIcon}”></i> ${checkinLabel}</button>
+            </div>
+            ${pdfDisabled}
+          </div>`;
+        return;
+      }
+
+      if (res.estado_pago === 'efectivo_pendiente') {
+        footer.outerHTML = `
+          <div class=”card-actions”>
+            <div class=”action-banner action-banner--warning”><i class=”fa-solid fa-money-bill-wave”></i> Paga en efectivo al llegar al garaje</div>
+            <div class=”card-actions-row”>
+              ${llegarBtn}
+              <button class=”btn-card btn-card--warn” onclick=”abrirComprobantePago(${res.id})”><i class=”fa-solid fa-receipt”></i> Ver reserva</button>
+            </div>
+          </div>`;
+      }
+    });
+  }
+
   window.cambiarEstado = async function(id, nuevoEstado) {
+    const accion = nuevoEstado === 'confirmada'
+      ? 'confirmar'
+      : nuevoEstado === 'rechazada'
+        ? 'rechazar'
+        : 'finalizar';
+
+    if(!confirm(`¿Estas seguro de ${accion} la reserva?`)) return;
+
+    let motivoRechazo = null;
+    if (nuevoEstado === 'rechazada') {
+      motivoRechazo = await pedirMotivoRechazo();
+      if (!motivoRechazo) return;
+    }
+
+    try {
+      const btnGroup = document.querySelector(`#reserva-${id} .border-top`);
+      if(btnGroup) btnGroup.innerHTML = '<span class="text-muted"><i class="fa-solid fa-spinner fa-spin"></i> Actualizando...</span>';
+
+      const res = await fetch(`/api/reservas/${id}/estado`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          estado: nuevoEstado,
+          anfitrion_id: currentUser.id,
+          motivo_rechazo: motivoRechazo
+        })
+      });
+
+      const json = await res.json();
+      if(res.ok && json.status === 'ok') {
+        cargarReservas();
+      } else {
+        alert(json.message || 'Error al actualizar');
+        cargarReservas();
+      }
+    } catch(err) {
+      console.error(err);
+      alert('Error de red al actualizar estado');
+      cargarReservas();
+    }
+    return;
     if(!confirm(`¿Estás seguro de ${nuevoEstado === 'confirmada' ? 'Confirmar' : 'Rechazar'} la reserva?`)) return;
 
     try {

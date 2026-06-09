@@ -12,6 +12,7 @@
 <link href="/css/dark-theme.css" rel="stylesheet">
 <link href="/css/globals.css" rel="stylesheet">
 <link href="/css/explorar.css" rel="stylesheet">
+<link href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" rel="stylesheet"/>
 <script id="tailwind-config">
 tailwind.config = {
     darkMode: "class",
@@ -82,7 +83,20 @@ tailwind.config = {
 }
 </script>
 <style>
-/* Handled by /css/explorar.css */
+/* ── Filter Drawer ── */
+#filterDrawer { position:fixed;top:0;left:-380px;bottom:0;width:360px;background:#fff;z-index:400;overflow-y:auto;transition:left .3s cubic-bezier(.32,1,.56,1);display:flex;flex-direction:column;box-shadow:4px 0 32px rgba(0,37,66,.2); }
+#filterOverlay { display:none;position:fixed;inset:0;background:rgba(0,37,66,.45);z-index:399;backdrop-filter:blur(3px); }
+#filterDrawer.open { left:0; }
+.drawer-input { width:100%;background:#eceef0;border:none;border-radius:10px;padding:11px 14px;font-family:inherit;font-size:.9rem;color:#191c1e;outline:none;transition:background .2s; }
+.drawer-input:focus { background:#e0e3e5; }
+.drawer-select { cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2343474d' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-color:#eceef0;padding-right:38px; }
+#btnToggleFiltros { display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:1.5px solid #c3c6ce;background:#fff;color:#002542;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 1px 4px rgba(0,37,66,.06); }
+#btnToggleFiltros:hover { border-color:#006a62;color:#006a62;background:#f0fdf9; }
+/* Dark mode overrides */
+.dark #filterDrawer { background:#1e293b; }
+.dark .drawer-input,.dark .drawer-select { background:#334155;color:#e2e8f0; }
+.dark .drawer-input:focus { background:#3f4f63; }
+.dark #btnToggleFiltros { background:#1e293b;border-color:#334155;color:#e2e8f0; }
 </style>
 </head>
 <body class="bg-background text-on-background font-body antialiased selection:bg-secondary-container selection:text-on-secondary-container flex flex-col min-h-screen">
@@ -96,9 +110,8 @@ tailwind.config = {
       </a>
       <div class="nav-links">
         <a href="/explorar.html" class="nav-link active" id="linkExplorar">Explorar</a>
-        <a href="/mis-favoritos.html" class="nav-link" id="linkFavoritos">❤️ Favoritos</a>
+        <a href="/mis-favoritos.html" class="nav-link" id="linkFavoritos">Favoritos</a>
         <a href="/mis-reservas.html" class="nav-link" id="linkMisReservas">Mis Reservas</a>
-        <a href="/cupones.html" class="nav-link" id="linkCupones">🎟️ Cupones</a>
         <a href="/configuracion.html" class="nav-link" id="linkMiPerfil">Mi Perfil</a>
       </div>
     </div>
@@ -106,110 +119,129 @@ tailwind.config = {
       <button class="nav-icon-btn" id="btnThemeToggle" title="Cambiar tema">
         <span class="material-symbols-outlined" id="themeIcon" style="font-size:20px;">dark_mode</span>
       </button>
-      <button class="nav-icon-btn nav-danger" id="btnLogout" title="Cerrar sesión">
-        <i class="fa-solid fa-right-from-bracket"></i>
-      </button>
-      <div class="nav-avatar" id="userAvatar" onclick="window.location.href='/configuracion.html'" title="Mi perfil">
-        <span id="navInitials">?</span>
+      <div class="dropdown">
+        <div class="nav-avatar" id="userAvatar" data-bs-toggle="dropdown" aria-expanded="false" title="Mi cuenta" style="cursor:pointer;">
+          <span id="navInitials">?</span>
+        </div>
+        <ul class="dropdown-menu dropdown-menu-end shadow-sm mt-1">
+          <li><a class="dropdown-item" href="/configuracion.html"><i class="fa-solid fa-gear me-2 text-muted"></i>Mi Perfil</a></li>
+          <li><hr class="dropdown-divider"></li>
+          <li><a class="dropdown-item text-danger" href="#" id="btnLogout"><i class="fa-solid fa-right-from-bracket me-2"></i>Cerrar Sesión</a></li>
+        </ul>
       </div>
+      <span id="navUserName" style="display:none;"></span>
     </div>
   </div>
 </nav>
 
-<div class="flex-1 flex flex-col md:flex-row w-full max-w-screen-2xl mx-auto">
-<!-- Left Sidebar (Filters) -->
-<aside class="w-full md:w-80 p-6 md:p-8 bg-surface-container-low flex flex-col gap-8 shrink-0 relative md:sticky top-[81px] md:h-[calc(100vh-81px)] overflow-y-auto hidden md:flex">
-<div>
-<h2 class="font-headline text-lg font-bold text-primary tracking-tight mb-6">Filtros de Búsqueda</h2>
-<div class="flex flex-col gap-6">
-<!-- Search Input -->
-<div class="flex flex-col gap-2">
-<label class="font-label text-sm uppercase tracking-wider text-on-surface-variant font-medium" for="filtroBusqueda">Ubicación</label>
-<div class="relative">
-<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
-<input class="w-full bg-surface-container-highest text-on-surface border-0 rounded-md py-3 pl-10 pr-4 focus:ring-0 focus:border-b-2 focus:border-b-secondary transition-all outline-none" id="filtroBusqueda" placeholder="Zona, barrio o calle..." type="text"/>
-</div>
-</div>
-<!-- Date & Time Inputs -->
-<div class="grid grid-cols-2 gap-4">
-<div class="flex flex-col gap-2">
-<label class="font-label text-sm uppercase tracking-wider text-on-surface-variant font-medium" for="filtroEntrada">Llegada</label>
-<input class="w-full bg-surface-container-highest text-on-surface border-0 rounded-md py-3 px-4 focus:ring-0 focus:border-b-2 focus:border-b-secondary outline-none text-sm" id="filtroEntrada" type="datetime-local"/>
-</div>
-<div class="flex flex-col gap-2">
-<label class="font-label text-sm uppercase tracking-wider text-on-surface-variant font-medium" for="filtroSalida">Salida</label>
-<input class="w-full bg-surface-container-highest text-on-surface border-0 rounded-md py-3 px-4 focus:ring-0 focus:border-b-2 focus:border-b-secondary outline-none text-sm" id="filtroSalida" type="datetime-local"/>
-</div>
-</div>
-<!-- Price Range -->
-<div class="flex flex-col gap-2">
-<label class="font-label text-sm uppercase tracking-wider text-on-surface-variant font-medium">Rango de Precio (Bs.)</label>
-<div class="flex items-center gap-2">
-  <div class="relative flex-1">
-    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant pointer-events-none">Bs.</span>
-    <input class="w-full bg-surface-container-highest text-on-surface border-0 rounded-md py-3 pl-9 pr-3 focus:ring-0 focus:border-b-2 focus:border-b-secondary outline-none" id="filtroPrecioMin" placeholder="Mín" type="number" min="0" step="0.5"/>
+<!-- Filter Overlay -->
+<div id="filterOverlay" onclick="cerrarFiltros()"></div>
+
+<!-- Filter Drawer -->
+<aside id="filterDrawer">
+  <!-- Drawer Header -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #e2e8f0;flex-shrink:0;position:sticky;top:0;background:inherit;z-index:1;">
+    <div style="display:flex;align-items:center;gap:12px;">
+      <div style="width:38px;height:38px;background:linear-gradient(135deg,#002542,#436182);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+        <span class="material-symbols-outlined" style="color:#fff;font-size:1.1rem;">tune</span>
+      </div>
+      <span style="font-size:1rem;font-weight:800;color:#002542;letter-spacing:-.01em;">Filtros</span>
+    </div>
+    <button onclick="cerrarFiltros()" style="width:36px;height:36px;border:none;background:#eceef0;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#43474d;font-size:1rem;transition:background .15s;">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
   </div>
-  <span class="text-on-surface-variant font-bold shrink-0">—</span>
-  <div class="relative flex-1">
-    <span class="absolute left-3 top-1/2 -translate-y-1/2 text-xs font-bold text-on-surface-variant pointer-events-none">Bs.</span>
-    <input class="w-full bg-surface-container-highest text-on-surface border-0 rounded-md py-3 pl-9 pr-3 focus:ring-0 focus:border-b-2 focus:border-b-secondary outline-none" id="filtroPrecioMax" placeholder="Máx" type="number" min="0" step="0.5"/>
+  <!-- Drawer Body -->
+  <div style="padding:24px;flex:1;display:flex;flex-direction:column;gap:20px;">
+    <!-- Ubicación -->
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <label style="font-size:.72rem;font-weight:700;color:#43474d;text-transform:uppercase;letter-spacing:.06em;" for="filtroBusqueda">Ubicación</label>
+      <div style="position:relative;">
+        <span class="material-symbols-outlined" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#73777e;pointer-events:none;font-size:1.1rem;">search</span>
+        <input class="drawer-input" id="filtroBusqueda" type="text" placeholder="Zona, barrio o calle..." style="padding-left:40px;"/>
+      </div>
+    </div>
+    <!-- Llegada / Salida -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <label style="font-size:.72rem;font-weight:700;color:#43474d;text-transform:uppercase;letter-spacing:.06em;" for="filtroEntrada">Llegada</label>
+        <input class="drawer-input" id="filtroEntrada" type="datetime-local" style="font-size:.82rem;padding:10px 12px;"/>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        <label style="font-size:.72rem;font-weight:700;color:#43474d;text-transform:uppercase;letter-spacing:.06em;" for="filtroSalida">Salida</label>
+        <input class="drawer-input" id="filtroSalida" type="datetime-local" style="font-size:.82rem;padding:10px 12px;"/>
+      </div>
+    </div>
+    <!-- Precio -->
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <label style="font-size:.72rem;font-weight:700;color:#43474d;text-transform:uppercase;letter-spacing:.06em;">Precio (Bs./hora)</label>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <div style="position:relative;flex:1;">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.72rem;font-weight:700;color:#73777e;pointer-events:none;">Bs.</span>
+          <input class="drawer-input" id="filtroPrecioMin" type="number" min="0" step="0.5" placeholder="Mín" style="padding-left:30px;"/>
+        </div>
+        <span style="color:#73777e;font-weight:700;flex-shrink:0;">—</span>
+        <div style="position:relative;flex:1;">
+          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.72rem;font-weight:700;color:#73777e;pointer-events:none;">Bs.</span>
+          <input class="drawer-input" id="filtroPrecioMax" type="number" min="0" step="0.5" placeholder="Máx" style="padding-left:30px;"/>
+        </div>
+      </div>
+    </div>
+    <!-- Tipo vehículo -->
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <label style="font-size:.72rem;font-weight:700;color:#43474d;text-transform:uppercase;letter-spacing:.06em;" for="filtroTipoVehiculo">Tipo de Vehículo</label>
+      <select class="drawer-input drawer-select" id="filtroTipoVehiculo">
+        <option value="">Cualquier tamaño</option>
+        <option value="auto">🚗 Auto Sedán</option>
+        <option value="moto">🏍️ Motocicleta</option>
+        <option value="camioneta">🚙 Camioneta / SUV</option>
+      </select>
+    </div>
+    <!-- Seguridad -->
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <label style="font-size:.72rem;font-weight:700;color:#43474d;text-transform:uppercase;letter-spacing:.06em;" for="filtroSeguridad">Nivel de Seguridad</label>
+      <select class="drawer-input drawer-select" id="filtroSeguridad">
+        <option value="">Cualquier nivel</option>
+        <option value="Básico">🔓 Básico</option>
+        <option value="Estándar">🔒 Estándar</option>
+        <option value="Premium">🛡️ Premium</option>
+      </select>
+    </div>
+    <!-- Método de Acceso -->
+    <div style="display:flex;flex-direction:column;gap:8px;">
+      <label style="font-size:.72rem;font-weight:700;color:#43474d;text-transform:uppercase;letter-spacing:.06em;">Método de Acceso</label>
+      <div class="grid grid-cols-2 gap-2">
+        <label class="cursor-pointer">
+          <input type="radio" name="filtroAcceso" value="" class="peer sr-only" checked>
+          <div class="text-center text-xs font-semibold rounded-lg py-2 px-1 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all">Todos</div>
+        </label>
+        <label class="cursor-pointer">
+          <input type="radio" name="filtroAcceso" value="Manual" class="peer sr-only">
+          <div class="text-center text-xs font-semibold rounded-lg py-2 px-1 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all">Manual</div>
+        </label>
+        <label class="cursor-pointer">
+          <input type="radio" name="filtroAcceso" value="Código" class="peer sr-only">
+          <div class="text-center text-xs font-semibold rounded-lg py-2 px-1 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all">Código</div>
+        </label>
+        <label class="cursor-pointer">
+          <input type="radio" name="filtroAcceso" value="QR" class="peer sr-only">
+          <div class="text-center text-xs font-semibold rounded-lg py-2 px-1 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all flex items-center justify-center gap-1"><i class="fa-solid fa-qrcode"></i> QR</div>
+        </label>
+      </div>
+    </div>
   </div>
-</div>
-</div>
-<!-- Vehicle Type -->
-<div class="flex flex-col gap-2">
-<label class="font-label text-sm uppercase tracking-wider text-on-surface-variant font-medium" for="filtroTipoVehiculo">Tamaño de Vehículo</label>
-<select class="w-full bg-surface-container-highest text-on-surface border-0 rounded-md py-3 px-4 focus:ring-0 focus:border-b-2 focus:border-b-secondary outline-none" id="filtroTipoVehiculo">
-<option value="">Cualquier tamaño</option>
-<option value="auto">Auto Sedán</option>
-<option value="moto">Motocicleta</option>
-<option value="camioneta">Camioneta / SUV</option>
-</select>
-</div>
-<!-- Security Level -->
-<div class="flex flex-col gap-2">
-<label class="font-label text-sm uppercase tracking-wider text-on-surface-variant font-medium" for="filtroSeguridad">Nivel de Seguridad</label>
-<select class="w-full bg-surface-container-highest text-on-surface border-0 rounded-md py-3 px-4 focus:ring-0 focus:border-b-2 focus:border-b-secondary outline-none" id="filtroSeguridad">
-<option value="">Cualquier nivel</option>
-<option value="Básico">Básico</option>
-<option value="Estándar">Estándar</option>
-<option value="Premium">Premium</option>
-</select>
-</div>
-<!-- Access Method -->
-<div class="flex flex-col gap-2">
-<label class="font-label text-sm uppercase tracking-wider text-on-surface-variant font-medium" for="filtroAcceso">Método de Acceso</label>
-<div class="grid grid-cols-3 gap-2">
-  <label class="cursor-pointer">
-    <input type="radio" name="filtroAcceso" value="" class="peer sr-only" checked>
-    <div class="text-center text-xs font-semibold rounded-md py-2 px-1 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all">Todos</div>
-  </label>
-  <label class="cursor-pointer">
-    <input type="radio" name="filtroAcceso" value="Manual" class="peer sr-only">
-    <div class="text-center text-xs font-semibold rounded-md py-2 px-1 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all">Manual</div>
-  </label>
-  <label class="cursor-pointer">
-    <input type="radio" name="filtroAcceso" value="Código" class="peer sr-only">
-    <div class="text-center text-xs font-semibold rounded-md py-2 px-1 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all">Código</div>
-  </label>
-  <label class="cursor-pointer col-span-3">
-    <input type="radio" name="filtroAcceso" value="QR" class="peer sr-only">
-    <div class="text-center text-xs font-semibold rounded-md py-2 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all flex items-center justify-center gap-1"><i class="fa-solid fa-qrcode"></i> QR (Auto Check-in)</div>
-  </label>
-</div>
-</div>
-</div>
-<div class="flex flex-col gap-3 mt-8">
-<button class="w-full bg-gradient-to-br from-primary to-primary-container text-on-primary rounded-md py-3 px-6 font-medium hover:from-secondary hover:to-secondary-container transition-all flex items-center justify-center gap-2 shadow-sm" id="btnBuscar">
-<span class="material-symbols-outlined text-[18px]">search</span> Aplicar Filtros
-</button>
-<button class="w-full bg-transparent text-primary hover:bg-surface-container-highest rounded-md py-3 px-6 font-medium transition-colors" id="btnLimpiar">
-Limpiar Todo
-</button>
-</div>
-</div>
+  <!-- Drawer Footer -->
+  <div style="padding:20px 24px;border-top:1px solid #e2e8f0;flex-shrink:0;background:inherit;display:flex;flex-direction:column;gap:10px;">
+    <button id="btnBuscar" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#002542,#1b3b5a);color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s;">
+      <span class="material-symbols-outlined" style="font-size:1.1rem;">search</span> Aplicar Filtros
+    </button>
+    <button id="btnLimpiar" style="width:100%;padding:12px 24px;border:1.5px solid #c3c6ce;border-radius:10px;font-family:inherit;font-size:.88rem;font-weight:600;cursor:pointer;background:transparent;color:#73777e;transition:all .2s;">
+      Limpiar Todo
+    </button>
+  </div>
 </aside>
 
+<div class="flex-1 w-full max-w-screen-2xl mx-auto">
 <!-- Main Content Area -->
 <main class="flex-1 p-6 md:p-10 lg:p-12 min-h-screen bg-background relative">
 <header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
@@ -217,10 +249,34 @@ Limpiar Todo
 <h1 class="font-headline text-3xl md:text-5xl font-black tracking-tighter text-primary mb-2">Espacios Disponibles</h1>
 <p class="text-on-surface-variant text-lg">Explora y reserva parqueos seguros cerca de ti.</p>
 </div>
-<div id="resultsCount" class="bg-surface-container-low text-on-surface font-medium py-2 px-4 rounded-md hidden">
-<i class="fa-solid fa-circle-info text-secondary mr-1"></i> Se encontraron <span id="totalResults" class="font-bold">0</span> espacios
+<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+  <button id="btnToggleFiltros" onclick="abrirFiltros()">
+    <span class="material-symbols-outlined" style="font-size:1.1rem;">tune</span>
+    Filtros
+  </button>
+  <div id="resultsCount" class="bg-surface-container-low text-on-surface font-medium py-2 px-4 rounded-md hidden">
+    <i class="fa-solid fa-circle-info text-secondary mr-1"></i> Se encontraron <span id="totalResults" class="font-bold">0</span> espacios
+  </div>
 </div>
 </header>
+
+<!-- Vista Toggle -->
+<div id="viewToggleBar" style="display:none;margin-bottom:18px;">
+  <div style="display:inline-flex;background:#f1f5f9;border-radius:10px;padding:3px;gap:2px;">
+    <button id="btnVistaLista" onclick="toggleVistaExplorar('lista')" style="display:flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;border:none;font-family:inherit;font-size:0.85rem;font-weight:700;cursor:pointer;background:#006a62;color:#fff;transition:all .2s;">
+      <i class="fa-solid fa-list"></i> Lista
+    </button>
+    <button id="btnVistaMapa" onclick="toggleVistaExplorar('mapa')" style="display:flex;align-items:center;gap:6px;padding:8px 18px;border-radius:8px;border:none;font-family:inherit;font-size:0.85rem;font-weight:700;cursor:pointer;background:transparent;color:#64748b;transition:all .2s;">
+      <i class="fa-solid fa-map-location-dot"></i> Mapa
+    </button>
+  </div>
+</div>
+
+<!-- Mapa Explorar -->
+<div id="explorarMapCtn" style="display:none;height:520px;border-radius:16px;overflow:hidden;margin-bottom:24px;box-shadow:0 4px 24px rgba(0,0,0,.1);border:1px solid #e2e8f0;">
+  <div id="explorarMap" style="height:100%;width:100%;"></div>
+</div>
+
 <!-- Loading State -->
 <div class="hidden flex-col items-center justify-center py-20 gap-6" id="loadingCatalog">
 <div class="w-12 h-12 border-4 border-surface-container-highest border-t-secondary rounded-full animate-spin"></div>
@@ -246,9 +302,28 @@ Limpiar Todo
 
 </main>
 </div>
+</div>
 
 <!-- JS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script src="/js/explorar.js"></script>
 <script src="/js/navbar-badge.js"></script>
+<script>
+function abrirFiltros() {
+  document.getElementById('filterDrawer').classList.add('open');
+  document.getElementById('filterOverlay').style.display = 'block';
+  document.body.style.overflow = 'hidden';
+}
+function cerrarFiltros() {
+  document.getElementById('filterDrawer').classList.remove('open');
+  document.getElementById('filterOverlay').style.display = 'none';
+  document.body.style.overflow = '';
+}
+// Auto-close drawer after applying filters
+document.addEventListener('DOMContentLoaded', function() {
+  const btnBuscar = document.getElementById('btnBuscar');
+  if (btnBuscar) btnBuscar.addEventListener('click', function() { setTimeout(cerrarFiltros, 200); });
+});
+</script>
 </body></html>

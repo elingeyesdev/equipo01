@@ -56,6 +56,92 @@
   };
 
   // ============================================================
+  // NOTAS PERSONALES (localStorage por conductor+garaje)
+  // ============================================================
+
+  function _noteKey(garajeId) { return `fav_note_${currentUser.id}_${garajeId}`; }
+  function getFavNote(garajeId) { return localStorage.getItem(_noteKey(garajeId)) || ''; }
+  function setFavNote(garajeId, text) {
+    const t = text.trim();
+    if (t) localStorage.setItem(_noteKey(garajeId), t);
+    else   localStorage.removeItem(_noteKey(garajeId));
+  }
+
+  function actualizarNotaEnCard(garajeId, texto) {
+    const card = document.querySelector(`.fav-card[data-garaje-id="${garajeId}"]`);
+    if (!card) return;
+    const snippetEl = card.querySelector('.fav-note-snippet');
+    const btnEl     = card.querySelector('.fav-note-btn');
+    if (texto) {
+      if (snippetEl) {
+        snippetEl.querySelector('.fav-note-text').textContent = texto;
+      } else {
+        const newSnippet = document.createElement('div');
+        newSnippet.className = 'fav-note-snippet';
+        newSnippet.innerHTML = `<i class="fa-solid fa-note-sticky"></i><span class="fav-note-text">${texto}</span>`;
+        newSnippet.addEventListener('click', () => abrirModalNota(garajeId, card.querySelector('.fav-card-direccion')?.textContent || ''));
+        if (btnEl) btnEl.before(newSnippet);
+      }
+      if (btnEl) { btnEl.classList.add('has-note'); btnEl.innerHTML = '<i class="fa-solid fa-note-sticky"></i> Editar nota'; }
+    } else {
+      if (snippetEl) snippetEl.remove();
+      if (btnEl) { btnEl.classList.remove('has-note'); btnEl.innerHTML = '<i class="fa-regular fa-note-sticky"></i> Agregar nota'; }
+    }
+  }
+
+  function abrirModalNota(garajeId, direccion) {
+    const nota = getFavNote(garajeId);
+    const existing = document.getElementById('notaFavModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'notaFavModal';
+    modal.style.cssText = 'position:fixed;inset:0;z-index:9999;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.65);backdrop-filter:blur(4px);padding:16px;';
+    modal.innerHTML = `
+      <div style="background:#fff;border-radius:20px;padding:26px 24px;max-width:360px;width:100%;box-shadow:0 24px 60px rgba(0,0,0,.25);">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;">
+          <div style="width:38px;height:38px;border-radius:11px;background:#fffbeb;border:1px solid #fde68a;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <i class="fa-solid fa-note-sticky" style="color:#f59e0b;font-size:1rem;"></i>
+          </div>
+          <div>
+            <div style="font-size:0.95rem;font-weight:800;color:#0f172a;">Nota personal</div>
+            <div style="font-size:0.72rem;color:#64748b;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:230px;">${direccion}</div>
+          </div>
+        </div>
+        <textarea id="notaFavTextarea" placeholder="Ej: Fácil estacionarse, buena iluminación, cerca del trabajo..." maxlength="200"
+          style="width:100%;height:96px;border:1.5px solid #e2e8f0;border-radius:10px;padding:10px 12px;font-family:inherit;font-size:0.85rem;color:#002542;background:#f8fafc;outline:none;resize:none;display:block;box-sizing:border-box;transition:border-color .2s;">${nota}</textarea>
+        <div style="font-size:0.68rem;color:#94a3b8;text-align:right;margin:4px 0 14px;" id="notaFavCounter">${nota.length}/200</div>
+        <div style="display:flex;gap:8px;">
+          <button id="notaFavCancelar" style="flex:1;padding:11px;border-radius:10px;border:1.5px solid #e2e8f0;background:#f1f5f9;color:#64748b;font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;">Cancelar</button>
+          <button id="notaFavBorrar" style="padding:11px 14px;border-radius:10px;border:1.5px solid #fca5a5;background:#fef2f2;color:#dc2626;font-family:inherit;font-size:0.85rem;font-weight:600;cursor:pointer;display:${nota ? 'block' : 'none'};">Borrar</button>
+          <button id="notaFavGuardar" style="flex:1;padding:11px;border-radius:10px;border:none;background:linear-gradient(135deg,#f59e0b,#d97706);color:#fff;font-family:inherit;font-size:0.85rem;font-weight:700;cursor:pointer;">Guardar</button>
+        </div>
+      </div>`;
+    document.body.appendChild(modal);
+
+    const ta      = document.getElementById('notaFavTextarea');
+    const counter = document.getElementById('notaFavCounter');
+    ta.focus();
+    ta.style.borderColor = '#f59e0b';
+    ta.addEventListener('input', () => { counter.textContent = `${ta.value.length}/200`; });
+
+    modal.addEventListener('click', e => { if (e.target === modal) modal.remove(); });
+    document.getElementById('notaFavCancelar').addEventListener('click', () => modal.remove());
+    document.getElementById('notaFavBorrar').addEventListener('click', () => {
+      setFavNote(garajeId, '');
+      modal.remove();
+      actualizarNotaEnCard(garajeId, '');
+    });
+    document.getElementById('notaFavGuardar').addEventListener('click', () => {
+      const texto = ta.value.trim();
+      setFavNote(garajeId, texto);
+      modal.remove();
+      actualizarNotaEnCard(garajeId, texto);
+      showToast(texto ? '¡Nota guardada!' : 'Nota eliminada.');
+    });
+  }
+
+  // ============================================================
   // WIZARD DE RESERVA DIRECTO
   // ============================================================
 
@@ -646,6 +732,12 @@
       day: 'numeric', month: 'short', year: 'numeric'
     }) : '';
 
+    const notaExistente   = getFavNote(fav.garaje_id);
+    const notaSnippetHtml = notaExistente
+      ? `<div class="fav-note-snippet"><i class="fa-solid fa-note-sticky"></i><span class="fav-note-text">${notaExistente}</span></div>`
+      : '';
+    const notaBtnHtml = `<button class="fav-note-btn${notaExistente ? ' has-note' : ''}"><i class="fa-${notaExistente ? 'solid' : 'regular'} fa-note-sticky"></i> ${notaExistente ? 'Editar nota' : 'Agregar nota'}</button>`;
+
     card.innerHTML = `
       <div class="fav-card-img-wrap">
         ${imagenHTML}
@@ -667,6 +759,7 @@
           <span><i class="fa-solid fa-shield-halved"></i> ${fav.nivel_seguridad || 'Estándar'}</span>
           <span><i class="fa-solid fa-key"></i> ${fav.metodo_acceso || 'Manual'}</span>
         </div>
+        ${notaSnippetHtml}${notaBtnHtml}
         <div class="fav-card-footer">
           <span class="fav-card-precio">
             Bs. ${precio} <small>/ hora</small>
@@ -692,6 +785,12 @@
     if (btnReservar) {
       btnReservar.addEventListener('click', () => abrirWizardFavorito(fav.garaje_id, fav.direccion));
     }
+
+    // Nota personal
+    const notaBtn = card.querySelector('.fav-note-btn');
+    if (notaBtn) notaBtn.addEventListener('click', () => abrirModalNota(fav.garaje_id, fav.direccion));
+    const notaSnippetEl = card.querySelector('.fav-note-snippet');
+    if (notaSnippetEl) notaSnippetEl.addEventListener('click', () => abrirModalNota(fav.garaje_id, fav.direccion));
 
     return card;
   }

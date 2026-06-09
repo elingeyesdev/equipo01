@@ -115,6 +115,8 @@ BEGIN
         id                  INT IDENTITY(1,1)   PRIMARY KEY,
         anfitrion_id        INT                 NOT NULL,
         direccion           NVARCHAR(255)       NOT NULL,
+        latitud             DECIMAL(10,7)       NULL,
+        longitud            DECIMAL(10,7)       NULL,
         descripcion         NVARCHAR(500)       NULL,
         precio_hora         DECIMAL(10,2)       NOT NULL,
         tipo_vehiculo       VARCHAR(20)         NOT NULL DEFAULT 'auto',
@@ -163,6 +165,16 @@ BEGIN
             reglas_casa NVARCHAR(MAX) NULL,
             politica_cancelacion NVARCHAR(MAX) NULL;
         PRINT '+ Columnas de confianza agregadas a Garajes.';
+    END
+    IF NOT EXISTS(SELECT * FROM sys.columns WHERE Name = N'latitud' AND Object_ID = Object_ID(N'dbo.Garajes'))
+    BEGIN
+        ALTER TABLE Garajes ADD latitud DECIMAL(10,7) NULL;
+        PRINT '+ Columna latitud agregada a Garajes.';
+    END
+    IF NOT EXISTS(SELECT * FROM sys.columns WHERE Name = N'longitud' AND Object_ID = Object_ID(N'dbo.Garajes'))
+    BEGIN
+        ALTER TABLE Garajes ADD longitud DECIMAL(10,7) NULL;
+        PRINT '+ Columna longitud agregada a Garajes.';
     END
 END
 GO

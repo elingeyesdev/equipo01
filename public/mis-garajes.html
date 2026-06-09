@@ -3,315 +3,393 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="description" content="Gestión de espacios de parqueo — EstAirbnb, la plataforma de alquiler de parqueos.">
-  <title>Mis Garajes · EstAirbnb</title>
-
-  <!-- Bootstrap 5 CSS -->
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <!-- Font Awesome 6 -->
+  <title>Panel del Anfitrión · EstAirbnb</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.11.0/styles/overlayscrollbars.min.css" crossorigin="anonymous">
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.min.css" crossorigin="anonymous">
+  <link rel="stylesheet" href="/adminlte/css/adminlte.min.css">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-  <!-- Google Fonts — Inter & Material Symbols -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-  
-  <!-- Tailwind CSS & Configuration -->
-  <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-  <link href="/css/dark-theme.css" rel="stylesheet">
-  <link href="/css/globals.css" rel="stylesheet">
-  <script id="tailwind-config">
-    tailwind.config = {
-      darkMode: "class",
-      theme: {
-        extend: {
-          "colors": {
-            "on-tertiary": "#ffffff", "on-error": "#ffffff", "on-tertiary-fixed-variant": "#004f51", "surface-variant": "#e0e3e5",
-            "on-primary-container": "#87a5ca", "surface-container": "#eceef0", "outline-variant": "#c3c6ce", "on-tertiary-fixed": "#002021",
-            "surface": "#f7f9fb", "on-error-container": "#93000a", "tertiary": "#002829", "on-primary-fixed-variant": "#2a4968",
-            "secondary-fixed": "#57fae9", "on-background": "#191c1e", "on-tertiary-container": "#00b4b8", "on-surface-variant": "#43474d",
-            "surface-container-high": "#e6e8ea", "surface-container-lowest": "#ffffff", "on-surface": "#191c1e", "surface-container-highest": "#e0e3e5",
-            "inverse-surface": "#2d3133", "surface-bright": "#f7f9fb", "outline": "#73777e", "primary-fixed-dim": "#abc9ef",
-            "inverse-primary": "#abc9ef", "secondary-fixed-dim": "#2addcd", "inverse-on-surface": "#eff1f3", "on-secondary-fixed": "#00201d",
-            "on-primary": "#ffffff", "error-container": "#ffdad6", "background": "#f7f9fb", "tertiary-container": "#004041",
-            "primary-fixed": "#d1e4ff", "tertiary-fixed": "#52f9fc", "primary": "#002542", "on-primary-fixed": "#001d35",
-            "surface-dim": "#d8dadc", "secondary-container": "#57fae9", "secondary": "#006a62", "on-secondary-container": "#007168",
-            "surface-tint": "#436182", "surface-container-low": "#f2f4f6", "primary-container": "#1b3b5a", "on-secondary-fixed-variant": "#005049",
-            "tertiary-fixed-dim": "#1edce0", "error": "#ba1a1a", "on-secondary": "#ffffff"
-          },
-          "borderRadius": { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
-          "fontFamily": { "headline": ["Inter"], "body": ["Inter"], "label": ["Inter"] }
-        }
-      }
-    }
-  </script>
-  
-  <style>
-    /* Ripple animation for buttons */
-    @keyframes ripple { 0% { transform: scale(0.8); opacity: 0.8; } 100% { transform: scale(2.4); opacity: 0; } }
-    /* ═══ PARKING LOT BLUEPRINT EDITOR — Adaptive Lanes Rediseño ═══ */
-    .gb-shell{border:0.5px solid var(--color-border-secondary);border-radius:var(--border-radius-lg);overflow:hidden;background:var(--color-background-primary)}
-    .gb-bar{display:flex;align-items:center;gap:8px;padding:10px 14px;border-bottom:0.5px solid var(--color-border-tertiary);flex-wrap:wrap}
-    .gb-bar-title{font-size:13px;font-weight:500;color:var(--color-text-primary);flex:1;display:flex;align-items:center;gap:7px}
-    .gb-live{width:6px;height:6px;border-radius:50%;background:#22c55e;flex-shrink:0}
-    .gb-dim{display:flex;align-items:center;gap:4px;font-size:12px;color:var(--color-text-secondary)}
-    .gb-dim input{width:36px;font-size:12px;font-weight:500;text-align:center;border:0.5px solid var(--color-border-secondary);border-radius:6px;padding:3px 2px;background:var(--color-background-secondary);color:var(--color-text-primary)}
-    .gb-ibtn{font-size:12px;padding:5px 10px;border-radius:7px;cursor:pointer;border:0.5px solid var(--color-border-secondary);background:var(--color-background-secondary);color:var(--color-text-secondary);display:flex;align-items:center;gap:4px;white-space:nowrap}
-    .gb-ibtn:hover{background:var(--color-background-tertiary);color:var(--color-text-primary)}
-    .gb-ibtn.danger{border-color:var(--color-border-danger);color:var(--color-text-danger);background:var(--color-background-danger)}
-    .gb-presets{display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--color-background-secondary);border-bottom:0.5px solid var(--color-border-tertiary)}
-    .gb-plabel{font-size:11px;color:var(--color-text-tertiary);margin-right:2px}
-    .gb-preset{font-size:12px;padding:4px 11px;border-radius:20px;cursor:pointer;border:0.5px solid var(--color-border-secondary);background:var(--color-background-primary);color:var(--color-text-secondary)}
-    .gb-preset:hover{background:var(--color-background-tertiary);color:var(--color-text-primary)}
-    .gb-tools{display:flex;align-items:center;gap:5px;padding:9px 14px;border-bottom:0.5px solid var(--color-border-tertiary);flex-wrap:wrap}
-    .gb-tool{display:flex;align-items:center;gap:5px;font-size:12px;padding:5px 11px;border-radius:7px;border:0.5px solid var(--color-border-secondary);background:transparent;cursor:pointer;color:var(--color-text-secondary);transition:background 0.12s,color 0.12s,border-color 0.12s;user-select:none;white-space:nowrap}
-    .gb-tool:hover{background:var(--color-background-secondary);color:var(--color-text-primary)}
-    .gb-tool.on[data-t=parking]{border-color:#16a34a;color:#14532d;background:#f0fdf4}
-    .gb-tool.on[data-t=wall]{border-color:#475569;color:#1e293b;background:#f1f5f9}
-    .gb-tool.on[data-t=entrance]{border-color:#059669;color:#064e3b;background:#ecfdf5}
-    .gb-tool.on[data-t=exit]{border-color:#dc2626;color:#7f1d1d;background:#fef2f2}
-    .gb-tool.on[data-t=aisle]{border-color:#d97706;color:#78350f;background:#fffbeb}
-    .gb-tool.on[data-t=eraser]{border-color:#9333ea;color:#3b0764;background:#faf5ff}
-    .gb-tip{font-size:11px;color:var(--color-text-secondary);padding:5px 11px;border-radius:7px;background:var(--color-background-secondary);border:0.5px solid var(--color-border-tertiary);display:flex;align-items:center;gap:4px;margin-left:auto}
-    .gb-tip-icon{font-size:14px;width:16px;height:16px;display:flex;align-items:center;justify-content:center}
-    .gb-vsel{display:flex;align-items:center;gap:5px;font-size:12px;color:var(--color-text-secondary)}
-    .gb-vsel select{font-size:12px;border:0.5px solid var(--color-border-secondary);border-radius:6px;padding:4px 6px;background:var(--color-background-secondary);color:var(--color-text-primary)}
-    .gb-canvas{background:#16213e;padding:12px;overflow:auto;max-height:280px}
-    #tmGrid{display:inline-grid;gap:2px;cursor:crosshair;user-select:none;min-width:100%}
-    .gc{aspect-ratio:1.15;border-radius:4px;display:flex;flex-direction:column;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:filter 0.08s,transform 0.08s;touch-action:manipulation;-webkit-tap-highlight-color:transparent;overflow:hidden}
-    .gc:hover{filter:brightness(1.18);transform:scale(1.06);z-index:3}
-    .gc[data-t=empty]{background:#1e293b;border:1px dashed rgba(255,255,255,0.06)}
-    .gc[data-t=parking]{background:#14532d;border-left:3px solid #22c55e;border-right:3px solid #22c55e;border-top:1px solid rgba(34,197,94,0.25);border-bottom:1px solid rgba(34,197,94,0.25)}
-    .gc[data-t=wall]{background:#0f172a;border:1.5px solid #020617;background-image:repeating-linear-gradient(45deg,transparent,transparent 4px,rgba(255,255,255,0.025) 4px,rgba(255,255,255,0.025) 5px)}
-    .gc[data-t=entrance]{background:#064e3b;border:2px solid #10b981}
-    .gc[data-t=exit]{background:#7f1d1d;border:2px solid #ef4444}
-    .gc[data-t=aisle]{background:#1e293b;border:none}
-    .gc-num{font-size:10px;font-weight:700;color:rgba(255,255,255,0.9);line-height:1;letter-spacing:0.03em}
-    .gc-ico{width:18px;height:18px;display:flex;align-items:center;justify-content:center}
-    .gc-lbl{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;color:rgba(255,255,255,0.8);margin-top:2px}
-    .gc-aisle-inner{position:absolute;inset:0;display:flex;align-items:center;justify-content:center}
-    .gc-aisle-h{width:86%;height:2px;background:repeating-linear-gradient(90deg,#f59e0b 0,#f59e0b 7px,transparent 7px,transparent 12px);border-radius:1px}
-    .gc-aisle-v{width:2px;height:86%;background:repeating-linear-gradient(180deg,#f59e0b 0,#f59e0b 7px,transparent 7px,transparent 12px);border-radius:1px}
-    .gc-aisle-cross{position:absolute;inset:0}
-    .gc-aisle-cross::before{content:'';position:absolute;top:50%;left:7%;right:7%;height:2px;background:repeating-linear-gradient(90deg,#f59e0b 0,#f59e0b 7px,transparent 7px,transparent 12px);transform:translateY(-50%);border-radius:1px}
-    .gc-aisle-cross::after{content:'';position:absolute;left:50%;top:7%;bottom:7%;width:2px;background:repeating-linear-gradient(180deg,#f59e0b 0,#f59e0b 7px,transparent 7px,transparent 12px);transform:translateX(-50%);border-radius:1px}
-    .gb-foot{display:flex;align-items:center;gap:12px;padding:10px 14px;border-top:0.5px solid var(--color-border-tertiary);flex-wrap:wrap}
-    .gb-legend{display:flex;align-items:center;gap:9px;flex-wrap:wrap}
-    .gb-leg{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--color-text-secondary)}
-    .gb-ldot{width:13px;height:10px;border-radius:3px;flex-shrink:0}
-    .gb-stats{display:flex;gap:8px;margin-left:auto}
-    .gb-stat{background:var(--color-background-secondary);border-radius:var(--border-radius-md);padding:7px 12px;text-align:center}
-    .gb-sv{font-size:18px;font-weight:500;color:var(--color-text-primary);line-height:1}
-    .gb-sl{font-size:10px;color:var(--color-text-tertiary);margin-top:2px}
-    body { font-family: 'Inter', sans-serif; }
-    .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
-    .form-group { margin-bottom: 1.5rem; }
-    .toast-container { z-index: 9999; }
-  </style>
-  <!-- Mis Garajes Backend Styles -->
   <link href="/css/mis-garajes.css" rel="stylesheet">
   <link href="/css/wizard-garaje.css" rel="stylesheet">
+<!-- Dark mode init (antes de render) -->
+<script>
+(function() {
+  const saved = localStorage.getItem('estairbnb_theme');
+  if (saved === 'dark') document.documentElement.setAttribute('data-bs-theme', 'dark');
+})();
+</script>
 </head>
-<body class="bg-background text-on-background min-h-screen">
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+<div class="app-wrapper">
 
-  <!-- Navbar -->
-  <nav class="app-navbar" id="topNavbar">
-    <div class="nav-inner">
-      <div style="display:flex;align-items:center;">
-        <a href="/" class="nav-brand">
-          <span class="brand-icon"><span class="material-symbols-outlined">local_parking</span></span>
-          EstAirbnb
-        </a>
-        <div class="nav-links">
-          <a href="/mis-garajes.html" class="nav-link active" id="navLinkGarajes">Mis Garajes</a>
-          <a href="/configuracion.html" class="nav-link" id="navLinkPerfil">Mi Perfil</a>
-        </div>
-      </div>
-      <div class="nav-actions">
-        <button class="nav-icon-btn" id="btnThemeToggle" title="Cambiar tema">
-          <span class="material-symbols-outlined" id="themeIcon" style="font-size:20px;">dark_mode</span>
-        </button>
-        <button class="nav-icon-btn nav-danger" id="btnLogout" title="Cerrar sesión">
-          <i class="fa-solid fa-right-from-bracket"></i>
-        </button>
-        <div class="nav-avatar" id="userAvatar" onclick="window.location.href='/configuracion.html'" title="Mi perfil">
-          <span id="navInitials">?</span>
-        </div>
-      </div>
+  <!-- NAVBAR -->
+  <nav class="app-header navbar navbar-expand bg-body" id="topNavbar">
+    <div class="container-fluid">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button">
+            <i class="bi bi-list"></i>
+          </a>
+        </li>
+      </ul>
+      <a class="navbar-brand d-flex align-items-center gap-2 ms-2" href="/">
+        <span class="material-symbols-outlined" style="color:#1a6fc4;font-size:1.4rem;">local_parking</span>
+        <span class="fw-bold" style="color:#002542;font-size:1.05rem;">EstAirbnb</span>
+      </a>
+      <ul class="navbar-nav ms-auto align-items-center gap-1">
+        <li class="nav-item">
+          <button class="btn btn-link nav-link px-2" id="btnThemeToggle" title="Cambiar tema">
+            <span class="material-symbols-outlined" id="themeIcon" style="font-size:20px;line-height:1;">dark_mode</span>
+          </button>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link d-flex align-items-center gap-2 pe-2" href="#" data-bs-toggle="dropdown">
+            <div class="est-nav-avatar" id="userAvatar">
+              <span id="navInitials">?</span>
+            </div>
+            <span class="d-none d-md-inline fw-medium" id="navUserName" style="font-size:.9rem;color:#002542;"></span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+            <li><a class="dropdown-item" href="/configuracion.html"><i class="fa-solid fa-gear me-2 text-muted"></i>Configuración</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="#" id="btnLogout"><i class="fa-solid fa-right-from-bracket me-2"></i>Cerrar Sesión</a></li>
+          </ul>
+        </li>
+      </ul>
     </div>
   </nav>
 
-  <!-- ==============================
-       Toast Notifications
-  ============================== -->
-  <div class="toast-container position-fixed top-0 end-0 p-3">
-    <div id="toastNotification" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
-      <div class="toast-body" id="toastBody">
-        <i class="fa-solid fa-circle-check"></i>
-        <span id="toastMessage">Mensaje</span>
-      </div>
+  <!-- SIDEBAR -->
+  <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+    <div class="sidebar-brand">
+      <a href="/" class="brand-link d-flex align-items-center">
+        <i class="fa-solid fa-square-parking" style="font-size:1.3rem;margin-right:8px;color:#60a5fa;"></i>
+        <span class="brand-text fw-bold">EstAirbnb</span>
+      </a>
     </div>
-  </div>
-
-  <!-- ==============================
-       Page Content
-  ============================== -->
-  <main class="max-w-7xl mx-auto px-6 py-12" id="mainContentWrapper">
-    <!-- Header Section -->
-    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6 mb-8">
-      <div>
-        <h1 class="text-3xl md:text-4xl font-headline font-bold text-primary tracking-tight mb-2">Panel del Anfitrión</h1>
-        <p class="text-on-surface-variant font-body text-lg">Gestiona tus estacionamientos y las reservas recibidas.</p>
-      </div>
-      <button onclick="openModalFormulario()" class="bg-gradient-to-br from-primary to-primary-container text-on-primary hover:from-primary hover:to-secondary transition-all duration-300 rounded-md px-6 py-3 font-label text-sm uppercase tracking-wider font-semibold shadow-[0px_12px_24px_rgba(0,37,66,0.1)] flex items-center justify-center gap-2 group whitespace-nowrap">
-        <span class="material-symbols-outlined text-lg transition-transform group-hover:rotate-90 duration-300">add</span>
-        Publicar nuevo espacio
-      </button>
-    </div>
-
-    <!-- Tab Navigation -->
-    <div class="host-tabs-nav" id="hostTabsNav">
-      <button class="host-tab active" id="tabBtnGarajes" onclick="switchTab('garajes')">
-        <span class="material-symbols-outlined">warehouse</span>
-        Mis Garajes
-        <span class="tab-badge" id="tabBadgeGarajes" style="display:none;">0</span>
-      </button>
-      <button class="host-tab" id="tabBtnReservas" onclick="switchTab('reservas')">
-        <span class="material-symbols-outlined">calendar_month</span>
-        Reservas Recibidas
-        <span class="tab-badge urgent" id="tabBadgeReservas" style="display:none;">0</span>
-      </button>
-    </div>
-
-    <!-- ========================
-         Modal Formulario (Oculto por defecto)
-    ======================== -->
-    <!-- ══════════════════════════════════════════════════════
-         WIZARD: Publicar Nuevo Garaje (5 pasos)
-    ══════════════════════════════════════════════════════ -->
-    <div id="wizardOverlay" class="wizard-overlay">
-      <div class="wizard-container">
-        <!-- Header -->
-        <div class="wizard-header">
-          <h2><span class="material-symbols-outlined">add_circle</span> Publicar Nuevo Espacio</h2>
-          <button type="button" class="wizard-close-btn" onclick="closeWizard()"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
+    <div class="sidebar-wrapper">
+      <nav class="mt-2">
+        <div class="d-flex align-items-center px-3 py-3 mb-2" style="border-bottom:1px solid rgba(255,255,255,.1);">
+          <div class="me-2 flex-shrink-0">
+            <div class="est-sidebar-avatar" id="sidebarInitials">?</div>
+          </div>
+          <div class="overflow-hidden">
+            <div class="text-white fw-semibold text-truncate" id="sidebarUserName" style="font-size:.85rem;max-width:140px;">Usuario</div>
+            <span class="badge bg-success" style="font-size:.65rem;letter-spacing:.03em;">Anfitrión</span>
+          </div>
         </div>
-        <!-- Progress -->
-        <div class="wizard-progress">
-          <div style="position:relative">
-            <div class="wizard-steps-nav">
-              <div class="wizard-steps-nav" style="display:flex;justify-content:space-between;width:100%">
-                <div class="wizard-step-item active" data-step="1"><div class="wizard-step-circle"><span class="step-num">1</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Información</span></div>
-                <div class="wizard-step-item" data-step="2"><div class="wizard-step-circle"><span class="step-num">2</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Tarifas</span></div>
-                <div class="wizard-step-item" data-step="3"><div class="wizard-step-circle"><span class="step-num">3</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Seguridad</span></div>
-                <div class="wizard-step-item" data-step="4"><div class="wizard-step-circle"><span class="step-num">4</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Plano 2D</span></div>
-                <div class="wizard-step-item" data-step="5"><div class="wizard-step-circle"><span class="step-num">5</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Fotos</span></div>
-                <div class="wizard-step-item" data-step="6"><div class="wizard-step-circle"><span class="step-num">6</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Resumen</span></div>
-              </div>
+        <ul class="nav sidebar-menu flex-column" role="menu" data-lte-toggle="treeview">
+          <li class="nav-header">PANEL ANFITRIÓN</li>
+          <li class="nav-item">
+            <a href="/mis-garajes.html" class="nav-link active">
+              <i class="nav-icon fa-solid fa-warehouse"></i>
+              <p>Mis Garajes</p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/cupones.html" class="nav-link">
+              <i class="nav-icon fa-solid fa-ticket"></i>
+              <p>Cupones</p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/configuracion.html" class="nav-link">
+              <i class="nav-icon fa-solid fa-gear"></i>
+              <p>Configuración</p>
+            </a>
+          </li>
+          <li class="nav-header">CUENTA</li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" id="btnLogoutSidebar" style="color:#f87171;">
+              <i class="nav-icon fa-solid fa-right-from-bracket"></i>
+              <p>Cerrar Sesión</p>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="app-main" id="mainContentWrapper">
+    <div class="app-content-header">
+      <div class="container-fluid">
+        <div class="row align-items-center">
+          <div class="col">
+            <h3 class="mb-0 fw-bold">
+              <i class="bi bi-grid-3x3-gap-fill me-2 text-primary"></i>Panel del Anfitrión
+            </h3>
+            <p class="text-muted small mb-0">Gestiona tus estacionamientos y reservas recibidas.</p>
+          </div>
+          <div class="col-auto">
+            <button onclick="openModalFormulario()" class="btn btn-primary d-flex align-items-center gap-2">
+              <i class="bi bi-plus-circle-fill"></i>
+              <span class="d-none d-sm-inline">Publicar nuevo espacio</span>
+              <span class="d-sm-none">Nuevo</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="app-content">
+      <div class="container-fluid">
+
+        <!-- Toast -->
+        <div class="toast-container position-fixed top-0 end-0 p-3" style="z-index:9999">
+          <div id="toastNotification" class="toast" role="alert" aria-live="assertive" aria-atomic="true">
+            <div class="toast-body d-flex align-items-center gap-2" id="toastBody">
+              <i class="fa-solid fa-circle-check"></i>
+              <span id="toastMessage">Mensaje</span>
             </div>
-            <div id="wizardProgressLine" class="wizard-progress-line"></div>
           </div>
         </div>
 
-        <!-- Form -->
-        <form id="formGaraje" autocomplete="off" novalidate>
-        <div class="wizard-body">
+        <!-- Tabs -->
+        <div class="host-tabs-nav mb-3" id="hostTabsNav">
+          <button class="host-tab active" id="tabBtnGarajes" onclick="switchTab('garajes')">
+            <i class="bi bi-p-square-fill"></i>
+            Mis Garajes
+            <span class="tab-badge" id="tabBadgeGarajes" style="display:none;">0</span>
+          </button>
+          <button class="host-tab" id="tabBtnReservas" onclick="switchTab('reservas')">
+            <i class="bi bi-calendar-check-fill"></i>
+            Reservas Recibidas
+            <span class="tab-badge urgent" id="tabBadgeReservas" style="display:none;">0</span>
+          </button>
+        </div>
 
-          <!-- ═══ PASO 1: Información Básica ═══ -->
-          <section class="wizard-panel active" data-step="1">
-            <h3 class="wz-step-title">Información Básica</h3>
-            <p class="wz-step-subtitle">Describe tu espacio de estacionamiento para que los conductores lo encuentren.</p>
-            <div class="wz-field">
-              <label class="wz-label" for="inpDireccion">Dirección <span class="required">*</span></label>
-              <input type="text" class="wz-input" id="inpDireccion" placeholder="Ej: Av. 27 de Febrero #45, Naco" maxlength="255" required>
-              <span class="wz-error-msg">Mínimo 5 caracteres</span>
-            </div>
-            <div class="wz-field">
-              <label class="wz-label" for="inpDescripcion">Descripción</label>
-              <textarea class="wz-textarea" id="inpDescripcion" placeholder="Describe tu espacio: techado, seguridad, horarios..." maxlength="500" rows="3"></textarea>
-            </div>
-            <hr class="wz-divider">
-            <label class="wz-label"><i class="fa-solid fa-tags" style="margin-right:4px"></i> Comodidades</label>
-            <p style="font-size:0.8rem;color:#64748b;margin-bottom:12px;">Selecciona las que ofrece tu parqueo.</p>
-            <div class="wz-chips-grid">
-              <label class="wz-chip"><input type="checkbox" name="comodidad" value="techado"><i class="fa-solid fa-warehouse"></i> Techado</label>
-              <label class="wz-chip"><input type="checkbox" name="comodidad" value="cctv"><i class="fa-solid fa-video"></i> CCTV</label>
-              <label class="wz-chip"><input type="checkbox" name="comodidad" value="vigilancia"><i class="fa-solid fa-shield-halved"></i> Vigilancia 24/7</label>
-              <label class="wz-chip"><input type="checkbox" name="comodidad" value="iluminado"><i class="fa-solid fa-lightbulb"></i> Iluminado</label>
-              <label class="wz-chip"><input type="checkbox" name="comodidad" value="acceso_24h"><i class="fa-solid fa-clock"></i> Acceso 24h</label>
-              <label class="wz-chip"><input type="checkbox" name="comodidad" value="cargador_ev"><i class="fa-solid fa-charging-station"></i> Cargador EV</label>
-              <label class="wz-chip"><input type="checkbox" name="comodidad" value="lavado"><i class="fa-solid fa-droplet"></i> Lavado</label>
-              <label class="wz-chip"><input type="checkbox" name="comodidad" value="acceso_discapacidad"><i class="fa-solid fa-wheelchair"></i> Accesible</label>
-            </div>
-          </section>
+        <!-- SECCIÓN: MIS PARQUEOS -->
+        <section id="sectionMisParqueos">
+          <div class="d-flex align-items-center justify-content-between mb-3">
+            <h6 class="fw-bold mb-0 text-muted">
+              <i class="bi bi-p-square me-1"></i>Mis Parqueos Publicados
+            </h6>
+            <span class="badge bg-secondary" id="contadorGarajes"></span>
+          </div>
 
-          <!-- ═══ PASO 2: Tarifas y Horarios ═══ -->
-          <section class="wizard-panel" data-step="2">
-            <h3 class="wz-step-title">Tarifas y Horarios</h3>
-            <p class="wz-step-subtitle">Define el precio y los horarios en que estará disponible tu parqueo.</p>
-            <div class="wz-field">
-              <label class="wz-label" for="inpPrecio">Precio por hora (Bs.) <span class="required">*</span></label>
-              <input type="number" class="wz-input" id="inpPrecio" placeholder="Ej: 75.00" min="1" step="0.01" required>
-              <span class="wz-error-msg">Ingresa un precio válido</span>
-            </div>
-            <hr class="wz-divider">
-            <label class="wz-label"><i class="fa-solid fa-calendar-week" style="margin-right:4px"></i> Horarios de Disponibilidad</label>
-            <p style="font-size:0.8rem;color:#64748b;margin-bottom:12px;">Puedes agregar múltiples franjas horarias.</p>
-            <div id="horariosContainer" class="wz-horarios-list"></div>
-            <div id="hz24hBanner" class="hz-24h-banner" style="display:none">
-              <i class="fa-solid fa-circle-check"></i>
-              <span>Horario 24/7 configurado automáticamente (Acceso 24h activo).</span>
-              <button type="button" onclick="desactivar24h()">Desactivar</button>
-            </div>
-            <div class="wz-horario-builder" id="wzHorarioBuilder">
-              <div class="wz-preset-row">
-                <span class="wz-preset-label">Días:</span>
-                <button type="button" class="wz-preset-btn" onclick="wzPresetDias('lv')">L–V</button>
-                <button type="button" class="wz-preset-btn" onclick="wzPresetDias('ls')">L–S</button>
-                <button type="button" class="wz-preset-btn" onclick="wzPresetDias('finde')">Fin de semana</button>
-                <button type="button" class="wz-preset-btn" onclick="wzPresetDias('todos')">Todos</button>
-              </div>
-              <div class="wz-days-row">
-                <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="1"> Lun</label>
-                <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="2"> Mar</label>
-                <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="3"> Mié</label>
-                <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="4"> Jue</label>
-                <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="5"> Vie</label>
-                <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="6"> Sáb</label>
-                <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="0"> Dom</label>
-              </div>
-              <div class="wz-time-row">
-                <div class="wz-field"><label class="wz-label" style="font-size:0.7rem">Desde</label><input type="time" class="wz-input" id="inpHorarioDesde" value="08:00"></div>
-                <div class="wz-field"><label class="wz-label" style="font-size:0.7rem">Hasta</label><input type="time" class="wz-input" id="inpHorarioHasta" value="20:00"></div>
-                <button type="button" id="btnAgregarHorario" class="wz-btn-add-h"><i class="fa-solid fa-plus"></i> Agregar</button>
-              </div>
-              <div class="wz-preset-row" style="margin-top:8px">
-                <span class="wz-preset-label">Horario rápido:</span>
-                <button type="button" class="wz-preset-btn" onclick="wzPresetHora('06:00','12:00')">Mañana 6–12</button>
-                <button type="button" class="wz-preset-btn" onclick="wzPresetHora('12:00','18:00')">Tarde 12–18</button>
-                <button type="button" class="wz-preset-btn" onclick="wzPresetHora('18:00','22:00')">Noche 18–22</button>
-                <button type="button" class="wz-preset-btn" onclick="wzPresetHora('06:00','22:00')">6–22h</button>
+          <!-- Stats -->
+          <div class="row g-3 mb-4" id="statsBar" style="display:none;">
+            <div class="col-sm-4">
+              <div class="small-box bg-body shadow-sm border">
+                <div class="inner">
+                  <h3 id="statTotal">0</h3>
+                  <p>Total de garajes</p>
+                </div>
+                <div class="small-box-icon"><i class="bi bi-p-square-fill text-primary"></i></div>
               </div>
             </div>
-            <p id="horariosError" style="color:#dc2626;font-size:0.75rem;margin-top:6px;display:none">Agrega al menos un horario.</p>
+            <div class="col-sm-4">
+              <div class="small-box bg-body shadow-sm border">
+                <div class="inner">
+                  <h3 id="statActivos" class="text-success">0</h3>
+                  <p>Activos</p>
+                </div>
+                <div class="small-box-icon"><i class="bi bi-check-circle-fill text-success"></i></div>
+              </div>
+            </div>
+            <div class="col-sm-4">
+              <div class="small-box bg-body shadow-sm border">
+                <div class="inner">
+                  <h3 id="statInactivos" class="text-secondary">0</h3>
+                  <p>Inactivos</p>
+                </div>
+                <div class="small-box-icon"><i class="bi bi-pause-circle-fill text-secondary"></i></div>
+              </div>
+            </div>
+          </div>
 
-            <!-- ── Programa de Fidelidad ── -->
-            <hr class="wz-divider" style="margin-top:20px">
-            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-              <label class="wz-label" style="margin-bottom:0"><i class="fa-solid fa-medal" style="color:#f59e0b;margin-right:6px"></i> Programa de Fidelidad <span style="font-size:0.72rem;color:#94a3b8;font-weight:400;">(opcional)</span></label>
-              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.82rem;font-weight:600;color:var(--text-primary)">
-                <input type="checkbox" id="inpFidelidadActivo" style="width:16px;height:16px;accent-color:#006a62;cursor:pointer">
-                Activar
+          <!-- Loading -->
+          <div class="text-center py-5" id="loadingGarajes">
+            <div class="spinner-border text-primary" role="status"></div>
+            <p class="mt-3 text-muted small">Cargando tus espacios...</p>
+          </div>
+
+          <!-- Grid -->
+          <div id="garajesGrid" class="garajes-grid"></div>
+
+          <!-- Empty -->
+          <div id="emptyState" style="display:none;" class="card border border-dashed text-center py-5 mt-2">
+            <div class="card-body">
+              <i class="bi bi-p-square fs-1 text-muted opacity-50 d-block mb-3"></i>
+              <h5 class="fw-bold text-muted">No tienes parqueos publicados</h5>
+              <p class="text-muted small mb-0">Usa el botón "Publicar nuevo espacio" para agregar tu primer estacionamiento.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- SECCIÓN: RESERVAS -->
+        <section id="sectionReservas" style="display:none;">
+          <div class="card shadow-sm">
+            <div class="card-header d-flex align-items-center justify-content-between">
+              <h5 class="card-title mb-0">
+                <i class="bi bi-calendar-check-fill me-2 text-primary"></i>Reservas Recibidas
+              </h5>
+              <span class="badge bg-secondary" id="contadorReservas"></span>
+            </div>
+            <div class="card-body">
+              <div id="loadingReservas" class="text-center py-4">
+                <div class="spinner-border text-primary" role="status"></div>
+                <p class="mt-2 text-muted small">Cargando reservas...</p>
+              </div>
+              <div id="reservasTableWrapper" style="display:none;overflow-x:auto;"></div>
+              <div id="emptyReservas" style="display:none;" class="text-center py-4">
+                <i class="bi bi-calendar-x fs-1 text-muted opacity-50 d-block mb-2"></i>
+                <h6 class="fw-bold text-muted">Sin reservas aún</h6>
+                <p class="text-muted small mb-0">Cuando un conductor reserve uno de tus espacios, aparecerá aquí.</p>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <div class="float-end d-none d-sm-inline">EstAirbnb &copy; 2025</div>
+    <strong>EstAirbnb</strong> &mdash; Plataforma de alquiler de parqueos.
+  </footer>
+
+</div><!-- /app-wrapper -->
+
+<!-- ===== OVERLAYS (position:fixed — lógica intacta) ===== -->
+
+<!-- Wizard: Publicar Nuevo Garaje -->
+<div id="wizardOverlay" class="wizard-overlay">
+  <div class="wizard-container">
+    <div class="wizard-header">
+      <h2><span class="material-symbols-outlined">add_circle</span> Publicar Nuevo Espacio</h2>
+      <button type="button" class="wizard-close-btn" onclick="closeWizard()"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
+    </div>
+    <div class="wizard-progress">
+      <div style="position:relative">
+        <div class="wizard-steps-nav" style="display:flex;justify-content:space-between;width:100%">
+          <div class="wizard-step-item active" data-step="1"><div class="wizard-step-circle"><span class="step-num">1</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Básico</span></div>
+          <div class="wizard-step-item" data-step="2"><div class="wizard-step-circle"><span class="step-num">2</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Precio</span></div>
+          <div class="wizard-step-item" data-step="3"><div class="wizard-step-circle"><span class="step-num">3</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Acceso</span></div>
+          <div class="wizard-step-item" data-step="4"><div class="wizard-step-circle"><span class="step-num">4</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Plano</span></div>
+          <div class="wizard-step-item" data-step="5"><div class="wizard-step-circle"><span class="step-num">5</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Fotos</span></div>
+          <div class="wizard-step-item" data-step="6"><div class="wizard-step-circle"><span class="step-num">6</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Revisión</span></div>
+        </div>
+        <div id="wizardProgressLine" class="wizard-progress-line"></div>
+      </div>
+    </div>
+    <form id="formGaraje" autocomplete="off" novalidate>
+    <div class="wizard-body">
+
+      <section class="wizard-panel active" data-step="1">
+        <h3 class="wz-step-title">Lo esencial</h3>
+        <p class="wz-step-subtitle">Solo lo necesario para publicar rápido y con claridad.</p>
+        <div class="wz-info-card"><span class="material-symbols-outlined">info</span><p>Dirección exacta, descripción breve y comodidades que aportan valor.</p></div>
+        <div class="wz-field">
+          <label class="wz-label" for="inpDireccion">Dirección <span class="required">*</span></label>
+          <input type="text" class="wz-input" id="inpDireccion" placeholder="Ej: Av. 27 de Febrero #45, Naco" maxlength="255" required>
+          <div class="location-picker-shell">
+            <div class="location-picker-actions">
+              <button type="button" class="location-picker-btn" id="btnUbicarDireccionMapa"><i class="fa-solid fa-magnifying-glass-location"></i> Buscar en mapa</button>
+              <button type="button" class="location-picker-btn" id="btnUbicarmeMapa"><i class="fa-solid fa-location-crosshairs"></i> Ubicarme</button>
+              <button type="button" class="location-picker-btn secondary" id="btnLimpiarUbicacionMapa"><i class="fa-solid fa-location-xmark"></i> Limpiar</button>
+            </div>
+            <div class="location-picker-status" id="ubicacionSeleccionadaText">
+              <i class="fa-solid fa-location-dot" style="margin-top:2px;"></i>
+              <span>Marca la ubicación exacta del garaje en el mapa.</span>
+            </div>
+            <div class="location-picker-tip">Este punto se usará para mostrar la llegada del conductor.</div>
+            <div id="garajeLocationMap" class="location-picker-map"></div>
+          </div>
+          <span class="wz-error-msg">Mínimo 5 caracteres</span>
+        </div>
+        <div class="wz-field">
+          <label class="wz-label" for="inpDescripcion">Descripción</label>
+          <textarea class="wz-textarea" id="inpDescripcion" placeholder="Describe tu espacio: techado, seguridad, horarios..." maxlength="500" rows="3"></textarea>
+        </div>
+        <hr class="wz-divider">
+        <label class="wz-label"><i class="fa-solid fa-tags" style="margin-right:4px"></i> Comodidades</label>
+        <p style="font-size:0.8rem;color:#64748b;margin-bottom:12px;">Elige solo las que el conductor realmente notará al llegar.</p>
+        <div class="wz-chips-grid">
+          <label class="wz-chip"><input type="checkbox" name="comodidad" value="techado"><i class="fa-solid fa-warehouse"></i> Techado</label>
+          <label class="wz-chip"><input type="checkbox" name="comodidad" value="cctv"><i class="fa-solid fa-video"></i> CCTV</label>
+          <label class="wz-chip"><input type="checkbox" name="comodidad" value="vigilancia"><i class="fa-solid fa-shield-halved"></i> Vigilancia 24/7</label>
+          <label class="wz-chip"><input type="checkbox" name="comodidad" value="iluminado"><i class="fa-solid fa-lightbulb"></i> Iluminado</label>
+          <label class="wz-chip"><input type="checkbox" name="comodidad" value="acceso_24h"><i class="fa-solid fa-clock"></i> Acceso 24h</label>
+          <label class="wz-chip"><input type="checkbox" name="comodidad" value="cargador_ev"><i class="fa-solid fa-charging-station"></i> Cargador EV</label>
+          <label class="wz-chip"><input type="checkbox" name="comodidad" value="lavado"><i class="fa-solid fa-droplet"></i> Lavado</label>
+          <label class="wz-chip"><input type="checkbox" name="comodidad" value="acceso_discapacidad"><i class="fa-solid fa-wheelchair"></i> Accesible</label>
+        </div>
+      </section>
+
+      <section class="wizard-panel" data-step="2">
+        <h3 class="wz-step-title">Precio y disponibilidad</h3>
+        <p class="wz-step-subtitle">Define cuánto cuesta y cuándo puede reservarse tu espacio.</p>
+        <div class="wz-info-card"><span class="material-symbols-outlined">schedule</span><p>Usa una franja simple o añade múltiples horarios sin complicarte.</p></div>
+        <div class="wz-field">
+          <label class="wz-label" for="inpPrecio">Precio por hora (Bs.) <span class="required">*</span></label>
+          <input type="number" class="wz-input" id="inpPrecio" placeholder="Ej: 75.00" min="1" step="0.01" required>
+          <span class="wz-error-msg">Ingresa un precio válido</span>
+        </div>
+        <hr class="wz-divider">
+        <label class="wz-label"><i class="fa-solid fa-calendar-week" style="margin-right:4px"></i> Horarios de Disponibilidad</label>
+        <p style="font-size:0.8rem;color:#64748b;margin-bottom:12px;">Puedes agregar múltiples franjas horarias.</p>
+        <div id="horariosContainer" class="wz-horarios-list"></div>
+        <div id="hz24hBanner" class="hz-24h-banner" style="display:none">
+          <i class="fa-solid fa-circle-check"></i>
+          <span>Horario 24/7 configurado automáticamente (Acceso 24h activo).</span>
+          <button type="button" onclick="desactivar24h()">Desactivar</button>
+        </div>
+        <div class="wz-horario-builder" id="wzHorarioBuilder">
+          <div class="wz-preset-row">
+            <span class="wz-preset-label">Días:</span>
+            <button type="button" class="wz-preset-btn" onclick="wzPresetDias('lv')">L–V</button>
+            <button type="button" class="wz-preset-btn" onclick="wzPresetDias('ls')">L–S</button>
+            <button type="button" class="wz-preset-btn" onclick="wzPresetDias('finde')">Fin de semana</button>
+            <button type="button" class="wz-preset-btn" onclick="wzPresetDias('todos')">Todos</button>
+          </div>
+          <div class="wz-days-row">
+            <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="1"> Lun</label>
+            <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="2"> Mar</label>
+            <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="3"> Mié</label>
+            <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="4"> Jue</label>
+            <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="5"> Vie</label>
+            <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="6"> Sáb</label>
+            <label class="wz-day-chip"><input type="checkbox" name="diasHorario" value="0"> Dom</label>
+          </div>
+          <div class="wz-time-row">
+            <div class="wz-field"><label class="wz-label" style="font-size:0.7rem">Desde</label><input type="time" class="wz-input" id="inpHorarioDesde" value="08:00"></div>
+            <div class="wz-field"><label class="wz-label" style="font-size:0.7rem">Hasta</label><input type="time" class="wz-input" id="inpHorarioHasta" value="20:00"></div>
+            <button type="button" id="btnAgregarHorario" class="wz-btn-add-h"><i class="fa-solid fa-plus"></i> Agregar</button>
+          </div>
+          <div class="wz-preset-row" style="margin-top:8px">
+            <span class="wz-preset-label">Rápido:</span>
+            <button type="button" class="wz-preset-btn" onclick="wzPresetHora('06:00','12:00')">6–12</button>
+            <button type="button" class="wz-preset-btn" onclick="wzPresetHora('12:00','18:00')">12–18</button>
+            <button type="button" class="wz-preset-btn" onclick="wzPresetHora('18:00','22:00')">18–22</button>
+            <button type="button" class="wz-preset-btn" onclick="wzPresetHora('06:00','22:00')">6–22h</button>
+          </div>
+        </div>
+        <p id="horariosError" style="color:#dc2626;font-size:0.75rem;margin-top:6px;display:none">Agrega al menos un horario.</p>
+        <details class="wz-advanced-details">
+          <summary class="wz-advanced-summary">
+            <span><i class="fa-solid fa-medal"></i> Opciones avanzadas</span>
+            <span>Programa de fidelidad</span>
+          </summary>
+          <div class="wz-advanced-panel">
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:10px">
+              <p style="font-size:0.8rem;color:#475569;margin:0;line-height:1.5;">Premia a clientes frecuentes activando esta sección.</p>
+              <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.82rem;font-weight:700;color:#0f172a;white-space:nowrap">
+                <input type="checkbox" id="inpFidelidadActivo" style="width:16px;height:16px;accent-color:#006a62;cursor:pointer"> Activar
               </label>
             </div>
             <div id="fidelidadConfig" style="display:none;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:16px;margin-bottom:4px">
-              <p style="font-size:0.8rem;color:#166534;margin-bottom:12px"><i class="fa-solid fa-info-circle" style="margin-right:4px"></i>El conductor recibirá un descuento automático cuando alcance el número de visitas indicado.</p>
+              <p style="font-size:0.8rem;color:#166534;margin-bottom:12px"><i class="fa-solid fa-info-circle" style="margin-right:4px"></i>El conductor recibirá un descuento al alcanzar el número de visitas indicado.</p>
               <div class="wz-row">
                 <div class="wz-field">
                   <label class="wz-label">Visitas requeridas</label>
                   <select class="wz-select" id="inpFidelidadVisitas">
-                    <option value="5">5 visitas</option>
-                    <option value="10" selected>10 visitas</option>
-                    <option value="15">15 visitas</option>
-                    <option value="20">20 visitas</option>
+                    <option value="5">5 visitas</option><option value="10" selected>10 visitas</option>
+                    <option value="15">15 visitas</option><option value="20">20 visitas</option>
                   </select>
                 </div>
                 <div class="wz-field">
@@ -322,493 +400,418 @@
               <div class="wz-field" style="margin-bottom:0">
                 <label class="wz-label">Validez del descuento</label>
                 <select class="wz-select" id="inpFidelidadValidez">
-                  <option value="30">30 días</option>
-                  <option value="60">60 días</option>
-                  <option value="90">90 días</option>
-                  <option value="">Sin vencimiento (permanente)</option>
+                  <option value="30">30 días</option><option value="60">60 días</option>
+                  <option value="90">90 días</option><option value="">Sin vencimiento</option>
                 </select>
               </div>
             </div>
-          </section>
+          </div>
+        </details>
+      </section>
 
-          <!-- ═══ PASO 3: Seguridad y Acceso ═══ -->
-          <section class="wizard-panel" data-step="3">
-            <h3 class="wz-step-title">Seguridad y Acceso</h3>
-            <p class="wz-step-subtitle">El conductor verá esta información al reservar para saber qué esperar al llegar.</p>
-
-            <div class="wz-row">
-              <div class="wz-field">
-                <label class="wz-label">Nivel de Seguridad</label>
-                <select class="wz-select" id="inpNivelSeguridad">
-                  <option value="Básico">Básico — Solo candado o acceso simple</option>
-                  <option value="Estándar" selected>Estándar — Cámara o vigilancia parcial</option>
-                  <option value="Premium">Premium — CCTV 24/7 y seguridad continua</option>
-                </select>
-                <p id="nivelSeguridadHint" style="display:none;font-size:0.75rem;color:#0369a1;margin-top:5px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:4px 8px;"></p>
-              </div>
-              <div class="wz-field">
-                <label class="wz-label">Método de acceso al garaje</label>
-                <select class="wz-select" id="inpMetodoAcceso">
-                  <option value="Manual">Manual — Llave física o apertura presencial</option>
-                  <option value="Código">Código — Teclado numérico o contraseña</option>
-                  <option value="QR" selected>QR — Lectura QR en puerta inteligente</option>
-                </select>
-                <p style="font-size:0.75rem;color:#64748b;margin-top:5px;"><i class="fa-solid fa-circle-info" style="margin-right:3px"></i>Es el método físico para entrar al garaje, no el método de pago.</p>
-              </div>
-            </div>
-
+      <section class="wizard-panel" data-step="3">
+        <h3 class="wz-step-title">Acceso y normas</h3>
+        <p class="wz-step-subtitle">Lo que el conductor necesita para entrar sin dudas.</p>
+        <div class="wz-info-card"><span class="material-symbols-outlined">door_front</span><p>Deja visible cómo se entra, qué seguridad tiene y cualquier indicación importante.</p></div>
+        <div class="wz-row">
+          <div class="wz-field">
+            <label class="wz-label">Nivel de Seguridad</label>
+            <select class="wz-select" id="inpNivelSeguridad">
+              <option value="Básico">Básico — Solo candado o acceso simple</option>
+              <option value="Estándar" selected>Estándar — Cámara o vigilancia parcial</option>
+              <option value="Premium">Premium — CCTV 24/7 y seguridad continua</option>
+            </select>
+            <p id="nivelSeguridadHint" style="display:none;font-size:0.75rem;color:#0369a1;margin-top:5px;background:#f0f9ff;border:1px solid #bae6fd;border-radius:6px;padding:4px 8px;"></p>
+          </div>
+          <div class="wz-field">
+            <label class="wz-label">Método de acceso al garaje</label>
+            <select class="wz-select" id="inpMetodoAcceso">
+              <option value="Manual">Manual — Llave física o apertura presencial</option>
+              <option value="Código">Código — Teclado numérico o contraseña</option>
+              <option value="QR" selected>QR — Lectura QR en puerta inteligente</option>
+            </select>
+            <p style="font-size:0.75rem;color:#64748b;margin-top:5px;"><i class="fa-solid fa-circle-info" style="margin-right:3px"></i>Método físico de entrada, no de pago.</p>
+          </div>
+        </div>
+        <div class="wz-field">
+          <label class="wz-label">Instrucciones de Acceso</label>
+          <textarea class="wz-textarea" id="inpInstrucciones" placeholder="Ej: Toca el timbre 2B al llegar. La puerta abre con el código 1234." rows="3"></textarea>
+          <p style="font-size:0.75rem;color:#64748b;margin-top:5px;">El conductor las recibirá una vez confirmada la reserva.</p>
+        </div>
+        <details class="wz-advanced-details">
+          <summary class="wz-advanced-summary"><span><i class="fa-solid fa-gear"></i> Más detalles</span><span>Dimensiones, política y reglas</span></summary>
+          <div class="wz-advanced-panel">
             <div class="wz-field">
-              <label class="wz-label">Instrucciones de Acceso</label>
-              <textarea class="wz-textarea" id="inpInstrucciones" placeholder="Ej: Toca el timbre 2B al llegar. La puerta abre con el código 1234. Estacionamiento al fondo a la derecha." rows="3"></textarea>
-              <p style="font-size:0.75rem;color:#64748b;margin-top:5px;">El conductor las recibirá una vez confirmada la reserva.</p>
-            </div>
-
-            <hr class="wz-divider">
-
-            <div class="wz-field">
-              <label class="wz-label"><i class="fa-solid fa-ruler-combined" style="margin-right:5px;color:#006a62"></i>Dimensiones de la entrada del garaje <span style="font-size:0.75rem;font-weight:400;color:#64748b">(opcional)</span></label>
-              <p style="font-size:0.78rem;color:#64748b;margin-bottom:10px;">Indica el tamaño del acceso. El conductor lo usará para saber si su vehículo puede ingresar.</p>
+              <label class="wz-label"><i class="fa-solid fa-ruler-combined" style="margin-right:5px;color:#006a62"></i>Dimensiones de la entrada <span style="font-size:0.75rem;font-weight:400;color:#64748b">(opcional)</span></label>
               <div class="wz-dim-group">
-                <div class="wz-dim-item">
-                  <span class="wz-dim-label">Altura libre</span>
-                  <div class="wz-dim-control">
-                    <input type="number" class="wz-input" id="inpDimAltura" placeholder="2.2" min="0.1" max="10" step="0.1">
-                    <span class="wz-dim-unit">m</span>
-                  </div>
-                </div>
-                <div class="wz-dim-item">
-                  <span class="wz-dim-label">Ancho de entrada</span>
-                  <div class="wz-dim-control">
-                    <input type="number" class="wz-input" id="inpDimAncho" placeholder="2.5" min="0.1" max="10" step="0.1">
-                    <span class="wz-dim-unit">m</span>
-                  </div>
-                </div>
-                <div class="wz-dim-item">
-                  <span class="wz-dim-label">Largo del espacio</span>
-                  <div class="wz-dim-control">
-                    <input type="number" class="wz-input" id="inpDimLargo" placeholder="5.0" min="0.5" max="20" step="0.1">
-                    <span class="wz-dim-unit">m</span>
-                  </div>
-                </div>
+                <div class="wz-dim-item"><span class="wz-dim-label">Altura libre</span><div class="wz-dim-control"><input type="number" class="wz-input" id="inpDimAltura" placeholder="2.2" min="0.1" max="10" step="0.1"><span class="wz-dim-unit">m</span></div></div>
+                <div class="wz-dim-item"><span class="wz-dim-label">Ancho de entrada</span><div class="wz-dim-control"><input type="number" class="wz-input" id="inpDimAncho" placeholder="2.5" min="0.1" max="10" step="0.1"><span class="wz-dim-unit">m</span></div></div>
+                <div class="wz-dim-item"><span class="wz-dim-label">Largo del espacio</span><div class="wz-dim-control"><input type="number" class="wz-input" id="inpDimLargo" placeholder="5.0" min="0.5" max="20" step="0.1"><span class="wz-dim-unit">m</span></div></div>
               </div>
             </div>
-
             <div class="wz-field">
               <label class="wz-label">Política del anfitrión <span style="font-size:0.75rem;font-weight:400;color:#64748b">(informativa)</span></label>
               <select class="wz-select" id="inpPolitica">
-                <option value="Flexible: Reembolso total hasta 2h antes">Flexible — El conductor puede cancelar hasta 2 h antes sin penalización</option>
-                <option value="Moderada: Reembolso 50% hasta 24h antes" selected>Moderada — Penalización si cancela con menos de 24 h de anticipación</option>
-                <option value="Estricta: Sin reembolso una vez confirmado">Estricta — No se aceptan cambios una vez confirmada la reserva</option>
-              </select>
-              <p style="font-size:0.75rem;color:#64748b;margin-top:5px;"><i class="fa-solid fa-circle-info" style="margin-right:3px"></i>El conductor verá esta política antes de reservar. Se aplica como referencia informativa.</p>
-            </div>
-
-            <div class="wz-field">
-              <label class="wz-label">Reglas del garaje <span style="font-size:0.75rem;font-weight:400;color:#64748b">(opcional)</span></label>
-              <textarea class="wz-textarea" id="inpReglas" placeholder="Ej: Prohibido lavar el auto dentro. No dejar basura. Respetar los límites de velocidad." rows="2"></textarea>
-            </div>
-          </section>
-
-          <!-- ═══ PASO 4: Plano 2D del Garaje ═══ -->
-          <section class="wizard-panel" data-step="4" id="espacioBuilderSection">
-            <h3 class="wz-step-title">Plano 2D del Garaje</h3>
-            <p class="wz-step-subtitle">Define cuántos espacios tendrá tu parqueo y opcionalmente personaliza el plano.</p>
-
-            <!-- Capacity selector -->
-            <label class="wz-label">¿Cuántos vehículos caben en tu parqueo?</label>
-            <div class="wz-capacity-input">
-              <button type="button" class="wz-cap-btn" id="wzCapMinus">−</button>
-              <div class="wz-cap-display">
-                <span class="wz-cap-number" id="wzCapNumber">4</span>
-                <span class="wz-cap-label">espacios</span>
-              </div>
-              <button type="button" class="wz-cap-btn" id="wzCapPlus">+</button>
-            </div>
-
-            <button type="button" class="wz-btn wz-btn-primary" id="btnAutoGenPlano" style="width:100%;margin-bottom:12px">
-              <span class="material-symbols-outlined">auto_fix_high</span> Generar plano automáticamente
-            </button>
-            <div id="wzAutoGenResult" style="display:none;align-items:center;gap:12px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:14px 16px;margin-bottom:20px">
-              <span class="material-symbols-outlined" style="color:#16a34a;font-size:22px;flex-shrink:0">check_circle</span>
-              <div>
-                <div id="wzAutoGenMsg" style="font-size:0.875rem;font-weight:700;color:#15803d"></div>
-                <div style="font-size:0.75rem;color:#16a34a;margin-top:2px">Puedes personalizar el diseño manualmente si lo deseas.</div>
-              </div>
-            </div>
-
-            <!-- Toggle: customize map -->
-            <div class="wz-toggle-card" id="wzToggleMapCard">
-              <div class="wz-toggle-icon"><span class="material-symbols-outlined">edit_square</span></div>
-              <div class="wz-toggle-text">
-                <h4>Personalizar plano manualmente</h4>
-                <p>Dibuja paredes, entradas, salidas y carriles a tu gusto.</p>
-              </div>
-              <div class="wz-toggle-switch"></div>
-            </div>
-
-            <!-- Tilemap Editor (hidden by default) -->
-            <div id="wzMapEditorSection" style="display:none">
-              <div id="tilemapEditor">
-                <div class="gb-shell">
-                  <div class="gb-bar">
-                    <div class="gb-bar-title"><span class="gb-live"></span>Editor de Plano 2D</div>
-                    <button type="button" class="gb-ibtn danger" id="btnTmLimpiar">✕ Limpiar</button>
-                  </div>
-                  <div class="gb-presets">
-                    <span class="gb-plabel">Plantillas</span>
-                    <button type="button" class="gb-preset tm-preset-btn" data-preset="linea">║ En línea</button>
-                    <button type="button" class="gb-preset tm-preset-btn" data-preset="ele">⌐ En L</button>
-                    <button type="button" class="gb-preset tm-preset-btn" data-preset="patio">⊞ Patio</button>
-                  </div>
-                  <div class="gb-tools" id="tmToolbar">
-                    <button type="button" class="gb-tool tm-tool-btn active" data-tool="parking" data-t="parking"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" stroke="#16a34a" stroke-width="1.5"/><text x="6.5" y="9.5" text-anchor="middle" font-size="7" font-weight="700" fill="#16a34a">P</text></svg> Parqueo</button>
-                    <button type="button" class="gb-tool tm-tool-btn" data-tool="wall" data-t="wall"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" fill="#334155"/></svg> Pared</button>
-                    <button type="button" class="gb-tool tm-tool-btn" data-tool="entrance" data-t="entrance"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" fill="#064e3b" stroke="#10b981" stroke-width="1"/><path d="M4 6.5h5M7 4.5l2 2-2 2" stroke="#10b981" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Entrada</button>
-                    <button type="button" class="gb-tool tm-tool-btn" data-tool="exit" data-t="exit"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" fill="#7f1d1d" stroke="#ef4444" stroke-width="1"/><path d="M9 6.5H4M6 4.5l-2 2 2 2" stroke="#ef4444" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/></svg> Salida</button>
-                    <button type="button" class="gb-tool tm-tool-btn" data-tool="aisle" data-t="aisle"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><rect x="1" y="1" width="11" height="11" rx="2" fill="#1e293b"/><line x1="2" y1="6.5" x2="5" y2="6.5" stroke="#f59e0b" stroke-width="1.5"/><line x1="6.5" y1="2" x2="6.5" y2="5" stroke="#f59e0b" stroke-width="1.5"/><line x1="8" y1="6.5" x2="11" y2="6.5" stroke="#f59e0b" stroke-width="1.5"/><line x1="6.5" y1="8" x2="6.5" y2="11" stroke="#f59e0b" stroke-width="1.5"/></svg> Carril</button>
-                    <button type="button" class="gb-tool tm-tool-btn" data-tool="eraser" data-t="eraser"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 11L9 3.5l1.5 1.5L4 11H2z" stroke="#9333ea" stroke-width="1.2" stroke-linejoin="round"/></svg> Borrar</button>
-                    <div class="gb-vsel" id="tmVehicleSelector"><select id="tmTipoVehiculo"><option value="auto">Auto</option><option value="moto">Moto</option><option value="suv">SUV</option></select></div>
-                    <div class="gb-tip"><span class="gb-tip-icon">↔</span>Arrastra para pintar</div>
-                  </div>
-                  <div class="gb-canvas"><div id="tmGrid"></div></div>
-                  <div class="gb-foot">
-                    <div class="gb-legend">
-                      <span class="gb-leg"><span class="gb-ldot" style="background:#14532d;border-left:3px solid #22c55e;border-radius:0"></span>Parqueo</span>
-                      <span class="gb-leg"><span class="gb-ldot" style="background:#0f172a"></span>Pared</span>
-                      <span class="gb-leg"><span class="gb-ldot" style="background:#064e3b;border:1px solid #10b981"></span>Entrada</span>
-                      <span class="gb-leg"><span class="gb-ldot" style="background:#7f1d1d;border:1px solid #ef4444"></span>Salida</span>
-                      <span class="gb-leg"><span class="gb-ldot" style="background:#1e293b;border:1px dashed #f59e0b"></span>Carril</span>
-                    </div>
-                    <div class="gb-stats">
-                      <div class="gb-stat"><div class="gb-sv" id="tmCountParking">0</div><div class="gb-sl">parqueos</div></div>
-                      <div class="gb-stat"><div class="gb-sv" id="tmCountTotal">0</div><div class="gb-sl">pintadas</div></div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
-            <p id="tilemapError" style="color:#dc2626;font-size:0.75rem;margin-top:6px;display:none">Coloca al menos 1 espacio de parqueo.</p>
-          </section>
-
-          <!-- ═══ PASO 5: Fotos ═══ -->
-          <section class="wizard-panel" data-step="5">
-            <h3 class="wz-step-title">Fotos del Espacio</h3>
-            <p class="wz-step-subtitle">Sube fotos de tu estacionamiento para que los conductores lo vean. (Opcional)</p>
-
-            <div class="wz-field">
-              <label class="wz-label">Fotos del espacio</label>
-              <div class="wz-upload-zone" id="uploadZone">
-                <div class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
-                <div class="upload-text">Arrastra tus fotos aquí o haz clic</div>
-                <div class="upload-hint">JPG, PNG o WEBP · Máx. 5 fotos · 5 MB c/u</div>
-                <input type="file" id="inpFotos" name="fotos" multiple accept="image/jpeg,image/png,image/webp">
-              </div>
-              <div class="wz-photo-grid" id="photoPreviewGrid"></div>
-            </div>
-          </section>
-
-          <!-- ═══ PASO 6: Resumen y Confirmación ═══ -->
-          <section class="wizard-panel" data-step="6">
-            <h3 class="wz-step-title">Resumen y Confirmación</h3>
-            <p class="wz-step-subtitle">Revisa todos los detalles antes de publicar tu espacio.</p>
-
-            <div style="display:flex;align-items:center;gap:14px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:18px;margin-bottom:24px">
-              <span class="material-symbols-outlined" style="color:#16a34a;font-size:28px;flex-shrink:0">verified</span>
-              <div>
-                <div style="font-size:0.95rem;font-weight:700;color:#15803d">¡Todo listo para publicar!</div>
-                <div style="font-size:0.8rem;color:#16a34a;margin-top:3px">Confirma que toda la información sea correcta. Puedes volver atrás si necesitas corregir algo.</div>
-              </div>
-            </div>
-
-            <label class="wz-label" style="margin-bottom:12px"><i class="fa-solid fa-clipboard-check" style="margin-right:4px"></i> Resumen de tu publicación</label>
-            <div class="wz-summary">
-              <div class="wz-summary-item full"><div class="wz-summary-label">Dirección</div><div class="wz-summary-value" id="sumDireccion">—</div></div>
-              <div class="wz-summary-item"><div class="wz-summary-label">Descripción</div><div class="wz-summary-value" id="sumDescripcion">—</div></div>
-              <div class="wz-summary-item"><div class="wz-summary-label">Precio</div><div class="wz-summary-value highlight" id="sumPrecio">—</div></div>
-              <div class="wz-summary-item"><div class="wz-summary-label">Horarios</div><div class="wz-summary-value" id="sumHorarios">—</div></div>
-              <div class="wz-summary-item"><div class="wz-summary-label">Seguridad</div><div class="wz-summary-value" id="sumSeguridad">—</div></div>
-              <div class="wz-summary-item"><div class="wz-summary-label">Acceso</div><div class="wz-summary-value" id="sumAcceso">—</div></div>
-              <div class="wz-summary-item"><div class="wz-summary-label">Espacios</div><div class="wz-summary-value highlight" id="sumEspacios">—</div></div>
-              <div class="wz-summary-item"><div class="wz-summary-label">Comodidades</div><div class="wz-summary-value" id="sumComodidades">—</div></div>
-              <div class="wz-summary-item"><div class="wz-summary-label">Fotos</div><div class="wz-summary-value" id="sumFotos">—</div></div>
-            </div>
-          </section>
-
-        </div><!-- end wizard-body -->
-
-        <!-- Wizard Footer -->
-        <div class="wizard-footer">
-          <div class="wizard-footer-left">
-            <button type="button" class="wz-btn wz-btn-ghost" id="btnWizardPrev" style="display:none"><span class="material-symbols-outlined">arrow_back</span> Anterior</button>
-            <span class="wz-step-counter" id="wizardStepCounter">Paso 1 de 5</span>
-          </div>
-          <div class="wizard-footer-right">
-            <button type="button" class="wz-btn wz-btn-primary" id="btnWizardNext">Siguiente <span class="material-symbols-outlined">arrow_forward</span></button>
-            <button type="submit" class="wz-btn wz-btn-success" id="btnWizardSubmit" style="display:none"><span class="material-symbols-outlined">rocket_launch</span> Publicar Garaje</button>
-          </div>
-        </div>
-
-        </form>
-      </div><!-- end wizard-container -->
-    </div><!-- end wizard-overlay -->
-
-    <!-- ========================
-         Sección 2: Mis Parqueos
-    ======================== -->
-    <section class="settings-card" id="sectionMisParqueos">
-      <div class="card-header-custom">
-        <h2><i class="fa-solid fa-car-side"></i> Mis Parqueos Publicados</h2>
-        <span id="contadorGarajes" style="font-size:0.82rem;font-weight:600;color:var(--text-secondary);"></span>
-      </div>
-      <div class="card-body-custom">
-
-        <!-- Stats Bar -->
-        <div class="stats-bar" id="statsBar" style="display:none;">
-          <div class="stat-item">
-            <div class="stat-icon total"><i class="fa-solid fa-warehouse"></i></div>
-            <div class="stat-info">
-              <span class="stat-number" id="statTotal">0</span>
-              <span class="stat-label">Total</span>
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-icon activos"><i class="fa-solid fa-circle-check"></i></div>
-            <div class="stat-info">
-              <span class="stat-number" id="statActivos">0</span>
-              <span class="stat-label">Activos</span>
-            </div>
-          </div>
-          <div class="stat-item">
-            <div class="stat-icon inactivos"><i class="fa-solid fa-circle-pause"></i></div>
-            <div class="stat-info">
-              <span class="stat-number" id="statInactivos">0</span>
-              <span class="stat-label">Inactivos</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Loading -->
-        <div class="flex flex-col items-center justify-center py-12" id="loadingGarajes">
-          <div class="spinner-border text-secondary" role="status"></div>
-          <p class="mt-4 text-on-surface-variant">Cargando tus espacios...</p>
-        </div>
-
-        <!-- Grid de tarjetas (Tailwind CSS Layout) -->
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8" id="garajesGrid"></div>
-
-        <!-- Empty State -->
-        <div id="emptyState" style="display:none;" class="bg-surface-container-low rounded-xl border-2 border-dashed border-outline-variant/30 flex flex-col items-center justify-center p-12 text-center mt-6">
-          <div class="w-16 h-16 rounded-full bg-surface-container-highest flex items-center justify-center mb-4 text-primary">
-            <span class="material-symbols-outlined text-4xl opacity-50">warehouse</span>
-          </div>
-          <h3 class="font-headline font-bold text-xl text-primary mb-2">No tienes parqueos publicados</h3>
-          <p class="text-on-surface-variant font-body max-w-md">Usa el formulario superior para publicar tu primer espacio de estacionamiento comercial o residencial.</p>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ========================
-         Sección 3: Reservas Recibidas
-    ======================== -->
-    <section class="settings-card" id="sectionReservas" style="display:none;">
-      <div class="card-header-custom">
-        <h2><i class="fa-solid fa-calendar-check"></i> Reservas Recibidas</h2>
-        <span id="contadorReservas" style="font-size:0.82rem;font-weight:600;color:var(--text-secondary);"></span>
-      </div>
-      <div class="card-body-custom">
-
-        <!-- Loading -->
-        <div id="loadingReservas" style="text-align:center;padding:30px 0;">
-          <div class="spinner-border" role="status" style="width:2rem;height:2rem;">
-            <span class="visually-hidden">Cargando...</span>
-          </div>
-          <p class="mt-2" style="font-size:0.9rem;color:var(--text-secondary);">Cargando reservas...</p>
-        </div>
-
-        <!-- Tabla de reservas -->
-        <div id="reservasTableWrapper" style="display:none;overflow-x:auto;"></div>
-
-        <!-- Empty State -->
-        <div id="emptyReservas" style="display:none;text-align:center;padding:40px 20px;">
-          <div style="font-size:2.5rem;color:var(--text-secondary);opacity:0.4;margin-bottom:12px;">
-            <i class="fa-solid fa-calendar-xmark"></i>
-          </div>
-          <h3 style="font-size:1rem;font-weight:600;color:var(--text-primary);margin-bottom:6px;">Sin reservas aún</h3>
-          <p style="font-size:0.85rem;color:var(--text-secondary);">Cuando un conductor reserve uno de tus espacios, aparecerá aquí.</p>
-        </div>
-
-      </div>
-    </section>
-
-    <!-- ========================
-         Modal: Editar Garaje
-    ======================== -->
-    <div id="editGarajeOverlay" class="wizard-overlay">
-      <div class="wizard-container" style="max-width:580px;max-height:90vh;overflow-y:auto;">
-        <div class="wizard-header">
-          <h2><span class="material-symbols-outlined">edit</span> Editar Espacio</h2>
-          <button type="button" class="wizard-close-btn" onclick="closeEditModal()"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
-        </div>
-        <div class="wizard-body" style="padding:24px;">
-          <input type="hidden" id="editGarajeId">
-          <div class="wz-field">
-            <label class="wz-label" for="editDireccion">Dirección <span class="required">*</span></label>
-            <input type="text" class="wz-input" id="editDireccion" maxlength="255" required>
-          </div>
-          <div class="wz-field">
-            <label class="wz-label" for="editDescripcion">Descripción</label>
-            <textarea class="wz-textarea" id="editDescripcion" rows="2" maxlength="500"></textarea>
-          </div>
-          <div class="wz-row">
-            <div class="wz-field">
-              <label class="wz-label" for="editPrecio">Precio por hora (Bs.) <span class="required">*</span></label>
-              <input type="number" class="wz-input" id="editPrecio" min="1" step="0.01" required>
-            </div>
-            <div class="wz-field">
-              <label class="wz-label" for="editNivelSeguridad">Nivel de Seguridad</label>
-              <select class="wz-select" id="editNivelSeguridad">
-                <option value="Básico">Básico — Solo candado o acceso simple</option>
-                <option value="Estándar">Estándar — Cámara o vigilancia parcial</option>
-                <option value="Premium">Premium — CCTV 24/7 y seguridad continua</option>
-              </select>
-            </div>
-          </div>
-          <div class="wz-row">
-            <div class="wz-field">
-              <label class="wz-label" for="editMetodoAcceso">Método de acceso al garaje</label>
-              <select class="wz-select" id="editMetodoAcceso">
-                <option value="Manual">Manual — Llave física o apertura presencial</option>
-                <option value="Código">Código — Teclado numérico o contraseña</option>
-                <option value="QR">QR — Lectura QR en puerta inteligente</option>
-              </select>
-            </div>
-            <div class="wz-field">
-              <label class="wz-label" for="editPolitica">Política del anfitrión (informativa)</label>
-              <select class="wz-select" id="editPolitica">
                 <option value="Flexible: Reembolso total hasta 2h antes">Flexible — Cancelación hasta 2 h antes</option>
-                <option value="Moderada: Reembolso 50% hasta 24h antes">Moderada — Penalización bajo 24 h</option>
+                <option value="Moderada: Reembolso 50% hasta 24h antes" selected>Moderada — Penalización bajo 24 h</option>
                 <option value="Estricta: Sin reembolso una vez confirmado">Estricta — Sin cambios al confirmar</option>
               </select>
             </div>
-          </div>
-          <div class="wz-field">
-            <label class="wz-label" for="editInstrucciones">Instrucciones de Acceso</label>
-            <textarea class="wz-textarea" id="editInstrucciones" rows="2" maxlength="500"></textarea>
-          </div>
-          <hr class="wz-divider">
-          <!-- Loyalty section in edit modal -->
-          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <label class="wz-label" style="margin-bottom:0"><i class="fa-solid fa-medal" style="color:#f59e0b;margin-right:6px"></i> Programa de Fidelidad</label>
-            <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.82rem;font-weight:600;">
-              <input type="checkbox" id="editFidelidadActivo" style="width:16px;height:16px;accent-color:#006a62;cursor:pointer">
-              Activar
-            </label>
-          </div>
-          <div id="editFidelidadConfig" style="display:none;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:16px;">
-            <div class="wz-row">
-              <div class="wz-field">
-                <label class="wz-label">Visitas requeridas</label>
-                <select class="wz-select" id="editFidelidadVisitas">
-                  <option value="5">5 visitas</option>
-                  <option value="10">10 visitas</option>
-                  <option value="15">15 visitas</option>
-                  <option value="20">20 visitas</option>
-                </select>
-              </div>
-              <div class="wz-field">
-                <label class="wz-label">Descuento (%)</label>
-                <input type="number" class="wz-input" id="editFidelidadDescuento" value="10" min="1" max="50">
-              </div>
-            </div>
             <div class="wz-field" style="margin-bottom:0">
-              <label class="wz-label">Validez del descuento</label>
-              <select class="wz-select" id="editFidelidadValidez">
-                <option value="30">30 días</option>
-                <option value="60">60 días</option>
-                <option value="90">90 días</option>
-                <option value="">Sin vencimiento</option>
-              </select>
+              <label class="wz-label">Reglas del garaje <span style="font-size:0.75rem;font-weight:400;color:#64748b">(opcional)</span></label>
+              <textarea class="wz-textarea" id="inpReglas" placeholder="Ej: Prohibido lavar el auto dentro." rows="2"></textarea>
+            </div>
+          </div>
+        </details>
+      </section>
+
+      <section class="wizard-panel" data-step="4" id="espacioBuilderSection">
+        <h3 class="wz-step-title">Plano del estacionamiento</h3>
+        <p class="wz-step-subtitle">La propuesta automática te da una base segura. Ajusta el plano si lo necesitas.</p>
+        <div class="wz-info-card"><span class="material-symbols-outlined">map</span><p>El plano muestra dónde entrar, circular y estacionar.</p></div>
+        <label class="wz-label">¿Cuántos vehículos caben en tu parqueo?</label>
+        <div class="wz-capacity-input">
+          <button type="button" class="wz-cap-btn" id="wzCapMinus">−</button>
+          <div class="wz-cap-display"><span class="wz-cap-number" id="wzCapNumber">4</span><span class="wz-cap-label">espacios</span></div>
+          <button type="button" class="wz-cap-btn" id="wzCapPlus">+</button>
+        </div>
+        <label class="wz-label" style="margin-top:8px">Elige la distribución más parecida a tu espacio</label>
+        <div class="wz-tpl-grid">
+          <div class="wz-tpl-card" id="tplLinea" onclick="wizardSelectTemplate('linea')">
+            <span class="wz-tpl-checkmark">✓</span>
+            <div class="wz-tpl-icon">
+              <svg width="52" height="36" viewBox="0 0 52 36" fill="none"><rect width="52" height="36" rx="4" fill="#0f172a"/><rect x="2" y="2" width="48" height="5" rx="1" fill="#334155"/><rect x="8" y="2" width="8" height="5" rx="1" fill="#064e3b" stroke="#10b981" stroke-width="0.8"/><rect x="2" y="10" width="7" height="7" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="11" y="10" width="7" height="7" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="20" y="10" width="7" height="7" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="29" y="10" width="7" height="7" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="2" y="19" width="48" height="4" rx="1" fill="#1e293b" stroke="#f59e0b" stroke-width="0.5" stroke-dasharray="3 2"/><rect x="2" y="26" width="48" height="5" rx="1" fill="#334155"/><rect x="36" y="26" width="8" height="5" rx="1" fill="#7f1d1d" stroke="#ef4444" stroke-width="0.8"/></svg>
+            </div>
+            <div class="wz-tpl-name">En línea</div><div class="wz-tpl-desc">Filas paralelas simples</div>
+          </div>
+          <div class="wz-tpl-card" id="tplEle" onclick="wizardSelectTemplate('ele')">
+            <span class="wz-tpl-checkmark">✓</span>
+            <div class="wz-tpl-icon">
+              <svg width="52" height="36" viewBox="0 0 52 36" fill="none"><rect width="52" height="36" rx="4" fill="#0f172a"/><rect x="2" y="2" width="48" height="5" rx="1" fill="#334155"/><rect x="8" y="2" width="8" height="5" rx="1" fill="#064e3b" stroke="#10b981" stroke-width="0.8"/><rect x="2" y="9" width="7" height="7" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="11" y="9" width="7" height="7" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="20" y="9" width="7" height="7" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="29" y="9" width="4" height="20" rx="1" fill="#1e293b" stroke="#f59e0b" stroke-width="0.5" stroke-dasharray="3 2"/><rect x="35" y="9" width="7" height="7" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="35" y="18" width="7" height="7" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="2" y="29" width="48" height="5" rx="1" fill="#334155"/><rect x="38" y="29" width="8" height="5" rx="1" fill="#7f1d1d" stroke="#ef4444" stroke-width="0.8"/></svg>
+            </div>
+            <div class="wz-tpl-name">En L</div><div class="wz-tpl-desc">Dos alas en ángulo recto</div>
+          </div>
+          <div class="wz-tpl-card" id="tplPatio" onclick="wizardSelectTemplate('patio')">
+            <span class="wz-tpl-checkmark">✓</span>
+            <div class="wz-tpl-icon">
+              <svg width="52" height="36" viewBox="0 0 52 36" fill="none"><rect width="52" height="36" rx="4" fill="#0f172a"/><rect x="2" y="2" width="48" height="4" rx="1" fill="#334155"/><rect x="8" y="2" width="8" height="4" rx="1" fill="#064e3b" stroke="#10b981" stroke-width="0.8"/><rect x="2" y="8" width="7" height="6" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="11" y="8" width="7" height="6" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="20" y="8" width="7" height="6" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="29" y="8" width="7" height="6" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="2" y="16" width="48" height="3" rx="1" fill="#1e293b" stroke="#f59e0b" stroke-width="0.5" stroke-dasharray="3 2"/><rect x="2" y="21" width="7" height="6" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="11" y="21" width="7" height="6" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="20" y="21" width="7" height="6" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="29" y="21" width="7" height="6" rx="1" fill="#14532d" stroke="#22c55e" stroke-width="0.8"/><rect x="2" y="29" width="48" height="4" rx="1" fill="#334155"/><rect x="36" y="29" width="8" height="4" rx="1" fill="#7f1d1d" stroke="#ef4444" stroke-width="0.8"/></svg>
+            </div>
+            <div class="wz-tpl-name">Patio</div><div class="wz-tpl-desc">Dos filas enfrentadas</div>
+          </div>
+        </div>
+        <div id="wzMapEditorSection" style="display:none" class="preview-mode">
+          <div id="tilemapEditor">
+            <div class="gb-shell">
+              <div class="gb-bar">
+                <div class="gb-bar-title"><span class="gb-live"></span><span id="wzPreviewLabel">Vista del estacionamiento</span></div>
+                <button type="button" class="gb-edit-cta" id="btnWzAdvToggle" onclick="wzToggleAdvanced()"><span class="material-symbols-outlined" id="wzAdvIcon">edit_square</span><span id="wzAdvLabel">Editar manualmente</span></button>
+                <button type="button" class="gb-ibtn danger wz-adv-only" id="btnTmLimpiar"><span class="material-symbols-outlined">delete_sweep</span> Limpiar</button>
+              </div>
+              <div class="gb-presets wz-adv-only">
+                <span class="gb-plabel">Diseño</span>
+                <button type="button" class="gb-preset tm-preset-btn" data-preset="linea"><span class="material-symbols-outlined">view_column_2</span> En línea</button>
+                <button type="button" class="gb-preset tm-preset-btn" data-preset="ele"><span class="material-symbols-outlined">turn_right</span> En L</button>
+                <button type="button" class="gb-preset tm-preset-btn" data-preset="patio"><span class="material-symbols-outlined">grid_view</span> Patio</button>
+              </div>
+              <div class="gb-tools wz-adv-only" id="tmToolbar">
+                <button type="button" class="gb-tool tm-tool-btn active" data-tool="parking" data-t="parking"><span class="material-symbols-outlined">local_parking</span> Parqueo</button>
+                <button type="button" class="gb-tool tm-tool-btn" data-tool="wall" data-t="wall"><span class="material-symbols-outlined">density_large</span> Pared</button>
+                <button type="button" class="gb-tool tm-tool-btn" data-tool="entrance" data-t="entrance"><span class="material-symbols-outlined">login</span> Entrada</button>
+                <button type="button" class="gb-tool tm-tool-btn" data-tool="exit" data-t="exit"><span class="material-symbols-outlined">logout</span> Salida</button>
+                <button type="button" class="gb-tool tm-tool-btn" data-tool="aisle" data-t="aisle"><span class="material-symbols-outlined">conversion_path</span> Carril</button>
+                <button type="button" class="gb-tool tm-tool-btn" data-tool="eraser" data-t="eraser"><span class="material-symbols-outlined">ink_eraser</span> Borrar</button>
+                <div class="gb-vsel" id="tmVehicleSelector"><select id="tmTipoVehiculo"><option value="auto">Auto</option><option value="moto">Moto</option><option value="suv">SUV</option></select></div>
+                <div class="gb-tip"><span class="material-symbols-outlined">swipe</span> Arrastra para editar</div>
+              </div>
+              <div class="gb-canvas"><div id="tmGrid"></div></div>
+              <div class="gb-foot">
+                <div class="gb-legend">
+                  <span class="gb-leg"><span class="gb-ldot" style="background:#14532d;border-left:3px solid #22c55e;border-radius:0"></span>Parqueo</span>
+                  <span class="gb-leg"><span class="gb-ldot" style="background:#0f172a"></span>Pared</span>
+                  <span class="gb-leg"><span class="gb-ldot" style="background:#064e3b;border:1px solid #10b981"></span>Entrada</span>
+                  <span class="gb-leg"><span class="gb-ldot" style="background:#7f1d1d;border:1px solid #ef4444"></span>Salida</span>
+                  <span class="gb-leg"><span class="gb-ldot" style="background:#1e293b;border:1px dashed #f59e0b"></span>Carril</span>
+                </div>
+                <div class="gb-stats"><div class="gb-stat"><div class="gb-sv" id="tmCountParking">0</div><div class="gb-sl">parqueos</div></div></div>
+              </div>
             </div>
           </div>
         </div>
-        <div class="wizard-footer">
-          <div class="wizard-footer-left">
-            <button type="button" class="wz-btn wz-btn-ghost" onclick="closeEditModal()">Cancelar</button>
+        <p id="tilemapError" style="color:#dc2626;font-size:0.75rem;margin-top:6px;display:none">Selecciona un diseño para continuar.</p>
+      </section>
+
+      <section class="wizard-panel" data-step="5">
+        <h3 class="wz-step-title">Fotos y portada</h3>
+        <p class="wz-step-subtitle">Sube fotos para que el conductor entienda cómo se ve el espacio.</p>
+        <div class="wz-field">
+          <label class="wz-label">Fotos del espacio</label>
+          <div class="wz-upload-zone" id="uploadZone">
+            <div class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+            <div class="upload-text">Arrastra tus fotos aquí o haz clic</div>
+            <div class="upload-hint">JPG, PNG o WEBP · Máx. 5 fotos · 5 MB c/u</div>
+            <input type="file" id="inpFotos" name="fotos" multiple accept="image/jpeg,image/png,image/webp">
           </div>
-          <div class="wizard-footer-right">
-            <button type="button" class="wz-btn wz-btn-success" id="btnGuardarEdit" onclick="guardarEdicionGaraje()">
-              <span class="material-symbols-outlined">save</span> Guardar Cambios
-            </button>
+          <div class="wz-photo-grid" id="photoPreviewGrid"></div>
+        </div>
+      </section>
+
+      <section class="wizard-panel" data-step="6">
+        <h3 class="wz-step-title">Revisión final</h3>
+        <p class="wz-step-subtitle">Antes de publicar, revisa que todo esté correcto.</p>
+        <div style="display:flex;align-items:center;gap:14px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:18px;margin-bottom:24px">
+          <span class="material-symbols-outlined" style="color:#16a34a;font-size:28px;flex-shrink:0">verified</span>
+          <div>
+            <div style="font-size:0.95rem;font-weight:700;color:#15803d">¡Todo listo para publicar!</div>
+            <div style="font-size:0.8rem;color:#16a34a;margin-top:3px">Confirma que toda la información sea correcta. Puedes volver atrás si necesitas corregir algo.</div>
           </div>
         </div>
+        <label class="wz-label" style="margin-bottom:12px"><i class="fa-solid fa-clipboard-check" style="margin-right:4px"></i> Resumen de tu publicación</label>
+        <div class="wz-summary">
+          <div class="wz-summary-item full"><div class="wz-summary-label">Dirección</div><div class="wz-summary-value" id="sumDireccion">—</div></div>
+          <div class="wz-summary-item"><div class="wz-summary-label">Descripción</div><div class="wz-summary-value" id="sumDescripcion">—</div></div>
+          <div class="wz-summary-item"><div class="wz-summary-label">Precio</div><div class="wz-summary-value highlight" id="sumPrecio">—</div></div>
+          <div class="wz-summary-item"><div class="wz-summary-label">Horarios</div><div class="wz-summary-value" id="sumHorarios">—</div></div>
+          <div class="wz-summary-item"><div class="wz-summary-label">Seguridad</div><div class="wz-summary-value" id="sumSeguridad">—</div></div>
+          <div class="wz-summary-item"><div class="wz-summary-label">Acceso</div><div class="wz-summary-value" id="sumAcceso">—</div></div>
+          <div class="wz-summary-item"><div class="wz-summary-label">Espacios</div><div class="wz-summary-value highlight" id="sumEspacios">—</div></div>
+          <div class="wz-summary-item"><div class="wz-summary-label">Comodidades</div><div class="wz-summary-value" id="sumComodidades">—</div></div>
+          <div class="wz-summary-item"><div class="wz-summary-label">Fotos</div><div class="wz-summary-value" id="sumFotos">—</div></div>
+        </div>
+      </section>
+
+    </div><!-- /wizard-body -->
+    <div class="wizard-footer">
+      <div class="wizard-footer-left">
+        <button type="button" class="wz-btn wz-btn-ghost" id="btnWizardPrev" style="display:none"><span class="material-symbols-outlined">arrow_back</span> Anterior</button>
+        <span class="wz-step-counter" id="wizardStepCounter">Paso 1 de 5</span>
+      </div>
+      <div class="wizard-footer-right">
+        <button type="button" class="wz-btn wz-btn-primary" id="btnWizardNext">Siguiente <span class="material-symbols-outlined">arrow_forward</span></button>
+        <button type="submit" class="wz-btn wz-btn-success" id="btnWizardSubmit" style="display:none"><span class="material-symbols-outlined">rocket_launch</span> Publicar Garaje</button>
       </div>
     </div>
+    </form>
+  </div>
+</div>
 
-    <!-- ========================
-         Modal: Registrar Salida + Multa
-    ======================== -->
-    <div id="multaOverlay" class="wizard-overlay">
-      <div class="wizard-container" style="max-width:500px;">
-        <div class="wizard-header">
-          <h2><span class="material-symbols-outlined">flag</span> Registrar Salida</h2>
-          <button type="button" class="wizard-close-btn" onclick="closeMultaModal()"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
+<!-- Modal: Editar Garaje -->
+<div id="editGarajeOverlay" class="wizard-overlay">
+  <div class="wizard-container" style="max-width:580px;max-height:90vh;overflow-y:auto;">
+    <div class="wizard-header">
+      <h2><span class="material-symbols-outlined">edit</span> Editar Espacio</h2>
+      <button type="button" class="wizard-close-btn" onclick="closeEditModal()"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
+    </div>
+    <div class="wizard-body" style="padding:24px;">
+      <input type="hidden" id="editGarajeId">
+      <div class="wz-field">
+        <label class="wz-label" for="editDireccion">Dirección <span class="required">*</span></label>
+        <input type="text" class="wz-input" id="editDireccion" maxlength="255" required>
+        <div class="location-picker-shell" style="margin-top:12px;">
+          <div class="location-picker-actions">
+            <button type="button" class="location-picker-btn" id="btnEditUbicarDireccionMapa"><i class="fa-solid fa-magnifying-glass-location"></i> Buscar direccion</button>
+            <button type="button" class="location-picker-btn" id="btnEditUbicarmeMapa"><i class="fa-solid fa-location-crosshairs"></i> Ubicarme</button>
+            <button type="button" class="location-picker-btn secondary" id="btnEditLimpiarUbicacionMapa"><i class="fa-solid fa-location-xmark"></i> Limpiar</button>
+          </div>
+          <div class="location-picker-status" id="editUbicacionSeleccionadaText">
+            <i class="fa-solid fa-location-dot" style="margin-top:2px;"></i>
+            <span>Ajusta la ubicacion exacta del garaje para las rutas del conductor.</span>
+          </div>
+          <div id="editGarajeLocationMap" class="location-picker-map small"></div>
         </div>
-        <div class="wizard-body" style="padding:24px;">
-          <input type="hidden" id="multaReservaId">
-          <input type="hidden" id="multaPrecioHora">
-          <div style="background:#f1f5f9;border-radius:10px;padding:14px;margin-bottom:16px">
-            <div style="font-size:0.8rem;color:#64748b;margin-bottom:4px">Reserva finaliza según lo acordado:</div>
-            <div style="font-size:1rem;font-weight:700;color:#1e293b" id="multaFechaFinDisplay">—</div>
+      </div>
+      <div class="wz-field">
+        <label class="wz-label" for="editDescripcion">Descripción</label>
+        <textarea class="wz-textarea" id="editDescripcion" rows="2" maxlength="500"></textarea>
+      </div>
+      <div class="wz-row">
+        <div class="wz-field">
+          <label class="wz-label" for="editPrecio">Precio por hora (Bs.) <span class="required">*</span></label>
+          <input type="number" class="wz-input" id="editPrecio" min="1" step="0.01" required>
+        </div>
+        <div class="wz-field">
+          <label class="wz-label" for="editNivelSeguridad">Nivel de Seguridad</label>
+          <select class="wz-select" id="editNivelSeguridad">
+            <option value="Básico">Básico</option><option value="Estándar">Estándar</option><option value="Premium">Premium</option>
+          </select>
+        </div>
+      </div>
+      <div class="wz-row">
+        <div class="wz-field">
+          <label class="wz-label" for="editMetodoAcceso">Método de acceso</label>
+          <select class="wz-select" id="editMetodoAcceso">
+            <option value="Manual">Manual</option><option value="Código">Código</option><option value="QR">QR</option>
+          </select>
+        </div>
+        <div class="wz-field">
+          <label class="wz-label" for="editPolitica">Política (informativa)</label>
+          <select class="wz-select" id="editPolitica">
+            <option value="Flexible: Reembolso total hasta 2h antes">Flexible</option>
+            <option value="Moderada: Reembolso 50% hasta 24h antes">Moderada</option>
+            <option value="Estricta: Sin reembolso una vez confirmado">Estricta</option>
+          </select>
+        </div>
+      </div>
+      <div class="wz-field">
+        <label class="wz-label" for="editInstrucciones">Instrucciones de Acceso</label>
+        <textarea class="wz-textarea" id="editInstrucciones" rows="2" maxlength="500"></textarea>
+      </div>
+      <hr class="wz-divider">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+        <label class="wz-label" style="margin-bottom:0"><i class="fa-solid fa-medal" style="color:#f59e0b;margin-right:6px"></i> Programa de Fidelidad</label>
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;font-size:0.82rem;font-weight:600;">
+          <input type="checkbox" id="editFidelidadActivo" style="width:16px;height:16px;accent-color:#006a62;cursor:pointer"> Activar
+        </label>
+      </div>
+      <div id="editFidelidadConfig" style="display:none;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:10px;padding:16px;">
+        <div class="wz-row">
+          <div class="wz-field">
+            <label class="wz-label">Visitas requeridas</label>
+            <select class="wz-select" id="editFidelidadVisitas">
+              <option value="5">5 visitas</option><option value="10">10 visitas</option>
+              <option value="15">15 visitas</option><option value="20">20 visitas</option>
+            </select>
           </div>
           <div class="wz-field">
-            <label class="wz-label" for="inpHoraSalidaReal">Hora real de salida del conductor <span class="required">*</span></label>
-            <input type="datetime-local" class="wz-input" id="inpHoraSalidaReal">
-          </div>
-          <div id="multaResultado" style="display:none;margin-top:12px;padding:14px;border-radius:10px;">
-            <div id="multaOk" style="display:none;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:8px;padding:12px;">
-              <i class="fa-solid fa-circle-check" style="color:#16a34a;margin-right:6px"></i>
-              <strong style="color:#15803d">Sin exceso de tiempo — sin multa.</strong>
-            </div>
-            <div id="multaExceso" style="display:none;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:8px;padding:12px;">
-              <div style="font-size:0.85rem;color:#c2410c;font-weight:700;margin-bottom:8px">
-                <i class="fa-solid fa-triangle-exclamation" style="margin-right:6px"></i>Exceso de tiempo detectado
-              </div>
-              <div style="font-size:0.82rem;color:#9a3412">Minutos extra: <strong id="multaMinutosExtra">0</strong></div>
-              <div style="font-size:0.82rem;color:#9a3412">Intervalos de 30 min: <strong id="multaIntervalos">0</strong></div>
-              <div style="font-size:1rem;font-weight:700;color:#c2410c;margin-top:8px">
-                Multa total: <span id="multaMontoDisplay">Bs. 0.00</span>
-              </div>
-              <div style="font-size:0.75rem;color:#9a3412;margin-top:4px">Precio hora × 1.5 × 0.5h × intervalos de 30 min</div>
-            </div>
+            <label class="wz-label">Descuento (%)</label>
+            <input type="number" class="wz-input" id="editFidelidadDescuento" value="10" min="1" max="50">
           </div>
         </div>
-        <div class="wizard-footer">
-          <div class="wizard-footer-left">
-            <button type="button" class="wz-btn wz-btn-ghost" onclick="closeMultaModal()">Cancelar</button>
-          </div>
-          <div class="wizard-footer-right">
-            <button type="button" class="wz-btn" style="background:#475569;color:#fff;border:none;" onclick="calcularMulta()">
-              <i class="fa-solid fa-calculator"></i> Calcular
-            </button>
-            <button type="button" class="wz-btn wz-btn-success" id="btnConfirmarSalida" onclick="confirmarSalida()" disabled>
-              <span class="material-symbols-outlined">flag</span> Confirmar Salida
-            </button>
-          </div>
+        <div class="wz-field" style="margin-bottom:0">
+          <label class="wz-label">Validez del descuento</label>
+          <select class="wz-select" id="editFidelidadValidez">
+            <option value="30">30 días</option><option value="60">60 días</option>
+            <option value="90">90 días</option><option value="">Sin vencimiento</option>
+          </select>
         </div>
       </div>
     </div>
+    <div class="wizard-footer">
+      <div class="wizard-footer-left">
+        <button type="button" class="wz-btn wz-btn-ghost" onclick="closeEditModal()">Cancelar</button>
+      </div>
+      <div class="wizard-footer-right">
+        <button type="button" class="wz-btn wz-btn-success" id="btnGuardarEdit" onclick="guardarEdicionGaraje()">
+          <span class="material-symbols-outlined">save</span> Guardar Cambios
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
-  </main>
+<!-- Modal: Vista Previa -->
+<div id="previewGarajeOverlay" class="wizard-overlay preview-garaje-overlay">
+  <div class="wizard-container preview-garaje-container">
+    <div class="preview-garaje-header">
+      <div><p class="preview-garaje-kicker">Vista previa del conductor</p><h2>Así lo verá un conductor</h2></div>
+      <button type="button" class="wizard-close-btn" onclick="closePreviewGarajeModal()"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
+    </div>
+    <div class="preview-garaje-frame-wrap">
+      <iframe id="previewGarajeFrame" title="Vista previa del garaje" loading="lazy"></iframe>
+    </div>
+    <div class="preview-garaje-footer">
+      <button type="button" class="wz-btn wz-btn-ghost" onclick="closePreviewGarajeModal()">Cerrar</button>
+      <button type="button" class="wz-btn wz-btn-success" id="btnPreviewEditar"><span class="material-symbols-outlined">edit</span> Editar espacio</button>
+    </div>
+  </div>
+</div>
 
-  <!-- Bootstrap 5 JS Bundle -->
-  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
-  <!-- Wizard Logic -->
-  <script src="/js/wizard-garaje.js"></script>
-  <!-- Mis Garajes Logic -->
-  <script src="/js/mis-garajes.js"></script>
+<!-- Modal: Confirmar Eliminación -->
+<div id="deleteGarajeOverlay" class="wizard-overlay">
+  <div class="wizard-container delete-garaje-container" style="max-width:560px;">
+    <div class="wizard-header">
+      <h2><span class="material-symbols-outlined">delete_forever</span> Eliminar garaje</h2>
+      <button type="button" class="wizard-close-btn" onclick="closeDeleteGarajeModal()"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
+    </div>
+    <div class="wizard-body" style="padding:24px;">
+      <div class="delete-garaje-card">
+        <div class="delete-garaje-icon"><span class="material-symbols-outlined">warning</span></div>
+        <div><h3 id="deleteGarajeTitle">¿Eliminar este garaje?</h3><p id="deleteGarajeText">Esta acción eliminará el listado y sus datos asociados.</p></div>
+      </div>
+    </div>
+    <div class="wizard-footer">
+      <div class="wizard-footer-left"><button type="button" class="wz-btn wz-btn-ghost" onclick="closeDeleteGarajeModal()">Cancelar</button></div>
+      <div class="wizard-footer-right">
+        <button type="button" class="wz-btn" style="background:#dc2626;color:#fff;border:none;" id="btnDeleteGarajeConfirm">
+          <span class="material-symbols-outlined">delete</span> Eliminar definitivamente
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
-  <!-- Badge navbar -->
-  <script src="/js/navbar-badge.js"></script>
+<!-- Modal: Registrar Salida + Multa -->
+<div id="multaOverlay" class="wizard-overlay">
+  <div class="wizard-container" style="max-width:500px;">
+    <div class="wizard-header">
+      <h2><span class="material-symbols-outlined">flag</span> Registrar Salida</h2>
+      <button type="button" class="wizard-close-btn" onclick="closeMultaModal()"><span class="material-symbols-outlined" style="font-size:18px">close</span></button>
+    </div>
+    <div class="wizard-body" style="padding:24px;">
+      <input type="hidden" id="multaReservaId">
+      <input type="hidden" id="multaPrecioHora">
+      <div style="background:#f1f5f9;border-radius:10px;padding:14px;margin-bottom:16px">
+        <div style="font-size:0.8rem;color:#64748b;margin-bottom:4px">Reserva finaliza según lo acordado:</div>
+        <div style="font-size:1rem;font-weight:700;color:#1e293b" id="multaFechaFinDisplay">—</div>
+      </div>
+      <div class="wz-field">
+        <label class="wz-label" for="inpHoraSalidaReal">Hora real de salida del conductor <span class="required">*</span></label>
+        <input type="datetime-local" class="wz-input" id="inpHoraSalidaReal">
+      </div>
+      <div id="multaResultado" style="display:none;margin-top:12px;padding:14px;border-radius:10px;">
+        <div id="multaOk" style="display:none;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:8px;padding:12px;">
+          <i class="fa-solid fa-circle-check" style="color:#16a34a;margin-right:6px"></i><strong style="color:#15803d">Sin exceso de tiempo — sin multa.</strong>
+        </div>
+        <div id="multaExceso" style="display:none;background:#fff7ed;border:1.5px solid #fed7aa;border-radius:8px;padding:12px;">
+          <div style="font-size:0.85rem;color:#c2410c;font-weight:700;margin-bottom:8px"><i class="fa-solid fa-triangle-exclamation" style="margin-right:6px"></i>Exceso de tiempo detectado</div>
+          <div style="font-size:0.82rem;color:#9a3412">Minutos extra: <strong id="multaMinutosExtra">0</strong></div>
+          <div style="font-size:0.82rem;color:#9a3412">Intervalos de 30 min: <strong id="multaIntervalos">0</strong></div>
+          <div style="font-size:1rem;font-weight:700;color:#c2410c;margin-top:8px">Multa total: <span id="multaMontoDisplay">Bs. 0.00</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="wizard-footer">
+      <div class="wizard-footer-left"><button type="button" class="wz-btn wz-btn-ghost" onclick="closeMultaModal()">Cancelar</button></div>
+      <div class="wizard-footer-right">
+        <button type="button" class="wz-btn" style="background:#475569;color:#fff;border:none;" onclick="calcularMulta()"><i class="fa-solid fa-calculator"></i> Calcular</button>
+        <button type="button" class="wz-btn wz-btn-success" id="btnConfirmarSalida" onclick="confirmarSalida()" disabled><span class="material-symbols-outlined">flag</span> Confirmar Salida</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SCRIPTS -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.11.0/browser/overlayscrollbars.browser.es5.min.js" crossorigin="anonymous"></script>
+<script src="/adminlte/js/adminlte.min.js"></script>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="/js/map-utils.js"></script>
+<script src="/js/wizard-garaje.js"></script>
+<script src="/js/mis-garajes.js"></script>
+<script src="/js/navbar-badge.js"></script>
+<script>
+// Sidebar logout → main logout
+document.getElementById('btnLogoutSidebar')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  document.getElementById('btnLogout')?.click();
+});
+// Sync sidebar info from localStorage
+function syncSidebar() {
+  const user = JSON.parse(localStorage.getItem('estairbnb_user') || 'null');
+  if (!user) return;
+  const initials = ((user.nombre || '')[0] || '') + ((user.apellidos || '')[0] || '');
+  const si = document.getElementById('sidebarInitials');
+  const sn = document.getElementById('sidebarUserName');
+  if (si) si.textContent = initials.toUpperCase() || '?';
+  if (sn) sn.textContent = `${user.nombre || ''} ${user.apellidos || ''}`.trim();
+}
+setTimeout(syncSidebar, 300);
+// Dark mode bridge
+(function () {
+  new MutationObserver(() => {
+    const isDark = document.documentElement.classList.contains('dark');
+    document.documentElement.setAttribute('data-bs-theme', isDark ? 'dark' : 'light');
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
+})();
+</script>
 </body>
 </html>

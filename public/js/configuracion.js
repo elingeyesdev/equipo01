@@ -17,17 +17,20 @@ if (!session || !session.id) {
 
 const USUARIO_ID = session.id;
 
-// Ocultar "Mis Garajes" en navbar si el usuario es conductor
-if (session.rol_id !== 1) {
+// Nav visibility inicial según rol (se refina en cargarPerfil tras la API)
+if (session.rol_id === 1) { // anfitrión
+  const navExplorar  = document.getElementById('navLinkExplorar');
+  const navFavoritos = document.getElementById('navLinkFavoritos');
+  const navReservas  = document.getElementById('navLinkReservas');
+  if (navExplorar)  navExplorar.style.display  = 'none';
+  if (navFavoritos) navFavoritos.style.display = 'none';
+  if (navReservas)  navReservas.style.display  = 'none';
+} else { // conductor
   const navGarajes = document.getElementById('navLinkGarajes');
   if (navGarajes) navGarajes.style.display = 'none';
-} else {
-  // Ocultar "Explorar" y "Favoritos" en navbar si el usuario es anfitrión
-  const navExplorar = document.getElementById('navLinkExplorar');
-  if (navExplorar) navExplorar.style.display = 'none';
-  const navFavoritos = document.getElementById('navLinkFavoritos');
-  if (navFavoritos) navFavoritos.style.display = 'none';
 }
+const navCupones = document.getElementById('navLinkCupones');
+if (navCupones) navCupones.style.display = '';
 
 // Mostrar nombre e iniciales en navbar
 const navUserNameEl = document.getElementById('navUserName');
@@ -203,20 +206,17 @@ async function cargarPerfil() {
       }
 
       // ── Mostrar/ocultar nav links según rol ──
-      // Explorar + Favoritos: solo conductores | Mis Garajes: solo anfitriones
-      const navLinkExplorar = document.getElementById('navLinkExplorar');
+      const navLinkExplorar  = document.getElementById('navLinkExplorar');
       const navLinkFavoritos = document.getElementById('navLinkFavoritos');
-      const navLinkGarajes = document.getElementById('navLinkGarajes');
+      const navLinkGarajes   = document.getElementById('navLinkGarajes');
+      const navLinkReservas  = document.getElementById('navLinkReservas');
+      const navLinkCupones   = document.getElementById('navLinkCupones');
 
-      if (navLinkExplorar) {
-        navLinkExplorar.style.display = esAnfitrion ? 'none' : 'flex';
-      }
-      if (navLinkFavoritos) {
-        navLinkFavoritos.style.display = esAnfitrion ? 'none' : 'flex';
-      }
-      if (navLinkGarajes) {
-        navLinkGarajes.style.display = esAnfitrion ? 'flex' : 'none';
-      }
+      if (navLinkExplorar)  navLinkExplorar.style.display  = esAnfitrion ? 'none' : 'flex';
+      if (navLinkFavoritos) navLinkFavoritos.style.display = esAnfitrion ? 'none' : 'flex';
+      if (navLinkGarajes)   navLinkGarajes.style.display   = esAnfitrion ? 'flex' : 'none';
+      if (navLinkReservas)  navLinkReservas.style.display  = esAnfitrion ? 'none' : 'flex';
+      if (navLinkCupones)   navLinkCupones.style.display   = 'flex';
     } else {
       showToast('No se pudo cargar el perfil.', 'error');
     }
@@ -252,7 +252,7 @@ async function onFotoSeleccionada(event) {
 
   // UI Estado cargando
   const uploadingOverlay = document.getElementById('avatarUploading');
-  uploadingOverlay.classList.add('show');
+  if (uploadingOverlay) uploadingOverlay.classList.add('show');
 
   const formData = new FormData();
   formData.append('foto', file);
@@ -276,7 +276,7 @@ async function onFotoSeleccionada(event) {
     console.error('Error subiendo foto:', err);
     showToast('No se pudo conectar para subir la foto.', 'error');
   } finally {
-    uploadingOverlay.classList.remove('show');
+    if (uploadingOverlay) uploadingOverlay.classList.remove('show');
     event.target.value = ''; // Resetear el input para poder re-seleccionar
   }
 }
@@ -289,6 +289,7 @@ const SECTIONS = {
   general:    'sectionGeneral',
   seguridad:  'sectionSeguridad',
   privacidad: 'sectionPrivacidad',
+  actividad:  'sectionActividad',
 };
 
 function showSection(sectionKey) {
@@ -397,8 +398,10 @@ async function cambiarPassword() {
       document.getElementById('pwActual').value    = '';
       document.getElementById('pwNueva').value     = '';
       document.getElementById('pwConfirmar').value = '';
-      document.getElementById('pwStrengthFill').style.width = '0%';
-      document.getElementById('pwStrengthLabel').textContent = '';
+      const strengthFill = document.getElementById('pwStrengthFill');
+      const strengthLabel = document.getElementById('pwStrengthLabel');
+      if (strengthFill)  strengthFill.style.width = '0%';
+      if (strengthLabel) strengthLabel.textContent = '';
     } else {
       showPwAlert(data.message || 'Error al cambiar la contraseña.');
     }
@@ -486,7 +489,82 @@ async function guardarPrivacidad() {
 
 
 // ============================================================
-// 11. DOMContentLoaded — Inicialización principal
+// 11. ACTIVIDAD — Resumen de actividad del usuario por rol
+// ============================================================
+const QUICK_LINK_STYLE = 'display:flex;align-items:center;gap:10px;padding:12px 16px;border-radius:12px;background:#f7f9fb;border:1px solid #e2e8f0;text-decoration:none;color:#002542;font-size:.88rem;font-weight:600;transition:all .2s;';
+
+async function cargarActividad() {
+  const loading   = document.getElementById('actividadLoading');
+  const statsDiv  = document.getElementById('actividadStats');
+  const linksBox  = document.getElementById('actividadLinksBox');
+  const linksGrid = document.getElementById('actividadLinksGrid');
+  const esAnfitrion = session.rol_id === 1;
+
+  function statCard(icon, color, value, label) {
+    return `<div style="background:#fff;border-radius:14px;padding:20px;box-shadow:0 2px 12px rgba(0,37,66,.07);border:1px solid rgba(0,37,66,.06);display:flex;align-items:center;gap:14px;">
+      <div style="width:44px;height:44px;background:${color};border-radius:12px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:1rem;flex-shrink:0;">${icon}</div>
+      <div><div style="font-size:1.7rem;font-weight:900;color:#002542;line-height:1;">${value}</div><div style="font-size:.68rem;font-weight:700;color:#94a3b8;text-transform:uppercase;letter-spacing:.07em;margin-top:4px;">${label}</div></div>
+    </div>`;
+  }
+
+  function quickLink(href, emoji, label) {
+    return `<a href="${href}" style="${QUICK_LINK_STYLE}" onmouseover="this.style.background='#e8f5e9';this.style.borderColor='#006a62'" onmouseout="this.style.background='#f7f9fb';this.style.borderColor='#e2e8f0'">${emoji} ${label}</a>`;
+  }
+
+  try {
+    if (esAnfitrion) {
+      let garajesCount = 0, pendientesCount = 0, cuponesCount = 0;
+      try {
+        const [garRes, cupRes] = await Promise.all([
+          fetch(`/api/mis-garajes?anfitrion_id=${USUARIO_ID}`),
+          fetch('/api/cupones/disponibles')
+        ]);
+        if (garRes.ok) { const d = await garRes.json(); garajesCount = Array.isArray(d.data) ? d.data.length : (Array.isArray(d) ? d.length : 0); }
+        if (cupRes.ok) { const d = await cupRes.json(); cuponesCount = Array.isArray(d.data) ? d.data.length : 0; }
+      } catch(e) {}
+
+      statsDiv.innerHTML =
+        statCard('<i class="fa-solid fa-warehouse"></i>', 'linear-gradient(135deg,#002542,#436182)', garajesCount, 'Mis Garajes') +
+        statCard('<i class="fa-solid fa-ticket"></i>', 'linear-gradient(135deg,#7c3aed,#a78bfa)', cuponesCount, 'Cupones Activos');
+
+      linksGrid.innerHTML =
+        quickLink('/mis-garajes.html', '🏠', 'Gestionar Mis Garajes') +
+        quickLink('/cupones.html', '🎟️', 'Crear / Ver Cupones');
+
+    } else {
+      let reservasCount = 0, favoritosCount = 0, cuponesCount = 0;
+      try {
+        const [resRes, favRes, cupRes] = await Promise.all([
+          fetch(`/api/reservas?conductor_id=${USUARIO_ID}`),
+          fetch(`/api/favoritos?usuario_id=${USUARIO_ID}`),
+          fetch('/api/cupones/disponibles')
+        ]);
+        if (resRes.ok) { const d = await resRes.json(); reservasCount = Array.isArray(d.data) ? d.data.length : (Array.isArray(d) ? d.length : 0); }
+        if (favRes.ok) { const d = await favRes.json(); favoritosCount = Array.isArray(d.data) ? d.data.length : (Array.isArray(d) ? d.length : 0); }
+        if (cupRes.ok) { const d = await cupRes.json(); cuponesCount = Array.isArray(d.data) ? d.data.length : 0; }
+      } catch(e) {}
+
+      statsDiv.innerHTML =
+        statCard('<i class="fa-solid fa-calendar-check"></i>', 'linear-gradient(135deg,#002542,#436182)', reservasCount, 'Total Reservas') +
+        statCard('<i class="fa-solid fa-heart"></i>', 'linear-gradient(135deg,#ff4757,#ff6b81)', favoritosCount, 'Favoritos') +
+        statCard('<i class="fa-solid fa-ticket"></i>', 'linear-gradient(135deg,#7c3aed,#a78bfa)', cuponesCount, 'Cupones Disponibles');
+
+      linksGrid.innerHTML =
+        quickLink('/explorar.html', '🔍', 'Explorar Garajes') +
+        quickLink('/mis-reservas.html', '📋', 'Mis Reservas') +
+        quickLink('/mis-favoritos.html', '❤️', 'Mis Favoritos') +
+        quickLink('/cupones.html', '🎟️', 'Ver Cupones');
+    }
+  } finally {
+    if (loading)  loading.style.display  = 'none';
+    if (statsDiv) statsDiv.style.display = 'grid';
+    if (linksBox) linksBox.style.display = 'block';
+  }
+}
+
+
+// ============================================================
+// 12. DOMContentLoaded — Inicialización principal
 // ============================================================
 document.addEventListener('DOMContentLoaded', () => {
   // Cargar datos del servidor al iniciar
@@ -501,6 +579,10 @@ document.addEventListener('DOMContentLoaded', () => {
       link.classList.add('active');
       const section = link.dataset.section;
       showSection(section);
+      if (section === 'actividad' && !window._actividadCargada) {
+        window._actividadCargada = true;
+        cargarActividad();
+      }
     });
   });
 
@@ -532,9 +614,8 @@ document.addEventListener('DOMContentLoaded', () => {
       const label  = document.getElementById('pwStrengthLabel');
       const colors = ['#dc3545','#fd7e14','#ffc107','#28a745','#1a7a42'];
       const labels = ['Muy débil','Débil','Aceptable','Fuerte','Muy fuerte'];
-      fill.style.width      = `${(score / 5) * 100}%`;
-      fill.style.background = colors[score - 1] || '#e4e6eb';
-      label.textContent     = score > 0 ? labels[score - 1] : '';
+      if (fill)  { fill.style.width = `${(score / 5) * 100}%`; fill.style.background = colors[score - 1] || '#e4e6eb'; }
+      if (label) { label.textContent = score > 0 ? labels[score - 1] : ''; }
     });
   }
 

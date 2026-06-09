@@ -10,6 +10,8 @@
   // ─── Session Check ───
   const USUARIO_KEY = 'estairbnb_user';
   const currentUser = JSON.parse(localStorage.getItem(USUARIO_KEY) || 'null');
+  const urlParams = new URLSearchParams(window.location.search);
+  const PREVIEW_MODE = (urlParams.get('preview') === '1' || urlParams.get('mode') === 'preview') && currentUser && currentUser.rol_id === 1;
 
   // Si no está logueado, redirigir a login
   if (!currentUser) {
@@ -17,10 +19,14 @@
     return;
   }
 
-  // Si es Anfitrión (rol_id = 1), no puede ver Detalle
-  if (currentUser.rol_id === 1) {
+  // Si es Anfitrión (rol_id = 1), no puede ver Detalle salvo en modo preview
+  if (currentUser.rol_id === 1 && !PREVIEW_MODE) {
     window.location.href = '/mis-garajes.html';
     return;
+  }
+
+  if (PREVIEW_MODE && document.body) {
+    document.body.classList.add('preview-mode');
   }
 
   // ─── Toast helper (styled, no browser dialogs) ───
@@ -86,6 +92,7 @@
   window.openReservaWizard = function() {
     const overlay = document.getElementById('reservaWizardOverlay');
     if (!overlay) return;
+    overlay.hidden = false;
     cuponAplicado = null;
     const ic = document.getElementById('inputCupon');
     const fb = document.getElementById('cuponFeedback');
@@ -93,8 +100,10 @@
     if (ic) ic.value = '';
     if (fb) { fb.style.display = 'none'; fb.textContent = ''; }
     if (rd) rd.style.display = 'none';
+    renderHorariosReserva();
+    calcularPrecioEnWizard();
     reservaWizardGoTo(1);
-    overlay.classList.add('open');
+    requestAnimationFrame(() => overlay.classList.add('open'));
     overlay.setAttribute('aria-hidden', 'false');
     document.body.style.overflow = 'hidden';
   };
@@ -105,6 +114,9 @@
     overlay.classList.remove('open');
     overlay.setAttribute('aria-hidden', 'true');
     document.body.style.overflow = '';
+    window.setTimeout(() => {
+      if (!overlay.classList.contains('open')) overlay.hidden = true;
+    }, 300);
   };
 
   function reservaWizardGoTo(step) {
@@ -126,6 +138,8 @@
     if (btnPrev) btnPrev.style.display = step === 1 ? 'none' : '';
     if (btnNext) btnNext.style.display = step === RESERVA_TOTAL_STEPS ? 'none' : '';
     if (btnConfirm) btnConfirm.style.display = step === RESERVA_TOTAL_STEPS ? '' : 'none';
+    if (btnNext) btnNext.disabled = false;
+    if (step === 2) actualizarEstadoBotonReservaHorario();
     const body = document.querySelector('.reserva-wizard-body');
     if (body) body.scrollTop = 0;
   }
@@ -158,6 +172,12 @@
       }
       if (new Date(fs.value) <= new Date(fe.value)) {
         showToast('La salida debe ser posterior a la llegada.', 'error');
+        return false;
+      }
+      const validacionHorario = validarHorarioSeleccionado(new Date(fe.value), new Date(fs.value));
+      if (!validacionHorario.ok) {
+        showToast(validacionHorario.message, 'error');
+        calcularPrecioEnWizard();
         return false;
       }
     }
@@ -247,6 +267,119 @@
     buildReservaSummary();
   }
 
+  function obtenerHorariosGaraje() {
+    if (!garajeCargado) return [];
+    if (garajeCargado.horarios_flexibles) {
+      try {
+        const horarios = JSON.parse(garajeCargado.horarios_flexibles);
+        if (Array.isArray(horarios)) {
+          return horarios
+            .filter(h => Array.isArray(h.dias) && h.inicio && h.fin)
+            .map(h => ({
+              dias: h.dias.map(d => Number(d)),
+              inicio: String(h.inicio).slice(0, 5),
+              fin: String(h.fin).slice(0, 5)
+            }));
+        }
+      } catch (_) {}
+    }
+
+    if (garajeCargado.hora_apertura && garajeCargado.hora_cierre) {
+      const diasMap = {
+        'L-D': [1, 2, 3, 4, 5, 6, 0],
+        'L-V': [1, 2, 3, 4, 5],
+        'L-S': [1, 2, 3, 4, 5, 6],
+        'S-D': [6, 0]
+      };
+      return [{
+        dias: diasMap[garajeCargado.dias_operativos] || [1, 2, 3, 4, 5, 6, 0],
+        inicio: String(garajeCargado.hora_apertura).slice(0, 5),
+        fin: String(garajeCargado.hora_cierre).slice(0, 5)
+      }];
+    }
+
+    return [];
+  }
+
+  function minutosDeHora(hora) {
+    const [h, m] = String(hora || '00:00').split(':').map(Number);
+    return (h * 60) + (m || 0);
+  }
+
+  function formatearDias(dias) {
+    const nombres = { 1: 'Lun', 2: 'Mar', 3: 'Mié', 4: 'Jue', 5: 'Vie', 6: 'Sáb', 0: 'Dom' };
+    const normalizados = [...dias].map(Number).sort((a, b) => {
+      const order = { 1: 1, 2: 2, 3: 3, 4: 4, 5: 5, 6: 6, 0: 7 };
+      return order[a] - order[b];
+    });
+    if (normalizados.length === 7) return 'Todos los días';
+    if (normalizados.join(',') === '1,2,3,4,5') return 'Lun a Vie';
+    if (normalizados.join(',') === '1,2,3,4,5,6') return 'Lun a Sáb';
+    if (normalizados.join(',') === '6,0') return 'Fin de semana';
+    return normalizados.map(d => nombres[d]).join(', ');
+  }
+
+  function renderHorariosReserva() {
+    const target = document.getElementById('reservaHorariosGaraje');
+    if (!target) return;
+    const horarios = obtenerHorariosGaraje();
+    if (!horarios.length) {
+      target.innerHTML = `
+        <div class="reserva-availability-title"><i class="fa-regular fa-clock"></i> Horarios del garaje</div>
+        <div class="reserva-schedule-list">
+          <span class="reserva-schedule-chip">Horario no especificado</span>
+        </div>`;
+      return;
+    }
+
+    target.innerHTML = `
+      <div class="reserva-availability-title"><i class="fa-regular fa-clock"></i> Horarios del garaje</div>
+      <div class="reserva-schedule-list">
+        ${horarios.map(h => `<span class="reserva-schedule-chip">${formatearDias(h.dias)} · ${h.inicio} - ${h.fin}</span>`).join('')}
+      </div>`;
+  }
+
+  function validarHorarioSeleccionado(start, end) {
+    if (!(start instanceof Date) || !(end instanceof Date) || Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) {
+      return { ok: false, message: 'Elige una fecha y hora válidas.' };
+    }
+    if (end <= start) {
+      return { ok: false, message: 'La salida debe ser posterior a la llegada.' };
+    }
+
+    const horarios = obtenerHorariosGaraje();
+    if (!horarios.length) return { ok: true };
+    if (start.toDateString() !== end.toDateString()) {
+      return { ok: false, message: 'Por ahora la reserva debe iniciar y terminar el mismo día.' };
+    }
+
+    const dia = start.getDay();
+    const inicio = (start.getHours() * 60) + start.getMinutes();
+    const fin = (end.getHours() * 60) + end.getMinutes();
+    const calza = horarios.some(h => h.dias.includes(dia) && inicio >= minutosDeHora(h.inicio) && fin <= minutosDeHora(h.fin));
+
+    if (calza) return { ok: true };
+    const hoy = horarios.filter(h => h.dias.includes(dia)).map(h => `${h.inicio} - ${h.fin}`).join(', ');
+    return {
+      ok: false,
+      message: hoy
+        ? `Ese horario está fuera de la disponibilidad del garaje para ese día: ${hoy}.`
+        : 'El garaje no está disponible ese día.'
+    };
+  }
+
+  function actualizarEstadoBotonReservaHorario() {
+    const btnNext = document.getElementById('btnReservaNext');
+    if (!btnNext || reservaWizardStep !== 2) return;
+    const fe = document.getElementById('fechaEntrada');
+    const fs = document.getElementById('fechaSalida');
+    if (!fe?.value || !fs?.value) {
+      btnNext.disabled = true;
+      return;
+    }
+    btnNext.disabled = !validarHorarioSeleccionado(new Date(fe.value), new Date(fs.value)).ok;
+  }
+
   const btnThemeToggle   = document.getElementById('btnThemeToggle');
   const themeIcon        = document.getElementById('themeIcon');
 
@@ -289,33 +422,35 @@
     return parseInt(params.get('id'), 10);
   }
 
-  // ─── Build Image Gallery (Bento Grid) ───
+  // ─── Build Image Gallery ───
   function renderCarousel(fotos) {
     if (!carouselSection) return;
 
     if (!fotos || fotos.length === 0) {
       carouselSection.innerHTML = `
-        <div class="col-span-full flex items-center justify-center bg-surface-container-low rounded-xl text-on-surface-variant">
-          <div class="text-center py-16">
-            <span class="material-symbols-outlined text-5xl mb-2 block opacity-30">image</span>
-            <span class="text-sm font-medium">Este espacio no tiene fotos</span>
-          </div>
+        <div class="detalle-gallery-empty">
+          <span class="material-symbols-outlined">image</span>
+          <span>Sin fotos disponibles</span>
         </div>`;
       return;
     }
 
-    // Bento grid: first image large, rest fill
-    const items = fotos.map((foto, i) => {
-      const gridClass = i === 0 ? 'md:col-span-2 md:row-span-2' : '';
-      return `
-        <div class="${gridClass} rounded-xl overflow-hidden bg-surface-container-low">
-          <img src="${foto.foto_url}" alt="Foto ${i + 1} del parqueo" 
-               class="w-full h-full object-cover hover:scale-105 transition-transform duration-500" loading="lazy">
-        </div>
-      `;
-    }).join('');
+    if (fotos.length === 1) {
+      carouselSection.innerHTML = `
+        <div class="dg-full">
+          <img src="${fotos[0].foto_url}" alt="Foto del parqueo" loading="lazy">
+        </div>`;
+      return;
+    }
 
-    carouselSection.innerHTML = items;
+    const [main, ...rest] = fotos.slice(0, 3);
+    const thumbs = rest.map((f, i) =>
+      `<div class="dg-thumb"><img src="${f.foto_url}" alt="Foto ${i + 2}" loading="lazy"></div>`
+    ).join('');
+
+    carouselSection.innerHTML = `
+      <div class="dg-main"><img src="${main.foto_url}" alt="Foto principal" loading="lazy"></div>
+      <div class="dg-thumbs">${thumbs}</div>`;
   }
 
   // ─── Render Garaje Info ───
@@ -339,7 +474,9 @@
     if (garajePolitica) garajePolitica.textContent = garaje.politica_cancelacion || 'Sujeto a las políticas estándar de la plataforma.';
 
     // Update page title
-    document.title = `${garaje.direccion} · EstAirbnb`;
+    document.title = PREVIEW_MODE
+      ? `Vista previa · ${garaje.direccion} · EstAirbnb`
+      : `${garaje.direccion} · EstAirbnb`;
 
     // Price
     if (garajePrecio) {
@@ -459,7 +596,15 @@
         <span style="${chipStyle}background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;"><i class="fa-solid fa-shield-halved" style="color:#16a34a"></i> ${garaje.nivel_seguridad || 'Estándar'}</span>
         <span style="${chipStyle}background:#eff6ff;color:#1e3a5f;border:1px solid #bfdbfe;"><i class="fa-solid fa-key" style="color:#2563eb"></i> ${garaje.metodo_acceso || 'Manual'}</span>
         ${garaje.tipo_vehiculo ? `<span style="${chipStyle}background:#fefce8;color:#713f12;border:1px solid #fde68a;"><i class="fa-solid fa-car" style="color:#ca8a04"></i> ${TIPO_CONFIG[garaje.tipo_vehiculo]?.label || garaje.tipo_vehiculo}</span>` : ''}
+        ${PREVIEW_MODE ? `<span style="${chipStyle}background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;"><i class="fa-solid fa-eye" style="color:#4f46e5"></i> Vista previa</span>` : ''}
       `;
+    }
+
+    if (PREVIEW_MODE) {
+      const btnReserve = document.getElementById('btnAbrirWizardReserva');
+      const bookingNote = document.querySelector('#bookingCtaCard .booking-note');
+      if (btnReserve) btnReserve.style.display = 'none';
+      if (bookingNote) bookingNote.textContent = 'Vista previa del anfitrión. Sin opción de reservar.';
     }
   }
 
@@ -552,14 +697,30 @@
         .gc-aisle-cross::before{content:'';position:absolute;top:50%;left:7%;right:7%;height:2px;background:repeating-linear-gradient(90deg,#f59e0b 0,#f59e0b 7px,transparent 7px,transparent 12px);transform:translateY(-50%);border-radius:1px}
         .gc-aisle-cross::after{content:'';position:absolute;left:50%;top:7%;bottom:7%;width:2px;background:repeating-linear-gradient(180deg,#f59e0b 0,#f59e0b 7px,transparent 7px,transparent 12px);transform:translateX(-50%);border-radius:1px}
       `;
+      style.innerHTML += `
+        .gc{min-height:54px!important;border-radius:12px!important;border:1px solid rgba(15,23,42,.08)!important;background:rgba(255,255,255,.78)!important;box-shadow:0 1px 2px rgba(15,23,42,.06)!important;color:#111827!important;transition:transform .16s ease,box-shadow .16s ease!important}
+        .gc[data-t=empty]{background:rgba(255,255,255,.52)!important;border:1px dashed rgba(148,163,184,.55)!important;box-shadow:none!important}
+        .gc[data-t=parking]{background:linear-gradient(180deg,#fff,#f8fafc)!important;border:2px solid #34c759!important;box-shadow:inset 0 -4px 0 rgba(52,199,89,.16),0 4px 12px rgba(22,163,74,.10)!important}
+        .gc[data-t=wall]{background:linear-gradient(135deg,#111827,#374151)!important;border:2px solid #020617!important;color:#f9fafb!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.12),0 5px 14px rgba(15,23,42,.18)!important}
+        .gc[data-t=entrance]{background:linear-gradient(180deg,#dcfce7,#bbf7d0)!important;border:2px solid #22c55e!important;color:#166534!important}
+        .gc[data-t=exit]{background:linear-gradient(180deg,#fee2e2,#fecaca)!important;border:2px solid #ef4444!important;color:#991b1b!important}
+        .gc[data-t=aisle]{background:#e5e7eb!important;border:1px solid #cbd5e1!important;box-shadow:inset 0 0 0 1px rgba(255,255,255,.72)!important}
+        .gc-num{color:#111827!important;font-size:12px!important;font-weight:800!important;letter-spacing:0!important}
+        .gc-lbl{color:currentColor!important;font-size:9px!important;font-weight:800!important;letter-spacing:0!important;text-transform:none!important}
+        .gc-symbol{font-size:20px!important;color:currentColor!important}
+        .gc-aisle-h,.gc-aisle-v,.gc-aisle-cross::before,.gc-aisle-cross::after{background:#fbbf24!important;border-radius:99px!important}
+        .gc-aisle-h{width:78%!important;height:4px!important}
+        .gc-aisle-v{width:4px!important;height:78%!important}
+        .gc.seleccionado{outline:3px solid #007aff!important;outline-offset:2px;box-shadow:0 0 0 6px rgba(0,122,255,.16),0 10px 24px rgba(15,23,42,.14)!important}
+      `;
       document.head.appendChild(style);
     }
 
-    mapaParqueo.style.cssText = 'background:#16213e;padding:12px;border-radius:12px;border:1px solid #4b5563;overflow-x:auto;-webkit-overflow-scrolling:touch;';
+    mapaParqueo.style.cssText = 'background:linear-gradient(180deg,rgba(255,255,255,.95),rgba(243,244,246,.95));padding:18px;border-radius:18px;border:1px solid rgba(15,23,42,.08);box-shadow:0 18px 45px rgba(15,23,42,.10);overflow-x:auto;-webkit-overflow-scrolling:touch;';
     mapaParqueo.innerHTML = '';
 
     const grid = document.createElement('div');
-    grid.style.cssText = `display:inline-grid;grid-template-columns:repeat(${cols},minmax(0,1fr));gap:2px;min-width:100%;`;
+    grid.style.cssText = `display:inline-grid;grid-template-columns:repeat(${cols},minmax(58px,1fr));gap:7px;min-width:max-content;`;
 
     const vCfg = { 
       auto: { icon:'directions_car', color:'#3b82f6', sz:'15px' }, 
@@ -621,10 +782,14 @@
             cell.addEventListener('mouseenter', () => { cell.style.filter = 'brightness(1.18)'; cell.style.transform = 'scale(1.06)'; cell.style.zIndex = '3'; });
             cell.addEventListener('mouseleave', () => { if (cell.dataset.selected !== 'true') { cell.style.filter = ''; cell.style.transform = ''; cell.style.zIndex = ''; } });
             cell.addEventListener('click', () => {
-              grid.querySelectorAll('[data-selected="true"]').forEach(el => { el.dataset.selected = 'false'; el.style.filter = ''; el.style.transform = ''; el.style.zIndex = ''; });
+              grid.querySelectorAll('.seleccionado,[data-selected="true"]').forEach(el => {
+                el.classList.remove('seleccionado');
+                el.dataset.selected = 'false';
+                el.style.filter = '';
+                el.style.transform = '';
+                el.style.zIndex = '';
+              });
               cell.dataset.selected = 'true';
-              cell.style.filter = 'brightness(1.3)';
-              cell.style.transform = 'scale(1.08)';
               cell.style.zIndex = '4';
               seleccionarEspacio(cell, esp);
             });
@@ -647,6 +812,13 @@
           }
           cell.appendChild(inner);
         }
+        if (tile === 'entrance') {
+          cell.innerHTML = '<span class="material-symbols-outlined gc-symbol">login</span><div class="gc-lbl">Entrada</div>';
+        } else if (tile === 'exit') {
+          cell.innerHTML = '<span class="material-symbols-outlined gc-symbol">logout</span><div class="gc-lbl">Salida</div>';
+        } else if (tile === 'wall') {
+          cell.innerHTML = '<span class="material-symbols-outlined gc-symbol">density_large</span><div class="gc-lbl">Pared</div>';
+        }
         grid.appendChild(cell);
       }
     }
@@ -654,7 +826,7 @@
 
     // Leyenda
     const leg = document.createElement('div');
-    leg.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;margin-top:10px;padding:8px 12px;background:#1e293b;border-radius:8px;border:1px solid #334155;';
+    leg.style.cssText = 'display:flex;flex-wrap:wrap;gap:10px;margin-top:12px;padding:10px 12px;background:#fff;border-radius:12px;border:1px solid rgba(15,23,42,.08);';
     leg.innerHTML = `
       <span style="display:flex;align-items:center;gap:4px;font-size:.68rem;color:#94a3b8;font-weight:600;"><span style="width:12px;height:8px;border-radius:2px;background:#14532d;border-left:3px solid #22c55e;border-right:3px solid #22c55e;display:inline-block;"></span>Libre</span>
       <span style="display:flex;align-items:center;gap:4px;font-size:.68rem;color:#94a3b8;font-weight:600;"><span style="width:12px;height:8px;border-radius:2px;background:#450a0a;border-left:3px solid #ef4444;border-right:3px solid #ef4444;display:inline-block;"></span>Ocupado</span>
@@ -667,9 +839,15 @@
 
 
   function seleccionarEspacio(slotEl, espacio) {
-    const prev = mapaParqueo.querySelector('.espacio-btn.seleccionado');
-    if (prev) prev.classList.remove('seleccionado');
+    mapaParqueo.querySelectorAll('.seleccionado,[data-selected="true"]').forEach(prev => {
+      prev.classList.remove('seleccionado');
+      prev.dataset.selected = 'false';
+      prev.style.filter = '';
+      prev.style.transform = '';
+      prev.style.zIndex = '';
+    });
     slotEl.classList.add('seleccionado');
+    slotEl.dataset.selected = 'true';
     espacioSeleccionadoId = espacio.id;
     espacioSeleccionadoNumero = espacio.numero_espacio;
     if (espacioSeleccionadoLabel) espacioSeleccionadoLabel.textContent = espacio.numero_espacio;
@@ -686,7 +864,10 @@
     }
 
     try {
-      const response = await fetch(`/api/explorar/${id}`);
+      const endpoint = PREVIEW_MODE
+        ? `/api/garajes/${id}/preview?usuario_id=${currentUser.id}`
+        : `/api/explorar/${id}`;
+      const response = await fetch(endpoint);
       const json = await response.json();
 
       if (loadingDetalle) loadingDetalle.style.display = 'none';
@@ -713,7 +894,9 @@
       await cargarResenas(garaje.id);
 
       // Verificar si ya tiene una reserva aquí
-      await verificarReservaExistente();
+      if (!PREVIEW_MODE) {
+        await verificarReservaExistente();
+      }
 
     } catch (err) {
       console.error('Error al cargar detalle:', err);
@@ -745,12 +928,25 @@
     const textoT = document.getElementById('textoTotal');
     const alertEl = document.getElementById('reservaAlert');
     if (!fe || !fs || !garajeCargado) return;
-    if (alertEl) alertEl.classList.add('hidden');
-    if (!fe.value || !fs.value) { if (liveEl) liveEl.classList.add('hidden'); return; }
-    const start = new Date(fe.value), end = new Date(fs.value);
-    if (end <= start) {
+    if (alertEl) {
+      alertEl.classList.add('hidden');
+      alertEl.classList.remove('ok', 'warn');
+    }
+    if (!fe.value || !fs.value) {
       if (liveEl) liveEl.classList.add('hidden');
-      if (alertEl) { alertEl.textContent = 'La salida debe ser posterior a la llegada.'; alertEl.classList.remove('hidden'); }
+      actualizarEstadoBotonReservaHorario();
+      return;
+    }
+    const start = new Date(fe.value), end = new Date(fs.value);
+    const validacion = validarHorarioSeleccionado(start, end);
+    if (!validacion.ok) {
+      if (liveEl) liveEl.classList.add('hidden');
+      if (alertEl) {
+        alertEl.textContent = validacion.message;
+        alertEl.classList.remove('hidden');
+        alertEl.classList.add('warn');
+      }
+      actualizarEstadoBotonReservaHorario();
       return;
     }
     const difHoras = Math.ceil((end - start) / (1000 * 60 * 60));
@@ -758,15 +954,24 @@
     if (textoH) textoH.textContent = `${difHoras} hora${difHoras > 1 ? 's' : ''} × Bs. ${parseFloat(garajeCargado.precio_hora).toFixed(2)}`;
     if (textoT) textoT.textContent = `Bs. ${total.toFixed(2)}`;
     if (liveEl) liveEl.classList.remove('hidden');
+    if (alertEl) {
+      alertEl.textContent = 'Horario disponible para reservar.';
+      alertEl.classList.remove('hidden');
+      alertEl.classList.add('ok');
+    }
+    actualizarEstadoBotonReservaHorario();
   }
 
   document.addEventListener('change', e => {
     if (e.target.id === 'fechaEntrada' || e.target.id === 'fechaSalida') calcularPrecioEnWizard();
   });
+  document.addEventListener('input', e => {
+    if (e.target.id === 'fechaEntrada' || e.target.id === 'fechaSalida') calcularPrecioEnWizard();
+  });
 
   // ─── Verificar si ya tiene reserva ───
   async function verificarReservaExistente() {
-    if (!garajeCargado) return;
+    if (!garajeCargado || PREVIEW_MODE) return;
     try {
       const res = await fetch(`/api/reservas/verificar-existente?usuario_id=${currentUser.id}&garaje_id=${garajeCargado.id}`);
       const json = await res.json();
@@ -812,6 +1017,22 @@
     if (btnNext)   btnNext.addEventListener('click', reservaWizardNext);
     if (btnPrev)   btnPrev.addEventListener('click', reservaWizardPrev);
 
+    document.querySelectorAll('.reserva-duration-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const fe = document.getElementById('fechaEntrada');
+        const minutos = Number(btn.dataset.durationMin || 60);
+        if (!fe?.value) return;
+        const start = new Date(fe.value);
+        const end = new Date(start.getTime() + minutos * 60 * 1000);
+        if (window._fpSalida) window._fpSalida.setDate(end, true);
+        else {
+          const fs = document.getElementById('fechaSalida');
+          if (fs) fs.value = end.toISOString().slice(0, 16);
+        }
+        calcularPrecioEnWizard();
+      });
+    });
+
     // Close on overlay click
     if (overlay) {
       overlay.addEventListener('click', e => {
@@ -842,6 +1063,12 @@
         const fe = document.getElementById('fechaEntrada');
         const fs = document.getElementById('fechaSalida');
         if (!garajeCargado || !fe?.value || !fs?.value || !espacioSeleccionadoId) return;
+        const validacionHorario = validarHorarioSeleccionado(new Date(fe.value), new Date(fs.value));
+        if (!validacionHorario.ok) {
+          showToast(validacionHorario.message, 'error');
+          calcularPrecioEnWizard();
+          return;
+        }
         const originalHTML = btnConfirm.innerHTML;
         btnConfirm.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Confirmando...';
         btnConfirm.disabled = true;

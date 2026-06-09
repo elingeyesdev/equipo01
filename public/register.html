@@ -1,223 +1,139 @@
-<!DOCTYPE html>
-<html class="light" lang="es"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<title>Registro - EstAirbnb</title>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-<script id="tailwind-config">
-tailwind.config = {
-  darkMode: "class",
-  theme: {
-    extend: {
-      colors: {
-        "surface-container-lowest": "#ffffff",
-        "tertiary-container": "#004041",
-        "tertiary-fixed-dim": "#1edce0",
-        "on-error-container": "#93000a",
-        "outline-variant": "#c3c6ce",
-        "on-error": "#ffffff",
-        "surface-tint": "#436182",
-        "error": "#ba1a1a",
-        "on-surface": "#191c1e",
-        "tertiary-fixed": "#52f9fc",
-        "inverse-on-surface": "#eff1f3",
-        "surface-container": "#eceef0",
-        "background": "#f7f9fb",
-        "on-primary-fixed": "#001d35",
-        "on-tertiary": "#ffffff",
-        "surface-bright": "#f7f9fb",
-        "primary-container": "#1b3b5a",
-        "on-tertiary-fixed": "#002021",
-        "inverse-surface": "#2d3133",
-        "on-surface-variant": "#43474d",
-        "surface-container-highest": "#e0e3e5",
-        "surface-dim": "#d8dadc",
-        "surface": "#f7f9fb",
-        "error-container": "#ffdad6",
-        "primary-fixed-dim": "#abc9ef",
-        "primary-fixed": "#d1e4ff",
-        "secondary": "#006a62",
-        "on-background": "#191c1e",
-        "secondary-container": "#57fae9",
-        "on-secondary-fixed-variant": "#005049",
-        "on-secondary-container": "#007168",
-        "inverse-primary": "#abc9ef",
-        "on-tertiary-container": "#00b4b8",
-        "secondary-fixed": "#57fae9",
-        "on-secondary": "#ffffff",
-        "on-primary-container": "#87a5ca",
-        "on-primary-fixed-variant": "#2a4968",
-        "surface-variant": "#e0e3e5",
-        "on-tertiary-fixed-variant": "#004f51",
-        "outline": "#73777e",
-        "on-secondary-fixed": "#00201d",
-        "primary": "#002542",
-        "tertiary": "#002829",
-        "secondary-fixed-dim": "#2addcd",
-        "surface-container-high": "#e6e8ea",
-        "surface-container-low": "#f2f4f6",
-        "on-primary": "#ffffff"
-      },
-      borderRadius: {
-        "DEFAULT": "0.125rem",
-        "lg": "0.25rem",
-        "xl": "0.5rem",
-        "full": "0.75rem"
-      },
-      fontFamily: {
-        "headline": ["Inter", "sans-serif"],
-        "body": ["Inter", "sans-serif"],
-        "label": ["Inter", "sans-serif"]
-      }
-    }
-  }
-}
-</script>
-<style>
-  body { font-family: 'Inter', sans-serif; }
-  /* Clases necesarias para validación del JS existente */
-  .field-error { display: none; margin-top: 0.25rem; font-size: 0.75rem; color: #ba1a1a; font-family: 'Inter', sans-serif;}
-  .field-error.show { display: block; }
-  .is-invalid { border-bottom-color: #ba1a1a !important; background-color: #ffdad6 !important;}
-  .alert-box { display: none; margin-bottom: 1.5rem; padding: 1rem; border-radius: 0.5rem; font-size: 0.875rem; font-family: 'Inter', sans-serif; align-items: flex-start; gap: 0.75rem;}
-  .alert-box.error { display: flex; background-color: #ffdad6; color: #93000a; }
-  .alert-box.success { display: flex; background-color: #cce8d0; color: #1a7a42; }
-  
-  .role-error { display: none; margin-top: 0.5rem; font-size: 0.75rem; color: #ba1a1a; font-family: 'Inter', sans-serif;}
-  .role-error.show { display: block; }
-  
-  .spinner-border { display: inline-block; width: 1rem; height: 1rem; vertical-align: text-bottom; border: 0.2em solid currentColor; border-right-color: transparent; border-radius: 50%; animation: spinner-border .75s linear infinite; }
-  @keyframes spinner-border { to { transform: rotate(360deg); } }
-  
-  /* Mantener el estado visual del rol seleccionado a través de js mediante la clase .selected */
-  .role-option.selected > div { border-color: #006a62 !important; background-color: rgba(0,106,98,0.05) !important; }
-  .role-option.selected h3 { color: #002542 !important; }
-  .role-option.selected .material-symbols-outlined { color: #006a62 !important; }
-</style>
+﻿<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro — EstAirbnb</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
+  <link href="/css/register.css" rel="stylesheet">
 </head>
-<body class="bg-background text-on-background min-h-screen flex flex-col">
-<main class="flex-grow flex items-center justify-center p-6 md:p-12 lg:p-24">
-<div class="w-full max-w-6xl flex flex-col lg:flex-row rounded-xl overflow-hidden shadow-[0px_24px_48px_rgba(0,37,66,0.06)] bg-surface-container-lowest">
-<!-- Left Side: Branding / Visual -->
-<div class="hidden lg:flex lg:w-5/12 bg-primary relative items-center justify-center p-12 overflow-hidden">
-<div class="absolute inset-0 bg-gradient-to-br from-primary to-primary-container opacity-90 z-0"></div>
-<div class="relative z-10 text-on-primary">
-<h1 class="text-4xl font-headline font-black tracking-tighter mb-4">EstAirbnb</h1>
-<p class="text-lg font-body font-light text-on-primary-container max-w-sm">
-                        Únete a nuestra comunidad. Descubre espacios únicos o comparte el tuyo y genera ingresos.
-                    </p>
+<body>
+
+<canvas id="bgCanvas"></canvas>
+
+<div class="card">
+
+  <!-- Brand -->
+  <div class="brand">
+    <div class="brand-mark">
+      <svg width="32" height="32" viewBox="0 0 34 34" fill="none">
+        <path d="M10 8h10c4.42 0 8 3.58 8 8s-3.58 8-8 8h-6v6h-4V8zm4 4v8h6c2.21 0 4-1.79 4-4s-1.79-4-4-4h-6z" fill="white"/>
+      </svg>
+    </div>
+    <div class="brand-name">EstAirbnb</div>
+    <div class="brand-sub">Crea tu cuenta gratis</div>
+  </div>
+
+  <!-- Alert -->
+  <div id="alertBox" class="alert-box">
+    <i id="alertIcon" class="fa-solid fa-circle-exclamation"></i>
+    <span id="alertMsg"></span>
+  </div>
+
+  <form id="registerForm" novalidate>
+
+    <!-- Role selection -->
+    <p class="sec-lbl">Quiero</p>
+    <div class="role-grid">
+      <label class="role-option" data-rol="conductor" onclick="seleccionarRol('conductor')">
+        <input type="radio" id="rolConductor" name="role">
+        <div class="role-card">
+          <div class="role-dot"></div>
+          <div class="role-title">Buscar un espacio</div>
+          <div class="role-desc">Encuentra y reserva parqueos seguros cerca de ti.</div>
+        </div>
+      </label>
+      <label class="role-option" data-rol="anfitrion" onclick="seleccionarRol('anfitrion')">
+        <input type="radio" id="rolAnfitrion" name="role">
+        <div class="role-card">
+          <div class="role-dot"></div>
+          <div class="role-title">Publicar un espacio</div>
+          <div class="role-desc">Publica tu lugar y genera ingresos extra.</div>
+        </div>
+      </label>
+    </div>
+    <span class="role-error" id="errRol">Selecciona un rol para continuar.</span>
+
+    <div class="divider"></div>
+
+    <!-- Personal info -->
+    <p class="sec-lbl">Información personal</p>
+    <div class="field-grid">
+      <div class="field">
+        <label class="field-lbl" for="inpNombre">Nombre</label>
+        <input id="inpNombre" type="text" placeholder="Juan"
+               autocomplete="given-name" required>
+        <span class="field-error" id="errNombre">Mín. 2 caracteres.</span>
+      </div>
+      <div class="field">
+        <label class="field-lbl" for="inpApellidos">Apellidos</label>
+        <input id="inpApellidos" type="text" placeholder="Pérez"
+               autocomplete="family-name" required>
+        <span class="field-error" id="errApellidos">Mín. 2 caracteres.</span>
+      </div>
+    </div>
+
+    <div class="field-grid">
+      <div class="field">
+        <label class="field-lbl" for="inpEmail">Correo electrónico</label>
+        <input id="inpEmail" type="email" placeholder="tu@ejemplo.com"
+               autocomplete="email" required>
+        <span class="field-error" id="errEmail">Correo no válido.</span>
+      </div>
+      <div class="field">
+        <label class="field-lbl" for="inpTelefono">
+          Teléfono&thinsp;<span style="font-weight:400;color:var(--txt-3)">(opcional)</span>
+        </label>
+        <input id="inpTelefono" type="tel" placeholder="+1 (555) 000-0000"
+               autocomplete="tel">
+      </div>
+    </div>
+
+    <!-- Security -->
+    <p class="sec-lbl" style="margin-top:18px">Seguridad</p>
+    <div class="field-grid">
+      <div class="field">
+        <label class="field-lbl" for="inpPassword">Contraseña</label>
+        <div class="inp-wrap">
+          <input id="inpPassword" type="password" placeholder="••••••••"
+                 autocomplete="new-password" required style="padding-right:44px">
+          <button type="button" id="togglePw" class="btn-eye">
+            <i id="eyeIcon" class="fa-solid fa-eye"></i>
+          </button>
+        </div>
+        <div class="strength-bar">
+          <div id="strengthFill" class="strength-fill"></div>
+        </div>
+        <span id="strengthLabel" class="strength-lbl"></span>
+        <span class="field-error" id="errPassword">Mín. 6 caracteres.</span>
+      </div>
+      <div class="field">
+        <label class="field-lbl" for="inpConfirm">Confirmar contraseña</label>
+        <input id="inpConfirm" type="password" placeholder="••••••••"
+               autocomplete="new-password" required>
+        <span class="field-error" id="errConfirm">Las contraseñas no coinciden.</span>
+      </div>
+    </div>
+
+    <button type="submit" id="btnRegister" class="btn-primary">Crear cuenta</button>
+
+    <p class="terms-txt">
+      Al registrarte aceptas nuestros
+      <a href="#">Términos de servicio</a> y
+      <a href="#">Política de privacidad</a>.
+    </p>
+
+  </form>
+
+  <div class="card-footer">
+    ¿Ya tienes cuenta? <a href="/login.html">Inicia sesión</a>
+  </div>
+
 </div>
-</div>
-<!-- Right Side: Form -->
-<div class="w-full lg:w-7/12 p-8 md:p-12 lg:p-16 flex flex-col justify-center bg-surface-container-lowest">
-<div class="mb-8">
-<h2 class="text-3xl font-headline font-bold tracking-tight text-primary mb-2">Crear una Cuenta</h2>
-<p class="text-sm font-body text-on-surface-variant">Por favor, completa tus datos para empezar.</p>
-</div>
-<!-- Alert Box -->
-<div id="alertBox">
-<i id="alertIcon" class="fa-solid fa-circle-exclamation mt-0.5"></i>
-<span class="flex-1" id="alertMsg"></span>
-</div>
-<form class="space-y-8" id="registerForm" novalidate>
-<!-- Role Selection Cards -->
-<div>
-<label class="block text-xs font-label uppercase tracking-widest font-semibold text-on-surface-variant mb-4">Quiero</label>
-<div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-<!-- Parker/Guest Card -->
-<label class="cursor-pointer relative group role-option" data-rol="conductor" onclick="seleccionarRol('conductor')">
-<input class="peer sr-only" id="rolConductor" name="role" type="radio"/>
-<div class="h-full p-5 rounded-xl border border-outline-variant/30 bg-surface-container-low transition-all duration-300">
-<div class="flex items-center gap-3 mb-2">
-<span class="material-symbols-outlined text-primary" data-icon="search">search</span>
-<h3 class="font-headline font-semibold text-on-surface">Buscar un Espacio</h3>
-</div>
-<p class="text-sm font-body text-on-surface-variant">Encuentra y reserva parqueos seguros para tu próximo viaje.</p>
-</div>
-</label>
-<!-- Host Card -->
-<label class="cursor-pointer relative group role-option" data-rol="anfitrion" onclick="seleccionarRol('anfitrion')">
-<input class="peer sr-only" id="rolAnfitrion" name="role" type="radio"/>
-<div class="h-full p-5 rounded-xl border border-outline-variant/30 bg-surface-container-low transition-all duration-300">
-<div class="flex items-center gap-3 mb-2">
-<span class="material-symbols-outlined text-primary" data-icon="home_work">home_work</span>
-<h3 class="font-headline font-semibold text-on-surface">Publicar un Espacio</h3>
-</div>
-<p class="text-sm font-body text-on-surface-variant">Publica tu lugar y gana ingresos recibiendo vehículos.</p>
-</div>
-</label>
-</div>
-<span class="role-error" id="errRol">Debes seleccionar un rol.</span>
-</div>
-<!-- Personal Info Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-<div class="relative group">
-<label class="block text-xs font-label uppercase tracking-widest font-semibold text-on-surface-variant mb-2" for="inpNombre">Nombre</label>
-<input class="w-full bg-surface-container-low text-on-surface border-0 border-b-2 border-transparent focus:border-secondary focus:bg-surface-container-highest transition-colors rounded-t-md px-4 py-3 focus:ring-0" id="inpNombre" placeholder="Juan" required="" type="text"/>
-<span class="field-error" id="errNombre">Mín. 2 caracteres.</span>
-</div>
-<div class="relative group">
-<label class="block text-xs font-label uppercase tracking-widest font-semibold text-on-surface-variant mb-2" for="inpApellidos">Apellidos</label>
-<input class="w-full bg-surface-container-low text-on-surface border-0 border-b-2 border-transparent focus:border-secondary focus:bg-surface-container-highest transition-colors rounded-t-md px-4 py-3 focus:ring-0" id="inpApellidos" placeholder="Pérez" required="" type="text"/>
-<span class="field-error" id="errApellidos">Mín. 2 caracteres.</span>
-</div>
-</div>
-<!-- Contact Info Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-<div class="relative group">
-<label class="block text-xs font-label uppercase tracking-widest font-semibold text-on-surface-variant mb-2" for="inpEmail">Correo Electrónico</label>
-<input class="w-full bg-surface-container-low text-on-surface border-0 border-b-2 border-transparent focus:border-secondary focus:bg-surface-container-highest transition-colors rounded-t-md px-4 py-3 focus:ring-0" id="inpEmail" placeholder="juan.perez@ejemplo.com" required="" type="email"/>
-<span class="field-error" id="errEmail">Correo no válido.</span>
-</div>
-<div class="relative group">
-<label class="block text-xs font-label uppercase tracking-widest font-semibold text-on-surface-variant mb-2" for="inpTelefono">Teléfono (opcional)</label>
-<input class="w-full bg-surface-container-low text-on-surface border-0 border-b-2 border-transparent focus:border-secondary focus:bg-surface-container-highest transition-colors rounded-t-md px-4 py-3 focus:ring-0" id="inpTelefono" placeholder="+1 (555) 000-0000" type="tel"/>
-</div>
-</div>
-<!-- Security Grid -->
-<div class="grid grid-cols-1 md:grid-cols-2 gap-6 items-end">
-<div class="relative group">
-<label class="block text-xs font-label uppercase tracking-widest font-semibold text-on-surface-variant mb-2" for="inpPassword">Contraseña</label>
-<div class="relative bg-surface-container-low text-on-surface border-0 border-b-2 border-transparent focus-within:border-secondary transition-colors rounded-t-md flex">
-<input class="w-full bg-transparent border-none focus:ring-0 px-4 py-3 m-0" id="inpPassword" placeholder="••••••••" required="" type="password"/>
-<button class="pr-4 text-on-surface-variant focus:outline-none" id="togglePw" type="button">
-<i class="fa-solid fa-eye" id="eyeIcon"></i>
-</button>
-</div>
-<!-- Password Strength Indicator -->
-<div class="flex items-center gap-2 mt-2">
-<div class="h-1 flex-1 bg-surface-container-highest rounded-full overflow-hidden">
-<div class="h-full w-0 bg-outline transition-all duration-300" id="strengthFill"></div>
-</div>
-<span class="text-[10px] font-label uppercase tracking-wider text-on-surface-variant w-16 text-right" id="strengthLabel"></span>
-</div>
-<span class="field-error" id="errPassword">Mín. 6 caracteres.</span>
-</div>
-<div class="relative group pb-6 md:pb-0">
-<label class="block text-xs font-label uppercase tracking-widest font-semibold text-on-surface-variant mb-2" for="inpConfirm">Confirmar Contraseña</label>
-<input class="w-full bg-surface-container-low text-on-surface border-0 border-b-2 border-transparent focus:border-secondary focus:bg-surface-container-highest transition-colors rounded-t-md px-4 py-3 focus:ring-0" id="inpConfirm" placeholder="••••••••" required="" type="password"/>
-<span class="field-error" id="errConfirm">Las contraseñas no coinciden.</span>
-</div>
-</div>
-<!-- Terms & Submit -->
-<div class="pt-6 border-t border-outline-variant/20 flex flex-col sm:flex-row items-center justify-between gap-6">
-<div class="text-xs font-body text-on-surface-variant text-center sm:text-left max-w-xs">
-  Al registrarte, aceptas nuestros <a class="text-secondary hover:underline" href="#">Términos</a> y <a class="text-secondary hover:underline" href="#">Privacidad</a>.
-</div>
-<button class="w-full sm:w-auto bg-gradient-to-br from-primary to-primary-container text-on-primary font-label uppercase tracking-widest font-semibold text-sm py-3 px-8 rounded-md hover:bg-secondary transition-colors duration-300 shadow-sm whitespace-nowrap" id="btnRegister" type="submit">
-  Crear Cuenta
-</button>
-</div>
-<div class="text-center mt-6 text-sm font-body text-on-surface-variant">
-  ¿Ya tienes una cuenta? <a class="text-secondary font-semibold hover:underline" href="/login.html">Inicia Sesión</a>
-</div>
-</form>
-</div>
-</div>
-</main>
+
+<script src="/js/mesh-bg.js"></script>
 <script src="/js/register.js"></script>
 <script src="/js/navbar-badge.js"></script>
-</body></html>
+</body>
+</html>

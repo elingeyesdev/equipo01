@@ -131,9 +131,9 @@ body { font-family: 'Inter', sans-serif; }
   text-decoration: none;
 }
 .nav-link.active {
-  background: var(--c-primary);
-  color: #ffffff;
-  font-weight: 600;
+  background: transparent;
+  color: var(--c-primary);
+  font-weight: 700;
 }
 
 /* ── Acciones de la navbar (botones + avatar) ────────────── */
@@ -346,7 +346,17 @@ html.dark .nav-link,
 html.dark .nav-link-custom { color: #8b949e; }
 html.dark .nav-link:hover,
 html.dark .nav-link-custom:hover { background: #21262d; color: #e6edf3; }
-html.dark .nav-link.active { background: #1f6feb; color: #ffffff; }
+html.dark .nav-link.active { background: transparent; color: #58a6ff; font-weight: 700; }
+
+/* ── Dropdown del avatar (modo oscuro conductor) ─────── */
+html.dark .dropdown-menu {
+  background: #1e293b;
+  border-color: #334155;
+}
+html.dark .dropdown-menu .dropdown-item { color: #e2e8f0; }
+html.dark .dropdown-menu .dropdown-item:hover { background: #334155; color: #f1f5f9; }
+html.dark .dropdown-menu .dropdown-item.text-danger { color: #f87171 !important; }
+html.dark .dropdown-divider { border-color: #334155; }
 html.dark .nav-icon-btn { color: #8b949e; }
 html.dark .nav-icon-btn:hover { background: #21262d; }
 html.dark .nav-danger { color: #f85149 !important; }
