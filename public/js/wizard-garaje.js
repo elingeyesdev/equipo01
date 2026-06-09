@@ -22,13 +22,21 @@ function getWizardEls() {
 // ── Open / Close ────────────────────────────────────────────
 function openWizard() {
   const el = document.getElementById('wizardOverlay');
-  if (el) { el.classList.add('open'); document.body.style.overflow = 'hidden'; }
+  if (el) {
+    el.classList.add('open');
+    document.body.style.overflow = 'hidden';
+    document.dispatchEvent(new CustomEvent('estairbnb:wizard-opened'));
+  }
   wizardGoTo(1);
 }
 
 function closeWizard() {
   const el = document.getElementById('wizardOverlay');
-  if (el) { el.classList.remove('open'); document.body.style.overflow = ''; }
+  if (el) {
+    el.classList.remove('open');
+    document.body.style.overflow = '';
+    document.dispatchEvent(new CustomEvent('estairbnb:wizard-closed'));
+  }
 }
 
 // keep legacy functions working
@@ -117,9 +125,10 @@ function validateWizardStep(step) {
   }
 
   if (step === 4) {
+    // Auto-select "En línea" if the user skipped template selection
+    if (!wizardSelectedTemplate) wizardSelectTemplate('linea');
     let { espacios } = exportarMapa();
     if (espacios.length === 0) {
-      // Auto-generate from the selected capacity before blocking the user
       aplicarAutoPlano();
       espacios = exportarMapa().espacios;
     }
@@ -147,72 +156,13 @@ function clearWizardErrors() {
   document.querySelectorAll('.wz-field-error').forEach(f => f.classList.remove('wz-field-error'));
 }
 
-// ── Auto-generate tilemap from capacity ─────────────────────
-function autoGenerarPlano(numEspacios) {
-  if (numEspacios < 1) numEspacios = 1;
-  if (numEspacios > 50) numEspacios = 50;
+// ── Template selection state ─────────────────────────────────
+let wizardSelectedTemplate = null;
+let wzAdvancedMode = false;
 
-  const spotsPerRow = Math.min(numEspacios <= 4 ? numEspacios : Math.ceil(numEspacios / Math.ceil(numEspacios / 6)), 8);
-  const parkingRows = Math.ceil(numEspacios / spotsPerRow);
-  const gridCols = spotsPerRow + 2;
-
-  // Calculate rows: top wall + (parking + aisle) pairs + bottom wall
-  const innerRows = [];
-  for (let pr = 0; pr < parkingRows; pr++) {
-    if (pr > 0) innerRows.push('aisle');
-    innerRows.push('parking');
-  }
-  const gridRows = innerRows.length + 2;
-
-  // Init matrix
-  const matrix = [];
-  for (let r = 0; r < gridRows; r++) {
-    matrix[r] = [];
-    for (let c = 0; c < gridCols; c++) {
-      matrix[r][c] = { tile: 'empty', tipo_vehiculo: 'auto', adir: 'h', num: 0 };
-    }
-  }
-
-  // Border walls
-  for (let c = 0; c < gridCols; c++) {
-    matrix[0][c] = { tile: 'wall', tipo_vehiculo: 'auto', adir: 'h', num: 0 };
-    matrix[gridRows - 1][c] = { tile: 'wall', tipo_vehiculo: 'auto', adir: 'h', num: 0 };
-  }
-  for (let r = 0; r < gridRows; r++) {
-    matrix[r][0] = { tile: 'wall', tipo_vehiculo: 'auto', adir: 'h', num: 0 };
-    matrix[r][gridCols - 1] = { tile: 'wall', tipo_vehiculo: 'auto', adir: 'h', num: 0 };
-  }
-
-  // Entrance & Exit
-  const midCol = Math.floor(gridCols / 2);
-  matrix[0][midCol] = { tile: 'entrance', tipo_vehiculo: 'auto', adir: 'h', num: 0 };
-  matrix[gridRows - 1][midCol] = { tile: 'exit', tipo_vehiculo: 'auto', adir: 'h', num: 0 };
-
-  // Fill inner rows
-  let placed = 0;
-  let rowIdx = 1;
-  for (const rowType of innerRows) {
-    for (let c = 1; c < gridCols - 1; c++) {
-      if (rowType === 'aisle') {
-        matrix[rowIdx][c] = { tile: 'aisle', tipo_vehiculo: 'auto', adir: 'h', num: 0 };
-      } else if (rowType === 'parking' && placed < numEspacios) {
-        placed++;
-        matrix[rowIdx][c] = { tile: 'parking', tipo_vehiculo: 'auto', adir: 'h', num: placed };
-      }
-    }
-    rowIdx++;
-  }
-
-  // Compute aisle directions
-  for (let r = 0; r < gridRows; r++) {
-    for (let c = 0; c < gridCols; c++) {
-      if (matrix[r][c].tile === 'aisle') {
-        matrix[r][c].adir = computeAisleDirFromNeighborsMatrix(matrix, r, c);
-      }
-    }
-  }
-
-  return { matrix, rows: gridRows, cols: gridCols };
+// ── Shared helper ────────────────────────────────────────────
+function mkCell(tile, num) {
+  return { tile, tipo_vehiculo: 'auto', adir: 'h', num: num || 0 };
 }
 
 function computeAisleDirFromNeighborsMatrix(mat, r, c) {
@@ -227,28 +177,343 @@ function computeAisleDirFromNeighborsMatrix(mat, r, c) {
   return 'h';
 }
 
+function fixAisleDirs(matrix) {
+  for (let r = 0; r < matrix.length; r++)
+    for (let c = 0; c < matrix[0].length; c++)
+      if (matrix[r][c].tile === 'aisle')
+        matrix[r][c].adir = computeAisleDirFromNeighborsMatrix(matrix, r, c);
+}
+
+function initMatrix(rows, cols) {
+  const m = [];
+  for (let r = 0; r < rows; r++) {
+    m[r] = [];
+    for (let c = 0; c < cols; c++) m[r][c] = mkCell('empty');
+  }
+  return m;
+}
+
+// ── Generator: En línea ──────────────────────────────────────
+// ENT at top-left, SAL at bottom-right — never same column
+function autoGenerarLinea(n) {
+  if (n < 1) n = 1;
+  const spr = Math.min(n <= 4 ? n : Math.min(Math.ceil(n / Math.ceil(n / 6)), 8), 8);
+  const pRows = Math.ceil(n / spr);
+  const gridCols = spr + 2;
+
+  // Rows: top_wall + (parking [+ aisle]) × pRows + bottom_wall
+  const innerSeq = [];
+  for (let pr = 0; pr < pRows; pr++) {
+    if (pr > 0) innerSeq.push('aisle');
+    innerSeq.push('parking');
+  }
+  const gridRows = innerSeq.length + 2;
+
+  const m = initMatrix(gridRows, gridCols);
+
+  // Border walls
+  for (let c = 0; c < gridCols; c++) { m[0][c] = mkCell('wall'); m[gridRows-1][c] = mkCell('wall'); }
+  for (let r = 1; r < gridRows-1; r++) { m[r][0] = mkCell('wall'); m[r][gridCols-1] = mkCell('wall'); }
+
+  // ENT top-left, SAL bottom-right (opposite corners)
+  m[0][1] = mkCell('entrance');
+  m[gridRows-1][gridCols-2] = mkCell('exit');
+
+  // Fill spots
+  let placed = 0;
+  let ri = 1;
+  for (const type of innerSeq) {
+    for (let c = 1; c < gridCols-1; c++) {
+      if (type === 'aisle') m[ri][c] = mkCell('aisle');
+      else if (type === 'parking' && placed < n) { placed++; m[ri][c] = mkCell('parking', placed); }
+    }
+    ri++;
+  }
+
+  fixAisleDirs(m);
+  return { matrix: m, rows: gridRows, cols: gridCols };
+}
+
+// ── Generator: En L ─────────────────────────────────────────
+// Horizontal arm top, vertical arm right side, ENT top-left, SAL bottom-right
+function autoGenerarEle(n) {
+  if (n < 4) return autoGenerarLinea(n);
+
+  const hSpots = Math.ceil(n / 2);
+  const vSpots = n - hSpots;
+  // cols: wall(0) + hSpots + aisleCol + vParkingCol + wall
+  const gridCols = hSpots + 4;
+  // rows: top_wall + vSpots_rows (row 1 is shared h+v1) + bottom_wall
+  const gridRows = vSpots + 2;
+
+  const m = initMatrix(gridRows, gridCols);
+
+  // Full border walls
+  for (let c = 0; c < gridCols; c++) { m[0][c] = mkCell('wall'); m[gridRows-1][c] = mkCell('wall'); }
+  for (let r = 0; r < gridRows; r++) { m[r][0] = mkCell('wall'); m[r][gridCols-1] = mkCell('wall'); }
+
+  // ENT top-left, SAL bottom-right
+  m[0][1] = mkCell('entrance');
+  m[gridRows-1][gridCols-2] = mkCell('exit');
+
+  // Horizontal parking row (row 1, cols 1..hSpots)
+  let placed = 0;
+  for (let c = 1; c <= hSpots; c++) { placed++; m[1][c] = mkCell('parking', placed); }
+
+  // Aisle column (col hSpots+1) connects horizontal to vertical arm
+  const aisleCol = hSpots + 1;
+  for (let r = 1; r < gridRows-1; r++) m[r][aisleCol] = mkCell('aisle');
+
+  // Vertical parking column (col hSpots+2 = gridCols-2), rows 1..vSpots
+  const vCol = gridCols - 2;
+  for (let i = 0; i < vSpots; i++) {
+    placed++;
+    m[1 + i][vCol] = mkCell('parking', placed);
+  }
+
+  fixAisleDirs(m);
+  return { matrix: m, rows: gridRows, cols: gridCols };
+}
+
+// ── Generator: Patio (dos filas enfrentadas) ─────────────────
+// ENT top-left, SAL bottom-right
+function autoGenerarPatio(n) {
+  if (n < 4) return autoGenerarLinea(n);
+
+  const spr = Math.min(Math.ceil(n / 2), 8);
+  const numGroups = Math.ceil(n / (spr * 2));
+  const gridCols = spr + 2;
+  // Each group: top_row + aisle + bottom_row → 3 rows per group, plus top and bottom walls
+  const gridRows = 2 + numGroups * 3;
+
+  const m = initMatrix(gridRows, gridCols);
+
+  // Border walls
+  for (let c = 0; c < gridCols; c++) { m[0][c] = mkCell('wall'); m[gridRows-1][c] = mkCell('wall'); }
+  for (let r = 1; r < gridRows-1; r++) { m[r][0] = mkCell('wall'); m[r][gridCols-1] = mkCell('wall'); }
+
+  // ENT top-left, SAL bottom-right
+  m[0][1] = mkCell('entrance');
+  m[gridRows-1][gridCols-2] = mkCell('exit');
+
+  let placed = 0;
+  for (let g = 0; g < numGroups; g++) {
+    const topRow    = 1 + g * 3;
+    const aisleRow  = topRow + 1;
+    const botRow    = topRow + 2;
+
+    for (let c = 1; c < gridCols-1; c++) m[aisleRow][c] = mkCell('aisle');
+
+    for (let c = 1; c < gridCols-1; c++) {
+      if (placed < n) { placed++; m[topRow][c] = mkCell('parking', placed); }
+    }
+    for (let c = 1; c < gridCols-1; c++) {
+      if (placed < n) { placed++; m[botRow][c] = mkCell('parking', placed); }
+    }
+  }
+
+  fixAisleDirs(m);
+  return { matrix: m, rows: gridRows, cols: gridCols };
+}
+
+// ── Template UI selection ────────────────────────────────────
+function wizardSelectTemplate(tpl) {
+  wizardSelectedTemplate = tpl;
+
+  // Update card highlights
+  ['linea','ele','patio'].forEach(t => {
+    const el = document.getElementById('tpl' + t.charAt(0).toUpperCase() + t.slice(1));
+    if (el) el.classList.toggle('selected', t === tpl);
+  });
+
+  // Regenerate map and show preview
+  aplicarAutoPlano();
+
+  const section = document.getElementById('wzMapEditorSection');
+  if (section) {
+    section.style.display = 'block';
+    // Stay in preview mode (not advanced) on new selection
+    if (!wzAdvancedMode) {
+      section.classList.remove('advanced-mode');
+      section.classList.add('preview-mode');
+    }
+  }
+  const errEl = document.getElementById('tilemapError');
+  if (errEl) errEl.style.display = 'none';
+}
+
+// ── Advanced mode toggle ─────────────────────────────────────
+function wzToggleAdvanced() {
+  wzAdvancedMode = !wzAdvancedMode;
+  const section = document.getElementById('wzMapEditorSection');
+  const icon    = document.getElementById('wzAdvIcon');
+  const label   = document.getElementById('wzAdvLabel');
+  const previewLabel = document.getElementById('wzPreviewLabel');
+
+  if (section) {
+    section.classList.toggle('advanced-mode', wzAdvancedMode);
+    section.classList.toggle('preview-mode', !wzAdvancedMode);
+  }
+  if (icon)  icon.textContent  = wzAdvancedMode ? 'visibility'   : 'edit_square';
+  if (label) label.textContent = wzAdvancedMode ? 'Volver a vista previa' : 'Editar manualmente';
+  if (previewLabel) previewLabel.textContent = wzAdvancedMode ? 'Editor del estacionamiento' : 'Vista del estacionamiento';
+}
+
+// ── Dispatch to correct generator ────────────────────────────
+// Safer auto-layouts: the entrance/exit are connected by a clear drive aisle,
+// and parking spots are only placed beside that aisle.
+function autoGenerarLinea(n) {
+  if (n < 1) n = 1;
+  const spotCols = Math.min(6, Math.max(2, Math.ceil(Math.min(n, 12) / 2)));
+  const bandCapacity = spotCols * 2;
+  const bands = Math.ceil(n / bandCapacity);
+  const gridCols = spotCols + 4;
+  const gridRows = 2 + bands * 3;
+  const m = initMatrix(gridRows, gridCols);
+
+  for (let c = 0; c < gridCols; c++) {
+    m[0][c] = mkCell('wall');
+    m[gridRows - 1][c] = mkCell('wall');
+  }
+  for (let r = 1; r < gridRows - 1; r++) {
+    m[r][0] = mkCell('wall');
+    m[r][gridCols - 1] = mkCell('wall');
+  }
+
+  let placed = 0;
+  for (let g = 0; g < bands; g++) {
+    const topRow = 1 + g * 3;
+    const aisleRow = topRow + 1;
+    const bottomRow = topRow + 2;
+
+    for (let r = topRow; r <= bottomRow; r++) m[r][1] = mkCell('aisle');
+    for (let c = 1; c < gridCols - 1; c++) m[aisleRow][c] = mkCell('aisle');
+
+    for (let c = 2; c < gridCols - 1 && placed < n; c++) {
+      placed++;
+      m[topRow][c] = mkCell('parking', placed);
+    }
+    for (let c = 2; c < gridCols - 1 && placed < n; c++) {
+      placed++;
+      m[bottomRow][c] = mkCell('parking', placed);
+    }
+  }
+
+  m[1][0] = mkCell('entrance');
+  m[1 + (bands - 1) * 3 + 1][gridCols - 1] = mkCell('exit');
+  fixAisleDirs(m);
+  return { matrix: m, rows: gridRows, cols: gridCols };
+}
+
+function autoGenerarEle(n) {
+  if (n < 4) return autoGenerarLinea(n);
+
+  const hSpots = Math.min(Math.ceil(n / 2), 7);
+  const vRows = Math.max(2, Math.ceil((n - hSpots) / 2));
+  const gridCols = hSpots + 4;
+  const gridRows = Math.max(5, vRows + 4);
+  const aisleRow = 1;
+  const aisleCol = gridCols - 2;
+  const m = initMatrix(gridRows, gridCols);
+
+  for (let c = 0; c < gridCols; c++) {
+    m[0][c] = mkCell('wall');
+    m[gridRows - 1][c] = mkCell('wall');
+  }
+  for (let r = 0; r < gridRows; r++) {
+    m[r][0] = mkCell('wall');
+    m[r][gridCols - 1] = mkCell('wall');
+  }
+
+  let placed = 0;
+  m[aisleRow][0] = mkCell('entrance');
+  for (let c = 1; c <= aisleCol; c++) m[aisleRow][c] = mkCell('aisle');
+  for (let r = aisleRow; r < gridRows - 1; r++) m[r][aisleCol] = mkCell('aisle');
+  m[gridRows - 1][aisleCol] = mkCell('exit');
+
+  for (let c = 1; c < aisleCol && placed < n; c++) {
+    placed++;
+    m[2][c] = mkCell('parking', placed);
+  }
+  for (let r = 3; r < gridRows - 1 && placed < n; r++) {
+    placed++;
+    m[r][aisleCol - 1] = mkCell('parking', placed);
+  }
+  for (let r = 3; r < gridRows - 1 && placed < n; r++) {
+    placed++;
+    m[r][aisleCol - 2] = mkCell('parking', placed);
+  }
+
+  fixAisleDirs(m);
+  return { matrix: m, rows: gridRows, cols: gridCols };
+}
+
+function autoGenerarPatio(n) {
+  if (n < 4) return autoGenerarLinea(n);
+
+  const perSide = Math.min(6, Math.max(2, Math.ceil(Math.min(n, 12) / 2)));
+  const groups = Math.ceil(n / (perSide * 2));
+  const gridCols = perSide + 4;
+  const gridRows = 2 + groups * 4;
+  const m = initMatrix(gridRows, gridCols);
+
+  for (let c = 0; c < gridCols; c++) {
+    m[0][c] = mkCell('wall');
+    m[gridRows - 1][c] = mkCell('wall');
+  }
+  for (let r = 1; r < gridRows - 1; r++) {
+    m[r][0] = mkCell('wall');
+    m[r][gridCols - 1] = mkCell('wall');
+  }
+
+  let placed = 0;
+  for (let g = 0; g < groups; g++) {
+    const base = 1 + g * 4;
+    const topRow = base;
+    const aisleRow = base + 1;
+    const bottomRow = base + 2;
+    const bufferRow = base + 3;
+
+    for (let r = topRow; r <= bufferRow; r++) m[r][1] = mkCell('aisle');
+    for (let c = 1; c < gridCols - 1; c++) m[aisleRow][c] = mkCell('aisle');
+
+    for (let c = 2; c < gridCols - 1 && placed < n; c++) {
+      placed++;
+      m[topRow][c] = mkCell('parking', placed);
+    }
+    for (let c = 2; c < gridCols - 1 && placed < n; c++) {
+      placed++;
+      m[bottomRow][c] = mkCell('parking', placed);
+    }
+  }
+
+  m[1][0] = mkCell('entrance');
+  m[1 + (groups - 1) * 4 + 1][gridCols - 1] = mkCell('exit');
+  fixAisleDirs(m);
+  return { matrix: m, rows: gridRows, cols: gridCols };
+}
+
+function autoGenerarPlano(numEspacios) {
+  if (numEspacios < 1) numEspacios = 1;
+  if (numEspacios > 50) numEspacios = 50;
+  const tpl = wizardSelectedTemplate || 'linea';
+  if (tpl === 'ele')   return autoGenerarEle(numEspacios);
+  if (tpl === 'patio') return autoGenerarPatio(numEspacios);
+  return autoGenerarLinea(numEspacios);
+}
+
 function aplicarAutoPlano() {
   const capEl = document.getElementById('wzCapNumber');
   const num = capEl ? parseInt(capEl.textContent) : 4;
   const result = autoGenerarPlano(num);
 
-  // Apply to tilemap engine
   tmFilasVal = result.rows;
-  tmColsVal = result.cols;
-  tmMatriz = result.matrix;
-  if (document.getElementById('tmFilas')) document.getElementById('tmFilas').value = result.rows;
+  tmColsVal  = result.cols;
+  tmMatriz   = result.matrix;
+  if (document.getElementById('tmFilas'))   document.getElementById('tmFilas').value   = result.rows;
   if (document.getElementById('tmColumnas')) document.getElementById('tmColumnas').value = result.cols;
   tmRenderGrilla();
   tmActualizarStats();
-
-  // Show confirmation card
-  const parkingCount = result.matrix.flat().filter(c => c.tile === 'parking').length;
-  const resultEl = document.getElementById('wzAutoGenResult');
-  const msgEl = document.getElementById('wzAutoGenMsg');
-  if (resultEl) {
-    if (msgEl) msgEl.textContent = `Plano generado: ${parkingCount} espacio${parkingCount !== 1 ? 's' : ''} de parqueo`;
-    resultEl.style.display = 'flex';
-  }
 }
 
 // ── Capacity +/- buttons ────────────────────────────────────
@@ -259,18 +524,13 @@ function wzCapIncrement(delta) {
   if (val < 1) val = 1;
   if (val > 50) val = 50;
   el.textContent = val;
+  // Regenerate live if a template is already selected
+  if (wizardSelectedTemplate) aplicarAutoPlano();
 }
 
-// ── Toggle 2D map customization ─────────────────────────────
-function wzToggleMap() {
-  const card = document.getElementById('wzToggleMapCard');
-  const editor = document.getElementById('wzMapEditorSection');
-  if (!card) return;
-  card.classList.toggle('selected');
-  const isOn = card.classList.contains('selected');
-  if (editor) editor.style.display = isOn ? 'block' : 'none';
-  if (isOn) aplicarAutoPlano();
-}
+// ── Legacy stubs (kept so old event listeners don't crash) ───
+function wzToggleMap() {}
+function autoGenerarPlanoLegacy(n) { return autoGenerarLinea(n); }
 
 // ── Build summary for step 5 ───────────────────────────────
 function buildWizardSummary() {
@@ -349,13 +609,7 @@ function initWizard() {
   if (capMinus) capMinus.addEventListener('click', () => wzCapIncrement(-1));
   if (capPlus) capPlus.addEventListener('click', () => wzCapIncrement(1));
 
-  // Toggle map card
-  const toggleCard = document.getElementById('wzToggleMapCard');
-  if (toggleCard) toggleCard.addEventListener('click', wzToggleMap);
-
-  // Auto-generate button
-  const btnAutoGen = document.getElementById('btnAutoGenPlano');
-  if (btnAutoGen) btnAutoGen.addEventListener('click', aplicarAutoPlano);
+  // (legacy toggle/auto-gen buttons removed in favour of template cards)
 
   // Sync comodidades de seguridad → Nivel de Seguridad
   document.querySelectorAll('input[name="comodidad"][value="cctv"], input[name="comodidad"][value="vigilancia"]')

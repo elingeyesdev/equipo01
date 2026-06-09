@@ -4,469 +4,290 @@
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Cupones de Descuento - EstAirbnb</title>
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+<!-- AdminLTE CSS -->
+<link rel="stylesheet" href="/adminlte/css/adminlte.min.css">
+<!-- OverlayScrollbars -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.3.0/styles/overlayscrollbars.min.css">
+<!-- Bootstrap Icons -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+<!-- Font Awesome -->
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<!-- Material Symbols -->
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+<!-- Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+<!-- Custom -->
 <link href="/css/dark-theme.css" rel="stylesheet">
 <link href="/css/globals.css" rel="stylesheet">
-<style>
-  body { font-family: 'Inter', sans-serif; background: #f7f9fb; }
-
-  .page-header {
-    background: linear-gradient(135deg, #002542 0%, #003d60 100%);
-    color: white;
-    padding: 48px 0 40px;
-    margin-bottom: 40px;
-  }
-  .page-header h1 { font-size: 2rem; font-weight: 800; margin: 0 0 8px; }
-  .page-header p  { font-size: 1rem; opacity: .75; margin: 0; }
-
-  .cupon-card {
-    background: #fff;
-    border-radius: 16px;
-    border: 2px dashed #c3c6ce;
-    padding: 24px 28px;
-    position: relative;
-    overflow: hidden;
-    transition: border-color .2s, box-shadow .2s;
-  }
-  .cupon-card:hover { border-color: #006a62; box-shadow: 0 8px 24px rgba(0,106,98,.12); }
-  .cupon-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0;
-    width: 6px; height: 100%;
-    background: linear-gradient(180deg, #006a62, #005049);
-    border-radius: 2px 0 0 2px;
-  }
-  .cupon-card.demo::before { background: linear-gradient(180deg, #002542, #003d60); }
-
-  .cupon-pct {
-    font-size: 3rem;
-    font-weight: 900;
-    color: #006a62;
-    line-height: 1;
-    letter-spacing: -2px;
-  }
-  .cupon-card.demo .cupon-pct { color: #002542; }
-
-  .cupon-codigo {
-    display: inline-block;
-    background: #f0fdf4;
-    border: 1.5px dashed #16a34a;
-    border-radius: 8px;
-    padding: 6px 14px;
-    font-size: .95rem;
-    font-weight: 800;
-    letter-spacing: .12em;
-    color: #166534;
-    font-family: 'Courier New', monospace;
-    cursor: pointer;
-    transition: background .2s;
-    margin: 8px 0;
-  }
-  .cupon-card.demo .cupon-codigo {
-    background: #eff6ff;
-    border-color: #3b82f6;
-    color: #1e3a5f;
-  }
-
-  .btn-copy {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 9px 18px;
-    border-radius: 10px;
-    border: none;
-    background: linear-gradient(135deg, #006a62, #005049);
-    color: white;
-    font-family: 'Inter', sans-serif;
-    font-size: .82rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: opacity .2s, transform .15s;
-  }
-  .btn-copy:hover { opacity: .9; transform: translateY(-1px); }
-  .btn-copy.copied { background: linear-gradient(135deg, #16a34a, #15803d); }
-
-  .cupon-vence {
-    font-size: .75rem;
-    color: #94a3b8;
-    margin-top: 6px;
-    display: flex;
-    align-items: center;
-    gap: 5px;
-  }
-
-  .badge-demo {
-    display: inline-block;
-    background: #002542;
-    color: white;
-    font-size: .62rem;
-    font-weight: 800;
-    padding: 2px 8px;
-    border-radius: 20px;
-    text-transform: uppercase;
-    letter-spacing: .08em;
-    margin-left: 6px;
-    vertical-align: middle;
-  }
-
-  .instrucciones-box {
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 14px;
-    padding: 28px 32px;
-    margin-top: 40px;
-  }
-  .step-num {
-    width: 32px; height: 32px;
-    border-radius: 50%;
-    background: #006a62;
-    color: white;
-    font-weight: 800;
-    font-size: .85rem;
-    display: flex; align-items: center; justify-content: center;
-    flex-shrink: 0;
-  }
-
-  .dark body, .dark .cupon-card, .dark .instrucciones-box { background: #1e293b; color: #e2e8f0; }
-  .dark .cupon-card { border-color: #334155; }
-  .dark .cupon-codigo { background: #064e3b; border-color: #16a34a; }
-  .dark .instrucciones-box { border-color: #334155; background: #1e293b; }
-</style>
+<link href="/css/cupones.css" rel="stylesheet">
+<!-- Dark mode init -->
+<script>
+(function() {
+  const saved = localStorage.getItem('estairbnb_theme');
+  if (saved === 'dark') document.documentElement.setAttribute('data-bs-theme', 'dark');
+})();
+</script>
 </head>
-<body>
-<!-- Navbar -->
-<nav class="app-navbar" id="topNavbar">
-  <div class="nav-inner">
-    <div style="display:flex;align-items:center;">
-      <a href="/" class="nav-brand">
-        <span class="brand-icon"><span class="material-symbols-outlined">local_parking</span></span>
-        EstAirbnb
+<body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
+<div class="app-wrapper">
+
+  <!-- ── Top Navbar ── -->
+  <nav class="app-header navbar navbar-expand bg-body" id="topNavbar">
+    <div class="container-fluid">
+      <ul class="navbar-nav">
+        <li class="nav-item">
+          <a class="nav-link" data-lte-toggle="sidebar" href="#" role="button">
+            <i class="bi bi-list"></i>
+          </a>
+        </li>
+      </ul>
+      <a class="navbar-brand d-flex align-items-center gap-2 ms-2" href="/">
+        <span class="material-symbols-outlined" style="color:#1a6fc4;font-size:1.4rem;">local_parking</span>
+        <span class="fw-bold" style="color:#002542;font-size:1.05rem;">EstAirbnb</span>
       </a>
-      <div class="nav-links">
-        <a href="/explorar.html" class="nav-link" id="linkExplorar">Explorar</a>
-        <a href="/mis-favoritos.html" class="nav-link" id="linkFavoritos">❤️ Favoritos</a>
-        <a href="/mis-reservas.html" class="nav-link" id="linkMisReservas">Mis Reservas</a>
-        <a href="/configuracion.html" class="nav-link" id="linkMiPerfil">Mi Perfil</a>
-      </div>
+      <!-- IDs de nav que el JS puede necesitar (ocultos) -->
+      <a href="/explorar.html"      id="linkExplorar"   style="display:none;"></a>
+      <a href="/mis-favoritos.html" id="linkFavoritos"  style="display:none;"></a>
+      <a href="/mis-reservas.html"  id="linkMisReservas" style="display:none;"></a>
+      <a href="/mis-garajes.html"   id="linkMisGarajes" style="display:none;"></a>
+      <a href="/cupones.html"       id="linkCupones"    style="display:none;"></a>
+      <a href="/configuracion.html" id="linkMiPerfil"   style="display:none;"></a>
+      <ul class="navbar-nav ms-auto align-items-center gap-1">
+        <li class="nav-item">
+          <button class="btn btn-link nav-link px-2" id="btnThemeToggle" title="Cambiar tema">
+            <span class="material-symbols-outlined" id="themeIcon" style="font-size:20px;line-height:1;">dark_mode</span>
+          </button>
+        </li>
+        <li class="nav-item dropdown">
+          <a class="nav-link d-flex align-items-center gap-2 pe-2" href="#" data-bs-toggle="dropdown">
+            <div class="est-nav-avatar" id="userAvatar">
+              <span id="navInitials">?</span>
+            </div>
+            <span class="d-none d-md-inline fw-medium" id="navUserName" style="font-size:.9rem;color:#002542;"></span>
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end shadow-sm">
+            <li><a class="dropdown-item" href="/configuracion.html"><i class="fa-solid fa-gear me-2 text-muted"></i>Configuración</a></li>
+            <li><hr class="dropdown-divider"></li>
+            <li><a class="dropdown-item text-danger" href="#" id="btnLogout"><i class="fa-solid fa-right-from-bracket me-2"></i>Cerrar Sesión</a></li>
+          </ul>
+        </li>
+      </ul>
     </div>
-    <div class="nav-actions">
-      <button class="nav-icon-btn" id="btnThemeToggle" title="Cambiar tema">
-        <span class="material-symbols-outlined" id="themeIcon" style="font-size:20px;">dark_mode</span>
-      </button>
-      <button class="nav-icon-btn nav-danger" id="btnLogout" title="Cerrar sesión">
-        <i class="fa-solid fa-right-from-bracket"></i>
-      </button>
-      <div class="nav-avatar" id="userAvatar" onclick="window.location.href='/configuracion.html'" title="Mi perfil">
-        <span id="navInitials">?</span>
-      </div>
+  </nav>
+
+  <!-- ── Sidebar Anfitrión ── -->
+  <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+    <div class="sidebar-brand">
+      <a href="/" class="brand-link d-flex align-items-center">
+        <i class="fa-solid fa-square-parking" style="font-size:1.3rem;margin-right:8px;color:#60a5fa;"></i>
+        <span class="brand-text fw-bold">EstAirbnb</span>
+      </a>
     </div>
-  </div>
-</nav>
-
-<!-- Header -->
-<div class="page-header">
-  <div class="container" style="max-width:900px;">
-    <div style="display:flex;align-items:center;gap:14px;">
-      <div style="width:52px;height:52px;background:rgba(255,255,255,.15);border-radius:14px;display:flex;align-items:center;justify-content:center;">
-        <i class="fa-solid fa-ticket" style="font-size:1.5rem;"></i>
-      </div>
-      <div>
-        <h1>Cupones de Descuento</h1>
-        <p>Aplica un código al reservar tu espacio y ahorra en cada viaje</p>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Content -->
-<div class="container" style="max-width:900px;padding-bottom:60px;">
-
-  <!-- Loading -->
-  <div id="loadingCupones" style="text-align:center;padding:40px 0;">
-    <div class="spinner-border" style="color:#006a62;" role="status"></div>
-    <p style="margin-top:12px;color:#64748b;font-weight:600;">Cargando cupones disponibles...</p>
-  </div>
-
-  <!-- Grid de cupones -->
-  <div id="cuponesGrid" class="row g-4" style="display:none;"></div>
-
-  <!-- Panel Admin: Crear cupón (solo anfitriones) -->
-  <div id="panelCrearCupon" style="display:none;background:#fff;border:1.5px solid #e2e8f0;border-radius:16px;padding:28px 32px;margin-bottom:32px;">
-    <h5 style="font-weight:800;color:#002542;margin-bottom:6px;display:flex;align-items:center;gap:10px;">
-      <i class="fa-solid fa-plus-circle" style="color:#006a62;"></i> Crear nuevo cupón
-    </h5>
-    <p style="font-size:.83rem;color:#64748b;margin-bottom:20px;">Los cupones creados aquí estarán disponibles para todos los conductores de la plataforma.</p>
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;">
-      <div>
-        <label style="font-size:.75rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Código *</label>
-        <input type="text" id="adminCodigo" placeholder="Ej: VERANO25" maxlength="30"
-          style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:.88rem;text-transform:uppercase;outline:none;transition:border-color .2s;"
-          oninput="this.value=this.value.toUpperCase()">
-      </div>
-      <div>
-        <label style="font-size:.75rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Descuento (%) *</label>
-        <input type="number" id="adminDescuento" placeholder="Ej: 15" min="1" max="100"
-          style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:.88rem;outline:none;transition:border-color .2s;">
-      </div>
-      <div>
-        <label style="font-size:.75rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Vence el *</label>
-        <input type="date" id="adminFechaFin"
-          style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:.88rem;outline:none;transition:border-color .2s;">
-      </div>
-      <div>
-        <label style="font-size:.75rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Máx. usos <span style="font-weight:400;color:#94a3b8;">(vacío = ilimitado)</span></label>
-        <input type="number" id="adminMaxUsos" placeholder="Ej: 50" min="1"
-          style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:.88rem;outline:none;transition:border-color .2s;">
-      </div>
-      <div style="grid-column:1/-1;">
-        <label style="font-size:.75rem;font-weight:700;color:#475569;text-transform:uppercase;letter-spacing:.04em;display:block;margin-bottom:5px;">Descripción <span style="font-weight:400;color:#94a3b8;">(opcional)</span></label>
-        <input type="text" id="adminDescripcion" placeholder="Ej: Promoción de verano para conductores frecuentes" maxlength="200"
-          style="width:100%;padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:.88rem;outline:none;transition:border-color .2s;">
-      </div>
-    </div>
-    <button id="btnCrearCupon" onclick="crearCupon()"
-      style="margin-top:18px;padding:11px 24px;border-radius:10px;border:none;background:linear-gradient(135deg,#006a62,#005049);color:#fff;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:8px;transition:opacity .2s;">
-      <i class="fa-solid fa-ticket"></i> Crear Cupón
-    </button>
-    <div id="createFeedback" style="display:none;margin-top:12px;font-size:.83rem;font-weight:600;padding:8px 14px;border-radius:8px;"></div>
-  </div>
-
-  <!-- Instrucciones -->
-  <div class="instrucciones-box" id="instrucciones" style="display:none;">
-    <h5 style="font-weight:800;color:#002542;margin-bottom:20px;">
-      <i class="fa-solid fa-circle-info" style="color:#006a62;margin-right:8px;"></i>
-      ¿Cómo usar un cupón?
-    </h5>
-    <div style="display:flex;flex-direction:column;gap:16px;">
-      <div style="display:flex;align-items:flex-start;gap:14px;">
-        <div class="step-num">1</div>
-        <div>
-          <div style="font-weight:700;color:#0f172a;">Copia el código</div>
-          <div style="font-size:.85rem;color:#64748b;">Haz clic en "Copiar código" en cualquiera de los cupones de arriba.</div>
+    <div class="sidebar-wrapper">
+      <nav class="mt-2">
+        <div class="d-flex align-items-center px-3 py-3 mb-2" style="border-bottom:1px solid rgba(255,255,255,.1);">
+          <div class="me-2 flex-shrink-0">
+            <div class="est-sidebar-avatar" id="sidebarInitials">?</div>
+          </div>
+          <div class="overflow-hidden">
+            <div class="text-white fw-semibold text-truncate" id="sidebarUserName" style="font-size:.85rem;max-width:140px;">Usuario</div>
+            <span class="badge bg-success" style="font-size:.65rem;letter-spacing:.03em;">Anfitrión</span>
+          </div>
         </div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:14px;">
-        <div class="step-num">2</div>
-        <div>
-          <div style="font-weight:700;color:#0f172a;">Busca un garaje</div>
-          <div style="font-size:.85rem;color:#64748b;">Ve a <a href="/explorar.html" style="color:#006a62;font-weight:700;">Explorar</a> y selecciona el espacio que deseas reservar.</div>
-        </div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:14px;">
-        <div class="step-num">3</div>
-        <div>
-          <div style="font-weight:700;color:#0f172a;">Pega el código en el Paso 3 del asistente</div>
-          <div style="font-size:.85rem;color:#64748b;">En la pantalla de confirmación verás el campo "Código de cupón". Pega el código y haz clic en <strong>Aplicar</strong>.</div>
-        </div>
-      </div>
-      <div style="display:flex;align-items:flex-start;gap:14px;">
-        <div class="step-num">4</div>
-        <div>
-          <div style="font-weight:700;color:#0f172a;">El descuento se aplica automáticamente</div>
-          <div style="font-size:.85rem;color:#64748b;">El monto se descuenta del total antes de confirmar. El descuento aplica sobre el monto base (sin incluir la tarifa de servicio).</div>
+        <ul class="nav sidebar-menu flex-column" role="menu" data-lte-toggle="treeview">
+          <li class="nav-header">PANEL ANFITRIÓN</li>
+          <li class="nav-item">
+            <a href="/mis-garajes.html" class="nav-link">
+              <i class="nav-icon fa-solid fa-warehouse"></i>
+              <p>Mis Garajes</p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/cupones.html" class="nav-link active">
+              <i class="nav-icon fa-solid fa-ticket"></i>
+              <p>Cupones</p>
+            </a>
+          </li>
+          <li class="nav-item">
+            <a href="/configuracion.html" class="nav-link">
+              <i class="nav-icon fa-solid fa-gear"></i>
+              <p>Configuración</p>
+            </a>
+          </li>
+          <li class="nav-header">CUENTA</li>
+          <li class="nav-item">
+            <a href="#" class="nav-link" id="btnLogoutSidebar" style="color:#f87171;">
+              <i class="nav-icon fa-solid fa-right-from-bracket"></i>
+              <p>Cerrar Sesión</p>
+            </a>
+          </li>
+        </ul>
+      </nav>
+    </div>
+  </aside>
+
+  <!-- ── Main ── -->
+  <main class="app-main" id="mainContentWrapper">
+    <div class="app-content-header">
+      <div class="container-fluid">
+        <div class="row align-items-center">
+          <div class="col-sm-6"><h3 class="mb-0">Cupones de Descuento</h3></div>
+          <div class="col-sm-6">
+            <ol class="breadcrumb float-sm-end mb-0">
+              <li class="breadcrumb-item"><a href="/">Inicio</a></li>
+              <li class="breadcrumb-item active">Cupones</li>
+            </ol>
+          </div>
         </div>
       </div>
     </div>
-  </div>
-</div>
+
+    <div class="app-content">
+      <div class="container-fluid" style="max-width:960px;">
+
+        <!-- Hero Banner -->
+        <div class="page-header mb-4">
+          <div class="d-flex align-items-center gap-3">
+            <div style="width:52px;height:52px;background:rgba(255,255,255,.15);border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+              <i class="fa-solid fa-ticket" style="font-size:1.5rem;"></i>
+            </div>
+            <div>
+              <h1>Cupones de Descuento</h1>
+              <p>Aplica un código al reservar tu espacio y ahorra en cada viaje</p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Loading -->
+        <div id="loadingCupones" class="text-center py-5">
+          <div class="spinner-border" style="color:#006a62;" role="status"></div>
+          <p class="mt-3 text-muted fw-semibold">Cargando cupones disponibles...</p>
+        </div>
+
+        <!-- Grid de cupones -->
+        <div id="cuponesGrid" class="row g-4" style="display:none;"></div>
+
+        <!-- Panel Admin: Crear cupón (solo anfitriones) -->
+        <div id="panelCrearCupon" class="card shadow-sm border-0 mt-4" style="display:none;">
+          <div class="card-body p-4">
+            <h5 class="fw-bold mb-1 d-flex align-items-center gap-2" style="color:#002542;">
+              <i class="fa-solid fa-plus-circle" style="color:#006a62;"></i> Crear nuevo cupón
+            </h5>
+            <p class="text-muted small mb-4">Los cupones creados aquí estarán disponibles para todos los conductores de la plataforma.</p>
+            <div class="row g-3">
+              <div class="col-12 col-sm-6">
+                <label class="form-label small fw-bold text-uppercase text-muted mb-1" style="font-size:.72rem;letter-spacing:.04em;">Código *</label>
+                <input type="text" id="adminCodigo" placeholder="Ej: VERANO25" maxlength="30" class="form-control" oninput="this.value=this.value.toUpperCase()">
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label small fw-bold text-uppercase text-muted mb-1" style="font-size:.72rem;letter-spacing:.04em;">Descuento (%) *</label>
+                <input type="number" id="adminDescuento" placeholder="Ej: 15" min="1" max="100" class="form-control">
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label small fw-bold text-uppercase text-muted mb-1" style="font-size:.72rem;letter-spacing:.04em;">Vence el *</label>
+                <input type="date" id="adminFechaFin" class="form-control">
+              </div>
+              <div class="col-12 col-sm-6">
+                <label class="form-label small fw-bold text-uppercase text-muted mb-1" style="font-size:.72rem;letter-spacing:.04em;">Máx. usos <span class="fw-normal text-muted">(vacío = ilimitado)</span></label>
+                <input type="number" id="adminMaxUsos" placeholder="Ej: 50" min="1" class="form-control">
+              </div>
+              <div class="col-12">
+                <label class="form-label small fw-bold text-uppercase text-muted mb-1" style="font-size:.72rem;letter-spacing:.04em;">Descripción <span class="fw-normal text-muted">(opcional)</span></label>
+                <input type="text" id="adminDescripcion" placeholder="Ej: Promoción de verano para conductores frecuentes" maxlength="200" class="form-control">
+              </div>
+              <div class="col-12">
+                <button id="btnCrearCupon" onclick="crearCupon()" class="btn d-flex align-items-center gap-2 fw-bold" style="background:linear-gradient(135deg,#006a62,#005049);color:#fff;">
+                  <i class="fa-solid fa-ticket"></i> Crear Cupón
+                </button>
+                <div id="createFeedback" class="mt-3 small fw-semibold px-3 py-2 rounded" style="display:none;"></div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Instrucciones de uso -->
+        <div class="instrucciones-box mt-4" id="instrucciones" style="display:none;">
+          <h5 class="fw-bold mb-4" style="color:#002542;">
+            <i class="fa-solid fa-circle-info me-2" style="color:#006a62;"></i>
+            ¿Cómo usar un cupón?
+          </h5>
+          <div class="d-flex flex-column gap-4">
+            <div class="d-flex align-items-start gap-3">
+              <div class="step-num flex-shrink-0">1</div>
+              <div>
+                <div class="fw-bold" style="color:#0f172a;">Copia el código</div>
+                <div class="text-muted small">Haz clic en "Copiar código" en cualquiera de los cupones de arriba.</div>
+              </div>
+            </div>
+            <div class="d-flex align-items-start gap-3">
+              <div class="step-num flex-shrink-0">2</div>
+              <div>
+                <div class="fw-bold" style="color:#0f172a;">Busca un garaje</div>
+                <div class="text-muted small">Ve a <a href="/explorar.html" style="color:#006a62;font-weight:700;">Explorar</a> y selecciona el espacio que deseas reservar.</div>
+              </div>
+            </div>
+            <div class="d-flex align-items-start gap-3">
+              <div class="step-num flex-shrink-0">3</div>
+              <div>
+                <div class="fw-bold" style="color:#0f172a;">Pega el código en el Paso 3 del asistente</div>
+                <div class="text-muted small">En la pantalla de confirmación verás el campo "Código de cupón". Pega el código y haz clic en <strong>Aplicar</strong>.</div>
+              </div>
+            </div>
+            <div class="d-flex align-items-start gap-3">
+              <div class="step-num flex-shrink-0">4</div>
+              <div>
+                <div class="fw-bold" style="color:#0f172a;">El descuento se aplica automáticamente</div>
+                <div class="text-muted small">El monto se descuenta del total antes de confirmar. El descuento aplica sobre el monto base (sin incluir la tarifa de servicio).</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </main>
+
+  <footer class="app-footer">
+    <strong>EstAirbnb</strong> &copy; 2025. Todos los derechos reservados.
+  </footer>
+
+</div><!-- /.app-wrapper -->
 
 <!-- Toast -->
 <div id="_appToast" style="position:fixed;top:24px;right:24px;z-index:99999;display:flex;align-items:center;gap:12px;padding:14px 20px;border-radius:12px;font-family:Inter,sans-serif;font-size:0.875rem;font-weight:600;color:#fff;max-width:380px;line-height:1.4;box-shadow:0 8px 32px rgba(0,0,0,0.18);transform:translateX(calc(100% + 32px));transition:transform 0.4s cubic-bezier(0.16,1,0.3,1);pointer-events:none;background:#006a62;"></div>
 
+<!-- ── Scripts ── -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/overlayscrollbars@2.3.0/browser/overlayscrollbars.browser.es5.min.js"></script>
+<script src="/adminlte/js/adminlte.min.js"></script>
+<script src="/js/cupones.js"></script>
+<script src="/js/navbar-badge.js"></script>
 <script>
+// Sidebar logout → main logout
+document.getElementById('btnLogoutSidebar')?.addEventListener('click', (e) => {
+  e.preventDefault();
+  document.getElementById('btnLogout')?.click();
+});
+// Sync sidebar
+function syncSidebar() {
+  const user = JSON.parse(localStorage.getItem('estairbnb_user') || 'null');
+  if (!user) return;
+  const initials = ((user.nombre || '')[0] || '') + ((user.apellidos || '')[0] || '');
+  const si = document.getElementById('sidebarInitials');
+  const sn = document.getElementById('sidebarUserName');
+  if (si) si.textContent = initials.toUpperCase() || '?';
+  if (sn) sn.textContent = `${user.nombre || ''} ${user.apellidos || ''}`.trim();
+}
+setTimeout(syncSidebar, 300);
+// Dark mode bridge
 (function () {
-  'use strict';
-
-  const USUARIO_KEY = 'estairbnb_user';
-  const currentUser = JSON.parse(localStorage.getItem(USUARIO_KEY) || 'null');
-  if (!currentUser) { window.location.href = '/login.html'; return; }
-
-  // Mostrar panel de creación solo para anfitriones
-  if (currentUser.rol_id === 1) {
-    const panel = document.getElementById('panelCrearCupon');
-    if (panel) panel.style.display = 'block';
-    // Pre-fill fecha mínima
-    const hoy = new Date();
-    const min = `${hoy.getFullYear()}-${String(hoy.getMonth()+1).padStart(2,'0')}-${String(hoy.getDate()+1).padStart(2,'0')}`;
-    const inputFin = document.getElementById('adminFechaFin');
-    if (inputFin) { inputFin.min = min; inputFin.value = ''; }
-  }
-
-  window.crearCupon = async function() {
-    const codigo        = document.getElementById('adminCodigo').value.trim().toUpperCase();
-    const descuento     = parseInt(document.getElementById('adminDescuento').value, 10);
-    const fecha_fin     = document.getElementById('adminFechaFin').value;
-    const usos_maximos  = document.getElementById('adminMaxUsos').value;
-    const descripcion   = document.getElementById('adminDescripcion').value.trim();
-    const feedback      = document.getElementById('createFeedback');
-    const btn           = document.getElementById('btnCrearCupon');
-
-    if (!codigo || codigo.length < 3) return setFeedback(feedback, 'El código debe tener al menos 3 caracteres.', false);
-    if (!descuento || descuento < 1 || descuento > 100) return setFeedback(feedback, 'El descuento debe ser entre 1% y 100%.', false);
-    if (!fecha_fin) return setFeedback(feedback, 'La fecha de vencimiento es obligatoria.', false);
-
-    btn.disabled = true;
-    btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Creando...';
-
-    try {
-      const res  = await fetch('/api/cupones', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          codigo,
-          descuento_porcentaje: descuento,
-          fecha_fin,
-          usos_maximos: usos_maximos ? parseInt(usos_maximos, 10) : null,
-          descripcion: descripcion || null
-        })
-      });
-      const json = await res.json();
-
-      if (res.ok && json.status === 'ok') {
-        setFeedback(feedback, json.message, true);
-        document.getElementById('adminCodigo').value       = '';
-        document.getElementById('adminDescuento').value    = '';
-        document.getElementById('adminFechaFin').value     = '';
-        document.getElementById('adminMaxUsos').value      = '';
-        document.getElementById('adminDescripcion').value  = '';
-        showToast(json.message);
-        await cargarCupones();
-      } else {
-        setFeedback(feedback, json.message || 'Error al crear el cupón.', false);
-      }
-    } catch (err) {
-      setFeedback(feedback, 'No se pudo conectar con el servidor.', false);
-    } finally {
-      btn.disabled = false;
-      btn.innerHTML = '<i class="fa-solid fa-ticket"></i> Crear Cupón';
-    }
-  };
-
-  function setFeedback(el, msg, ok) {
-    el.style.display = 'block';
-    el.style.background = ok ? '#f0fdf4' : '#fef2f2';
-    el.style.color      = ok ? '#166534' : '#dc2626';
-    el.style.border     = `1px solid ${ok ? '#bbf7d0' : '#fecaca'}`;
-    el.textContent      = msg;
-  }
-
-  // Theme
   const saved = localStorage.getItem('estairbnb_theme');
-  if (saved === 'dark') {
-    document.documentElement.classList.add('dark');
-    const ti = document.getElementById('themeIcon');
-    if (ti) ti.textContent = 'light_mode';
-  }
-  const btnTheme = document.getElementById('btnThemeToggle');
-  if (btnTheme) {
-    btnTheme.addEventListener('click', () => {
-      const isDark = document.documentElement.classList.contains('dark');
-      document.documentElement.classList.toggle('dark', !isDark);
-      const ti = document.getElementById('themeIcon');
-      if (ti) ti.textContent = isDark ? 'dark_mode' : 'light_mode';
-      localStorage.setItem('estairbnb_theme', isDark ? 'light' : 'dark');
-    });
-  }
-
-  // Logout
-  const btnLogout = document.getElementById('btnLogout');
-  if (btnLogout) btnLogout.addEventListener('click', () => {
-    localStorage.removeItem(USUARIO_KEY);
-    window.location.href = '/login.html';
-  });
-
-  // Avatar
-  const navInitials = document.getElementById('navInitials');
-  if (navInitials && currentUser.nombre) {
-    navInitials.textContent = (currentUser.nombre[0] + (currentUser.apellidos?.[0] || '')).toUpperCase();
-  }
-
-  function showToast(msg, type = 'success') {
-    const el = document.getElementById('_appToast');
-    if (!el) return;
-    el.style.background = type === 'error' ? '#dc2626' : '#006a62';
-    el.innerHTML = `<span>${msg}</span>`;
-    clearTimeout(el._t);
-    requestAnimationFrame(() => requestAnimationFrame(() => { el.style.transform = 'translateX(0)'; }));
-    el._t = setTimeout(() => { el.style.transform = 'translateX(calc(100% + 32px))'; }, 2800);
-  }
-
-  window.copiarCodigo = function(btn, codigo) {
-    navigator.clipboard.writeText(codigo).then(() => {
-      btn.innerHTML = '<i class="fa-solid fa-check"></i> ¡Copiado!';
-      btn.classList.add('copied');
-      showToast(`Código ${codigo} copiado al portapapeles`);
-      setTimeout(() => {
-        btn.innerHTML = '<i class="fa-solid fa-copy"></i> Copiar código';
-        btn.classList.remove('copied');
-      }, 2500);
-    }).catch(() => {
-      showToast('No se pudo copiar. Hazlo manualmente.', 'error');
-    });
-  };
-
-  async function cargarCupones() {
-    try {
-      const res  = await fetch('/api/cupones/disponibles');
-      const json = await res.json();
-      document.getElementById('loadingCupones').style.display = 'none';
-
-      if (!res.ok || json.status !== 'ok' || json.data.length === 0) {
-        document.getElementById('cuponesGrid').innerHTML =
-          '<div class="col-12 text-center py-5 text-secondary">No hay cupones disponibles en este momento.</div>';
-        document.getElementById('cuponesGrid').style.display = 'flex';
-        return;
-      }
-
-      const isDemo = (c) => c.codigo === 'DEMO50';
-      const fmt = (d) => new Date(d).toLocaleDateString('es-ES', { day:'2-digit', month:'short', year:'numeric' });
-
-      const grid = document.getElementById('cuponesGrid');
-      grid.style.display = '';
-      grid.innerHTML = json.data.map(c => `
-        <div class="col-12 col-md-6">
-          <div class="cupon-card ${isDemo(c) ? 'demo' : ''}">
-            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;">
-              <div>
-                <div class="cupon-pct">${c.descuento_porcentaje}%</div>
-                <div style="font-size:.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.04em;">de descuento</div>
-                ${isDemo(c) ? '<span class="badge-demo">Solo demo</span>' : ''}
-              </div>
-              <div style="text-align:right;">
-                <div class="cupon-codigo" onclick="navigator.clipboard?.writeText('${c.codigo}')">${c.codigo}</div>
-                <div class="cupon-vence">
-                  <i class="fa-regular fa-calendar"></i>
-                  Válido hasta ${fmt(c.fecha_fin)}
-                </div>
-                ${c.usos_maximos !== null ? `<div class="cupon-vence"><i class="fa-solid fa-users"></i> ${c.usos_maximos - c.usos_actuales} usos restantes</div>` : '<div class="cupon-vence"><i class="fa-solid fa-infinity"></i> Usos ilimitados</div>'}
-              </div>
-            </div>
-            <div style="margin-top:16px;">
-              <button class="btn-copy" onclick="copiarCodigo(this, '${c.codigo}')">
-                <i class="fa-solid fa-copy"></i> Copiar código
-              </button>
-            </div>
-          </div>
-        </div>
-      `).join('');
-
-      document.getElementById('instrucciones').style.display = 'block';
-    } catch (err) {
-      console.error(err);
-      document.getElementById('loadingCupones').style.display = 'none';
-      document.getElementById('cuponesGrid').innerHTML =
-        '<div class="col-12 text-center py-5 text-danger">Error al cargar los cupones. Intenta más tarde.</div>';
-      document.getElementById('cuponesGrid').style.display = 'flex';
-    }
-  }
-
-  cargarCupones();
+  if (saved === 'dark') document.documentElement.setAttribute('data-bs-theme', 'dark');
+  new MutationObserver(() => {
+    const isDark = document.documentElement.classList.contains('dark');
+    document.documentElement.setAttribute('data-bs-theme', isDark ? 'dark' : 'light');
+  }).observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
 })();
 </script>
-<script src="/js/navbar-badge.js"></script>
 </body>
 </html>

@@ -26,6 +26,12 @@
   let paginaActual = 1;
   const LIMIT_POR_PAGINA = 6;
 
+  // ─── Mapa Explorar State ───
+  let garajesCache  = [];
+  let explorarMapa  = null;
+  let mapaLayers    = [];
+  let vistaActual   = 'lista';
+
   // ─── Favoritos State ───
   let favoritosIds = new Set();
 
@@ -153,6 +159,9 @@
       const garajes = json.datos;
       const paginacion = json.paginacion || { totalRegistros: garajes.length };
 
+      garajesCache = garajes;
+      document.getElementById('viewToggleBar').style.display = 'block';
+
       // Show total results count from pagination metadata
       totalResults.textContent = paginacion.totalRegistros;
       resultsCount.style.display = 'flex';
@@ -162,6 +171,8 @@
         const card = crearTarjeta(g, index);
         catalogGrid.appendChild(card);
       });
+
+      if (vistaActual === 'mapa') actualizarPinsMapaExplorar();
 
       // Attach favorite handlers and sync visual state after cards are in DOM
       catalogGrid.querySelectorAll('.btn-fav-heart').forEach(btn => {
@@ -220,43 +231,36 @@
     const isFav = favoritosIds.has(garaje.id);
 
     card.innerHTML = `
-      <div class="explore-card-img-wrapper">
-        ${imagenHTML}
-        <div class="explore-card-overlay"></div>
-        <span class="explore-card-tag">
-          <i class="fa-solid ${tipoIcon}"></i> ${tipoLabel}
-        </span>
-        <button class="btn-fav-heart ${isFav ? 'is-fav' : ''}" data-garaje-id="${garaje.id}" title="${isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
-          <i class="fa-${isFav ? 'solid' : 'regular'} fa-heart"></i>
-        </button>
-        <div class="explore-card-price-float">
-          <span class="price-amount">Bs. ${precio}</span>
-          <span class="price-unit">/ hora</span>
-        </div>
-      </div>
-      <div class="explore-card-body">
-        <div class="explore-card-direccion">${garaje.direccion}</div>
-        <div class="explore-card-descripcion">${descripcion}</div>
-        
-        <div class="explore-card-chips">
-          <span class="chip-seg"><i class="fa-solid ${segIcon}"></i> ${garaje.nivel_seguridad || 'Estándar'}</span>
-          <span class="chip-access"><i class="fa-solid fa-right-to-bracket"></i> ${garaje.metodo_acceso || 'Manual'}</span>
-        </div>
-
-        <div class="explore-card-footer">
-          <span class="explore-card-cta">
-            Ver detalles <i class="fa-solid fa-arrow-right"></i>
+      ${imagenHTML}
+      <div class="explore-card-overlay"></div>
+      <div class="explore-card-content">
+        <div class="explore-card-top">
+          <span class="explore-card-tag">
+            <i class="fa-solid ${tipoIcon}"></i> ${tipoLabel}
           </span>
+          <button class="btn-fav-heart ${isFav ? 'is-fav' : ''}" data-garaje-id="${garaje.id}" title="${isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
+            <i class="fa-${isFav ? 'solid' : 'regular'} fa-heart"></i>
+          </button>
+        </div>
+        <div class="explore-card-bottom">
+          <div class="explore-card-price-float">
+            <span class="price-amount">Bs. ${precio}</span>
+            <span class="price-unit">/ hora</span>
+          </div>
+          <div class="explore-card-direccion">${garaje.direccion}</div>
+          <div class="explore-card-hover-reveal">
+            <div class="explore-card-descripcion">${descripcion}</div>
+            <div class="explore-card-chips">
+              <span class="chip-seg"><i class="fa-solid ${segIcon}"></i> ${garaje.nivel_seguridad || 'Estándar'}</span>
+              <span class="chip-access"><i class="fa-solid fa-right-to-bracket"></i> ${garaje.metodo_acceso || 'Manual'}</span>
+            </div>
+            <span class="explore-card-cta">Ver detalles <i class="fa-solid fa-arrow-right"></i></span>
+          </div>
         </div>
       </div>
     `;
 
-    // Navigate to detail on card body click (not on heart button)
-    card.querySelector('.explore-card-body').addEventListener('click', () => {
-      window.location.href = `detalle-garaje.html?id=${garaje.id}`;
-    });
-    card.querySelector('.explore-card-img-wrapper').addEventListener('click', (e) => {
-      // Only navigate if not clicking the heart button
+    card.addEventListener('click', (e) => {
       if (!e.target.closest('.btn-fav-heart')) {
         window.location.href = `detalle-garaje.html?id=${garaje.id}`;
       }
@@ -413,6 +417,94 @@
         btn.title = 'Agregar a favoritos';
       }
     });
+  }
+
+  // ─── Mapa Explorar ───
+  window.toggleVistaExplorar = function(modo) {
+    vistaActual = modo;
+    const btnLista = document.getElementById('btnVistaLista');
+    const btnMapa  = document.getElementById('btnVistaMapa');
+    const mapCtn   = document.getElementById('explorarMapCtn');
+
+    const actStyle   = 'background:#006a62;color:#fff;';
+    const inactStyle = 'background:transparent;color:#64748b;';
+
+    if (modo === 'mapa') {
+      btnLista.style.cssText += inactStyle;
+      btnMapa.style.cssText  += actStyle;
+      btnLista.style.background = 'transparent'; btnLista.style.color = '#64748b';
+      btnMapa.style.background  = '#006a62';     btnMapa.style.color  = '#fff';
+      catalogGrid.style.display        = 'none';
+      paginationContainer.style.display = 'none';
+      mapCtn.style.display              = 'block';
+      inicializarMapaExplorar();
+      actualizarPinsMapaExplorar();
+    } else {
+      btnLista.style.background = '#006a62'; btnLista.style.color = '#fff';
+      btnMapa.style.background  = 'transparent'; btnMapa.style.color = '#64748b';
+      catalogGrid.style.display         = '';
+      paginationContainer.style.display = garajesCache.length > 0 ? '' : 'none';
+      mapCtn.style.display              = 'none';
+    }
+  };
+
+  function inicializarMapaExplorar() {
+    if (explorarMapa) return;
+    explorarMapa = L.map('explorarMap', { zoomControl: true }).setView([-16.5, -68.15], 13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '© OpenStreetMap contributors',
+      maxZoom: 19
+    }).addTo(explorarMapa);
+
+    // Intentar centrar en la ubicación del usuario
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(pos => {
+        if (!explorarMapa) return;
+        explorarMapa.setView([pos.coords.latitude, pos.coords.longitude], 14);
+        L.circleMarker([pos.coords.latitude, pos.coords.longitude], {
+          radius: 8, fillColor: '#3b82f6', color: '#fff', weight: 2, fillOpacity: 0.9
+        }).addTo(explorarMapa).bindPopup('<strong>Tu ubicación</strong>');
+      }, () => {});
+    }
+  }
+
+  function actualizarPinsMapaExplorar() {
+    if (!explorarMapa) return;
+    mapaLayers.forEach(l => explorarMapa.removeLayer(l));
+    mapaLayers = [];
+
+    const bounds = [];
+    garajesCache.forEach(g => {
+      if (!g.latitud || !g.longitud) return;
+      const lat = parseFloat(g.latitud);
+      const lng = parseFloat(g.longitud);
+      const precio = parseFloat(g.precio_hora).toFixed(2);
+
+      const icon = L.divIcon({
+        className: '',
+        html: `<div style="background:#006a62;color:#fff;border-radius:20px;padding:5px 11px;font-size:0.75rem;font-weight:800;white-space:nowrap;box-shadow:0 2px 10px rgba(0,0,0,.28);border:2px solid #fff;cursor:pointer;font-family:Inter,sans-serif;">Bs. ${precio}</div>`,
+        iconAnchor: [36, 18]
+      });
+
+      const segIcons = { 'Básico': '🔒', 'Estándar': '🛡️', 'Premium': '⭐' };
+      const seg = segIcons[g.nivel_seguridad] || '🛡️';
+
+      const marker = L.marker([lat, lng], { icon }).addTo(explorarMapa);
+      marker.bindPopup(`
+        <div style="min-width:180px;font-family:Inter,sans-serif;">
+          <div style="font-weight:800;font-size:0.9rem;color:#0f172a;margin-bottom:4px;">${g.direccion}</div>
+          <div style="font-size:0.8rem;color:#475569;margin-bottom:6px;">${seg} ${g.nivel_seguridad || 'Estándar'} · ${g.metodo_acceso || 'Manual'}</div>
+          <div style="font-size:1rem;font-weight:900;color:#006a62;margin-bottom:10px;">Bs. ${precio}<span style="font-size:0.72rem;font-weight:500;color:#64748b;">/hora</span></div>
+          <a href="/detalle-garaje.html?id=${g.id}" style="display:block;text-align:center;background:#006a62;color:#fff;padding:7px 14px;border-radius:8px;font-size:0.8rem;font-weight:700;text-decoration:none;">Ver detalles →</a>
+        </div>
+      `);
+      mapaLayers.push(marker);
+      bounds.push([lat, lng]);
+    });
+
+    if (bounds.length > 0) {
+      explorarMapa.fitBounds(bounds, { padding: [40, 40], maxZoom: 15 });
+    }
   }
 
   // ─── Init ───

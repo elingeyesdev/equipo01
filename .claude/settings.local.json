@@ -21,7 +21,18 @@
       "Bash(findstr /i \"mantenimiento garaje wizard\")",
       "Bash(git add *)",
       "Bash(git commit -m ' *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(Select-Object -ExpandProperty FullName)",
+      "Bash(Select-Object -First 50)",
+      "Bash(grep -E \"\\\\.js$|\\\\.sql$\")",
+      "Bash(cd /d \"c:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\")",
+      "Bash(node --check server.js)",
+      "Bash(node --check \"c:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\\\\server.js\")",
+      "Bash(node --check \"c:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\\\\public\\\\js\\\\explorar.js\")",
+      "Bash(node --check \"c:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\\\\public\\\\js\\\\mis-reservas.js\")",
+      "Bash(node --check \"c:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\\\\public\\\\js\\\\mis-favoritos.js\")",
+      "Bash(node --check \"c:\\\\Users\\\\jeann\\\\OneDrive\\\\Desktop\\\\equipo01-limpio\\\\public\\\\js\\\\configuracion.js\")",
+      "WebSearch"
     ]
   }
 }

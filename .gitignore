@@ -22,3 +22,6 @@ Thumbs.db
 # Editor y herramientas locales
 .vscode/
 .claude/
+
+# Librerías de terceros locales
+AdminLTE-master/

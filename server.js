@@ -127,6 +127,7 @@ let pool = null;
 async function getPool() {
   if (!pool) {
     pool = await sql.connect({ connectionString: CONNECTION_STRING });
+    await ensureCompatibilitySchema(pool);
   }
   return pool;
 }
@@ -141,6 +142,7 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
+app.use('/adminlte', express.static(path.join(__dirname, 'AdminLTE-master', 'dist')));
 
 // ============================================================
 // MIDDLEWARE — Verificar sesión (usuario_id requerido)
@@ -150,6 +152,7 @@ app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 function requireSession(req, res, next) {
   const uid = parseInt(
     req.body?.usuario_id   ||
+    req.body?.anfitrion_id ||
     req.body?.conductor_id ||
     req.query?.usuario_id  ||
     req.params?.usuario_id, 10
@@ -161,6 +164,48 @@ function requireSession(req, res, next) {
     });
   }
   next();
+}
+
+let compatibilityEnsured = false;
+
+async function ensureCompatibilitySchema(db) {
+  if (compatibilityEnsured) return;
+  await db.request().query(`
+    IF NOT EXISTS (SELECT 1 FROM sys.columns WHERE object_id = OBJECT_ID(N'dbo.Reservas') AND name = 'motivo_rechazo')
+    BEGIN
+      ALTER TABLE Reservas ADD motivo_rechazo NVARCHAR(500) NULL;
+    END
+  `);
+  compatibilityEnsured = true;
+}
+
+async function findConflictingGarageLocation(db, latitud, longitud, anfitrionId, excludeGarageId = null) {
+  if (!Number.isFinite(latitud) || !Number.isFinite(longitud)) return null;
+
+  const request = db.request()
+    .input('latitud', sql.Decimal(10, 7), latitud)
+    .input('longitud', sql.Decimal(10, 7), longitud)
+    .input('anfitrion_id', sql.Int, parseInt(anfitrionId, 10))
+    .input('tolerancia', sql.Decimal(10, 7), 0.00005);
+
+  let extraWhere = '';
+  if (excludeGarageId) {
+    request.input('exclude_id', sql.Int, parseInt(excludeGarageId, 10));
+    extraWhere = 'AND id <> @exclude_id';
+  }
+
+  const result = await request.query(`
+    SELECT TOP 1 id
+    FROM Garajes
+    WHERE anfitrion_id <> @anfitrion_id
+      AND latitud IS NOT NULL
+      AND longitud IS NOT NULL
+      AND ABS(CAST(latitud AS FLOAT) - CAST(@latitud AS FLOAT)) <= CAST(@tolerancia AS FLOAT)
+      AND ABS(CAST(longitud AS FLOAT) - CAST(@longitud AS FLOAT)) <= CAST(@tolerancia AS FLOAT)
+      ${extraWhere}
+  `);
+
+  return result.recordset[0] || null;
 }
 
 // ============================================================
@@ -716,7 +761,7 @@ app.post('/api/garajes', (req, res) => {  // requireSession no aplica: body es m
       return res.status(400).json({ status: 'error', message: msg });
     }
 
-    const { usuario_id, direccion, descripcion, precio_hora, hora_apertura, hora_cierre, dias_operativos, instrucciones_acceso, nivel_seguridad, metodo_acceso, horarios_flexibles, dimensiones, reglas_casa, politica_cancelacion, fidelidad_activo, fidelidad_visitas, fidelidad_descuento_pct, fidelidad_dias_validez } = req.body;
+    const { usuario_id, direccion, latitud, longitud, descripcion, precio_hora, hora_apertura, hora_cierre, dias_operativos, instrucciones_acceso, nivel_seguridad, metodo_acceso, horarios_flexibles, dimensiones, reglas_casa, politica_cancelacion, fidelidad_activo, fidelidad_visitas, fidelidad_descuento_pct, fidelidad_dias_validez } = req.body;
     let espacios = [];
     try { espacios = JSON.parse(req.body.espacios || '[]'); } catch (_) { espacios = []; }
     let comodidades = [];
@@ -735,6 +780,18 @@ app.post('/api/garajes', (req, res) => {  // requireSession no aplica: body es m
       return res.status(400).json({ status: 'error', message: 'Debes configurar al menos 1 espacio de parqueo en el mapa.' });
     if (espacios.length > 200)
       return res.status(400).json({ status: 'error', message: 'Máximo 200 espacios por garaje.' });
+
+    const latitudNum = latitud !== undefined && latitud !== null && String(latitud).trim() !== ''
+      ? Number(latitud) : null;
+    const longitudNum = longitud !== undefined && longitud !== null && String(longitud).trim() !== ''
+      ? Number(longitud) : null;
+
+    if ((latitudNum === null) !== (longitudNum === null))
+      return res.status(400).json({ status: 'error', message: 'Debes enviar latitud y longitud juntas.' });
+    if (latitudNum !== null && (!Number.isFinite(latitudNum) || latitudNum < -90 || latitudNum > 90))
+      return res.status(400).json({ status: 'error', message: 'La latitud del mapa es inválida.' });
+    if (longitudNum !== null && (!Number.isFinite(longitudNum) || longitudNum < -180 || longitudNum > 180))
+      return res.status(400).json({ status: 'error', message: 'La longitud del mapa es inválida.' });
 
     // Determinar tipo_vehiculo principal (el más frecuente entre los espacios)
     const tipos = espacios.map(e => e.tipo_vehiculo).filter(Boolean);
@@ -760,10 +817,23 @@ app.post('/api/garajes', (req, res) => {  // requireSession no aplica: body es m
         return res.status(403).json({ status: 'error', message: 'Solo los anfitriones pueden publicar espacios de parqueo.' });
       }
 
+      if (latitudNum !== null && longitudNum !== null) {
+        const conflictingGarage = await findConflictingGarageLocation(db, latitudNum, longitudNum, usuario_id);
+        if (conflictingGarage) {
+          if (req.files) req.files.forEach(f => { try { fs.unlinkSync(f.path); } catch (_) { } });
+          return res.status(409).json({
+            status: 'error',
+            message: 'La ubicación seleccionada ya está registrada por otro espacio. Verifica el punto exacto del mapa o ajusta la ubicación.'
+          });
+        }
+      }
+
       // ── Paso 1: Insertar el garaje (con horarios) ──
       const insertResult = await db.request()
         .input('anfitrion_id', sql.Int, parseInt(usuario_id, 10))
         .input('direccion', sql.NVarChar(255), String(direccion).trim())
+        .input('latitud', sql.Decimal(10, 7), latitudNum)
+        .input('longitud', sql.Decimal(10, 7), longitudNum)
         .input('descripcion', sql.NVarChar(500), descripcion ? String(descripcion).trim() : null)
         .input('precio_hora', sql.Decimal(10, 2), parseFloat(precio_hora))
         .input('tipo_vehiculo', sql.VarChar(20), tipoPrincipal)
@@ -783,8 +853,8 @@ app.post('/api/garajes', (req, res) => {  // requireSession no aplica: body es m
         .input('fid_desc_pct', sql.Int, parseInt(fidelidad_descuento_pct, 10) || 10)
         .input('fid_validez', sql.Int, (fidelidad_dias_validez && fidelidad_dias_validez !== '') ? parseInt(fidelidad_dias_validez, 10) : null)
         .query(`
-          INSERT INTO Garajes (anfitrion_id, direccion, descripcion, precio_hora, tipo_vehiculo, hora_apertura, hora_cierre, dias_operativos, instrucciones_acceso, nivel_seguridad, metodo_acceso, horarios_flexibles, layout_mapa, dimensiones, reglas_casa, politica_cancelacion, fidelidad_activo, fidelidad_visitas, fidelidad_descuento_pct, fidelidad_dias_validez)
-          VALUES (@anfitrion_id, @direccion, @descripcion, @precio_hora, @tipo_vehiculo, @hora_apertura, @hora_cierre, @dias_operativos, @instrucciones, @nivel_seg, @metodo, @horarios_flex, @layout_mapa, @dimensiones, @reglas_casa, @politica_cancelacion, @fid_activo, @fid_visitas, @fid_desc_pct, @fid_validez);
+          INSERT INTO Garajes (anfitrion_id, direccion, latitud, longitud, descripcion, precio_hora, tipo_vehiculo, hora_apertura, hora_cierre, dias_operativos, instrucciones_acceso, nivel_seguridad, metodo_acceso, horarios_flexibles, layout_mapa, dimensiones, reglas_casa, politica_cancelacion, fidelidad_activo, fidelidad_visitas, fidelidad_descuento_pct, fidelidad_dias_validez)
+          VALUES (@anfitrion_id, @direccion, @latitud, @longitud, @descripcion, @precio_hora, @tipo_vehiculo, @hora_apertura, @hora_cierre, @dias_operativos, @instrucciones, @nivel_seg, @metodo, @horarios_flex, @layout_mapa, @dimensiones, @reglas_casa, @politica_cancelacion, @fid_activo, @fid_visitas, @fid_desc_pct, @fid_validez);
           SELECT SCOPE_IDENTITY() AS nuevoId;
         `);
 
@@ -837,6 +907,8 @@ app.post('/api/garajes', (req, res) => {  // requireSession no aplica: body es m
         data: {
           id: garajeId,
           direccion: String(direccion).trim(),
+          latitud: latitudNum,
+          longitud: longitudNum,
           descripcion: descripcion ? String(descripcion).trim() : null,
           precio_hora: parseFloat(precio_hora),
           tipo_vehiculo: tipoPrincipal,
@@ -877,6 +949,8 @@ app.get('/api/garajes/mis-espacios', async (req, res) => {
         SELECT
           g.id,
           g.direccion,
+          g.latitud,
+          g.longitud,
           g.descripcion,
           g.precio_hora,
           g.tipo_vehiculo,
@@ -974,7 +1048,7 @@ app.put('/api/garajes/:id/estado', async (req, res) => {
 app.put('/api/garajes/:id/editar', requireSession, async (req, res) => {
   const garaje_id = parseInt(req.params.id, 10);
   const {
-    usuario_id, direccion, descripcion, precio_hora,
+    usuario_id, direccion, latitud, longitud, descripcion, precio_hora,
     nivel_seguridad, metodo_acceso, instrucciones_acceso,
     politica_cancelacion, fidelidad_activo, fidelidad_visitas,
     fidelidad_descuento_pct, fidelidad_dias_validez
@@ -989,6 +1063,18 @@ app.put('/api/garajes/:id/editar', requireSession, async (req, res) => {
   if (!precio_hora || Number(precio_hora) <= 0)
     return res.status(400).json({ status: 'error', message: 'Precio por hora inválido.' });
 
+  const latitudNum = latitud !== undefined && latitud !== null && String(latitud).trim() !== ''
+    ? Number(latitud) : null;
+  const longitudNum = longitud !== undefined && longitud !== null && String(longitud).trim() !== ''
+    ? Number(longitud) : null;
+
+  if ((latitudNum === null) !== (longitudNum === null))
+    return res.status(400).json({ status: 'error', message: 'Debes enviar latitud y longitud juntas.' });
+  if (latitudNum !== null && (!Number.isFinite(latitudNum) || latitudNum < -90 || latitudNum > 90))
+    return res.status(400).json({ status: 'error', message: 'La latitud del mapa es inválida.' });
+  if (longitudNum !== null && (!Number.isFinite(longitudNum) || longitudNum < -180 || longitudNum > 180))
+    return res.status(400).json({ status: 'error', message: 'La longitud del mapa es inválida.' });
+
   try {
     const db = await getPool();
 
@@ -1000,11 +1086,23 @@ app.put('/api/garajes/:id/editar', requireSession, async (req, res) => {
     if (check.recordset.length === 0)
       return res.status(404).json({ status: 'error', message: 'Garaje no encontrado o no te pertenece.' });
 
+    if (latitudNum !== null && longitudNum !== null) {
+      const conflictingGarage = await findConflictingGarageLocation(db, latitudNum, longitudNum, usuario_id, garaje_id);
+      if (conflictingGarage) {
+        return res.status(409).json({
+          status: 'error',
+          message: 'La ubicación seleccionada ya está registrada por otro espacio. Verifica el punto exacto del mapa o ajusta la ubicación.'
+        });
+      }
+    }
+
     const fidValidez = fidelidad_dias_validez !== '' && fidelidad_dias_validez !== null
       ? parseInt(fidelidad_dias_validez, 10) : null;
 
     await db.request()
       .input('direccion',             sql.NVarChar(255),  String(direccion).trim())
+      .input('latitud',               sql.Decimal(10, 7), latitudNum)
+      .input('longitud',              sql.Decimal(10, 7), longitudNum)
       .input('descripcion',           sql.NVarChar(500),  descripcion || '')
       .input('precio_hora',           sql.Decimal(10, 2), Number(precio_hora))
       .input('nivel_seguridad',       sql.VarChar(20),    nivel_seguridad || 'Estándar')
@@ -1019,6 +1117,8 @@ app.put('/api/garajes/:id/editar', requireSession, async (req, res) => {
       .query(`
         UPDATE Garajes SET
           direccion            = @direccion,
+          latitud              = @latitud,
+          longitud             = @longitud,
           descripcion          = @descripcion,
           precio_hora          = @precio_hora,
           nivel_seguridad      = @nivel_seguridad,
@@ -1038,6 +1138,73 @@ app.put('/api/garajes/:id/editar', requireSession, async (req, res) => {
   } catch (err) {
     console.error('❌ Error al editar garaje:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al actualizar el espacio.' });
+  }
+});
+
+// ============================================================
+// GARAJES — Eliminar garaje del anfitrión
+// DELETE /api/garajes/:id
+// Body: { usuario_id }
+// ============================================================
+app.delete('/api/garajes/:id', requireSession, async (req, res) => {
+  const garaje_id = parseInt(req.params.id, 10);
+  const { usuario_id } = req.body;
+  console.log(`\n🗑️ [DELETE /api/garajes/${garaje_id}] Usuario: ${usuario_id}`);
+
+  if (!garaje_id || !usuario_id) {
+    return res.status(400).json({ status: 'error', message: 'garaje_id y usuario_id requeridos.' });
+  }
+
+  try {
+    const db = await getPool();
+
+    const ownerCheck = await db.request()
+      .input('id', sql.Int, garaje_id)
+      .input('uid', sql.Int, parseInt(usuario_id, 10))
+      .query('SELECT id, estado_activo FROM Garajes WHERE id = @id AND anfitrion_id = @uid');
+
+    if (ownerCheck.recordset.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Garaje no encontrado o no te pertenece.' });
+    }
+
+    const reservasCheck = await db.request()
+      .input('gid', sql.Int, garaje_id)
+      .query('SELECT COUNT(1) AS total FROM Reservas WHERE garaje_id = @gid');
+
+    const reservasTotales = reservasCheck.recordset?.[0]?.total || 0;
+    if (reservasTotales > 0) {
+      return res.status(409).json({
+        status: 'error',
+        message: 'Este garaje tiene reservas registradas. Desactívalo en lugar de eliminarlo.'
+      });
+    }
+
+    const transaction = new sql.Transaction(db);
+    await transaction.begin();
+
+    try {
+      const tx = new sql.Request(transaction);
+
+      await tx.input('gid', sql.Int, garaje_id).query('DELETE FROM Resenas WHERE garaje_id = @gid');
+      await tx.input('gidFav', sql.Int, garaje_id).query('DELETE FROM Favoritos WHERE garaje_id = @gidFav');
+      await tx.input('gidCom', sql.Int, garaje_id).query('DELETE FROM ComodidadesGaraje WHERE garaje_id = @gidCom');
+      await tx.input('gidFoto', sql.Int, garaje_id).query('DELETE FROM FotosGaraje WHERE garaje_id = @gidFoto');
+      await tx.input('gidEsp', sql.Int, garaje_id).query('DELETE FROM Espacios WHERE garaje_id = @gidEsp');
+      await tx.input('gidGar', sql.Int, garaje_id).input('uidGar', sql.Int, parseInt(usuario_id, 10))
+        .query('DELETE FROM Garajes WHERE id = @gidGar AND anfitrion_id = @uidGar');
+
+      await transaction.commit();
+
+      console.log(`   ✅ Garaje ${garaje_id} eliminado correctamente.`);
+      return res.json({ status: 'ok', message: 'Garaje eliminado correctamente.' });
+    } catch (txErr) {
+      await transaction.rollback().catch(() => {});
+      throw txErr;
+    }
+
+  } catch (err) {
+    console.error('❌ Error al eliminar garaje:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al eliminar el garaje.' });
   }
 });
 
@@ -1121,6 +1288,8 @@ app.get('/api/explorar', async (req, res) => {
         COUNT(*) OVER() AS total_registros,
         g.id,
         g.direccion,
+        g.latitud,
+        g.longitud,
         g.descripcion,
         g.precio_hora,
         g.tipo_vehiculo,
@@ -1189,6 +1358,8 @@ app.get('/api/explorar/:id', async (req, res) => {
         SELECT
           g.id,
           g.direccion,
+          g.latitud,
+          g.longitud,
           g.descripcion,
           g.precio_hora,
           g.tipo_vehiculo,
@@ -1245,6 +1416,85 @@ app.get('/api/explorar/:id', async (req, res) => {
   } catch (err) {
     console.error('❌ Error en detalle garaje:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al cargar el detalle del garaje.' });
+  }
+});
+
+// ============================================================
+// GARAJES — Vista previa para anfitrión
+// GET /api/garajes/:id/preview?usuario_id=X
+// Devuelve el detalle completo aunque el listado esté inactivo.
+// ============================================================
+app.get('/api/garajes/:id/preview', requireSession, async (req, res) => {
+  const garaje_id = parseInt(req.params.id, 10);
+  const usuario_id = parseInt(req.query.usuario_id, 10);
+  console.log(`\n👁️ [GET /api/garajes/${garaje_id}/preview] Usuario: ${usuario_id}`);
+
+  if (!garaje_id || !usuario_id) {
+    return res.status(400).json({ status: 'error', message: 'ID de garaje y usuario_id requeridos.' });
+  }
+
+  try {
+    const db = await getPool();
+
+    const garajeResult = await db.request()
+      .input('id', sql.Int, garaje_id)
+      .input('uid', sql.Int, usuario_id)
+      .query(`
+        SELECT
+          g.id,
+          g.direccion,
+          g.latitud,
+          g.longitud,
+          g.descripcion,
+          g.precio_hora,
+          g.tipo_vehiculo,
+          g.estado_activo,
+          g.fecha_creacion,
+          g.hora_apertura,
+          g.hora_cierre,
+          g.dias_operativos,
+          g.instrucciones_acceso,
+          g.nivel_seguridad,
+          g.metodo_acceso,
+          g.horarios_flexibles,
+          g.layout_mapa,
+          g.dimensiones,
+          g.reglas_casa,
+          g.politica_cancelacion,
+          ua.nombre AS anfitrion_nombre,
+          ua.apellidos AS anfitrion_apellidos,
+          ua.foto_url AS anfitrion_foto,
+          ua.es_verificado AS anfitrion_es_verificado
+        FROM Garajes g
+        LEFT JOIN UsuarioAnfitrion ua ON g.anfitrion_id = ua.id
+        WHERE g.id = @id AND g.anfitrion_id = @uid
+      `);
+
+    if (garajeResult.recordset.length === 0) {
+      return res.status(404).json({ status: 'error', message: 'Garaje no encontrado o no te pertenece.' });
+    }
+
+    const fotosResult = await db.request()
+      .input('garaje_id', sql.Int, garaje_id)
+      .query(`
+        SELECT id, foto_url
+        FROM FotosGaraje
+        WHERE garaje_id = @garaje_id
+        ORDER BY id ASC
+      `);
+
+    const garaje = garajeResult.recordset[0];
+    garaje.fotos = fotosResult.recordset;
+
+    const comodidadesResult = await db.request()
+      .input('garaje_id2', sql.Int, garaje_id)
+      .query('SELECT clave FROM ComodidadesGaraje WHERE garaje_id = @garaje_id2');
+    garaje.comodidades = comodidadesResult.recordset.map(c => c.clave);
+
+    return res.json({ status: 'ok', data: garaje });
+  } catch (err) {
+    console.error('❌ Error en preview garaje:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al cargar la vista previa.' });
   }
 });
 
@@ -1360,24 +1610,40 @@ app.post('/api/resenas', requireSession, async (req, res) => {
 // ============================================================
 // CUPONES — Crear cupón (admin)
 // POST /api/cupones
-// Body: { codigo, descuento_porcentaje, fecha_fin,
-//         usos_maximos?, fecha_inicio?, descripcion? }
+// Body: { codigo, tipo_descuento?, descuento_porcentaje?, monto_fijo?,
+//         fecha_fin, usos_maximos?, fecha_inicio?, descripcion?,
+//         solo_primera_reserva? }
 // ============================================================
 app.post('/api/cupones', async (req, res) => {
   console.log('\n🎟️  [POST /api/cupones]');
-  const { codigo, descuento_porcentaje, fecha_fin, usos_maximos, fecha_inicio, descripcion } = req.body;
+  const {
+    codigo, descuento_porcentaje, fecha_fin, usos_maximos,
+    fecha_inicio, descripcion,
+    tipo_descuento = 'porcentaje', monto_fijo, solo_primera_reserva = false
+  } = req.body;
 
   if (!codigo || String(codigo).trim().length < 3)
     return res.status(400).json({ status: 'error', message: 'El código debe tener al menos 3 caracteres.' });
-  if (!descuento_porcentaje || descuento_porcentaje < 1 || descuento_porcentaje > 100)
-    return res.status(400).json({ status: 'error', message: 'El descuento debe estar entre 1% y 100%.' });
   if (!fecha_fin)
     return res.status(400).json({ status: 'error', message: 'La fecha de vencimiento es obligatoria.' });
 
-  const codigoNorm = String(codigo).toUpperCase().trim();
-  const finDate    = new Date(fecha_fin);
-  const inicioDate = fecha_inicio ? new Date(fecha_inicio) : new Date();
-  const maxUsos    = usos_maximos ? parseInt(usos_maximos, 10) : null;
+  const tipoCupon = tipo_descuento === 'monto_fijo' ? 'monto_fijo' : 'porcentaje';
+
+  if (tipoCupon === 'porcentaje') {
+    if (!descuento_porcentaje || descuento_porcentaje < 1 || descuento_porcentaje > 100)
+      return res.status(400).json({ status: 'error', message: 'El descuento debe estar entre 1% y 100%.' });
+  } else {
+    if (!monto_fijo || parseFloat(monto_fijo) <= 0)
+      return res.status(400).json({ status: 'error', message: 'El monto fijo debe ser mayor a 0.' });
+  }
+
+  const codigoNorm  = String(codigo).toUpperCase().trim();
+  const finDate     = new Date(fecha_fin);
+  const inicioDate  = fecha_inicio ? new Date(fecha_inicio) : new Date();
+  const maxUsos     = usos_maximos ? parseInt(usos_maximos, 10) : null;
+  const soloFirst   = solo_primera_reserva ? 1 : 0;
+  const pct         = tipoCupon === 'porcentaje' ? parseInt(descuento_porcentaje, 10) : 0;
+  const montoFijo   = tipoCupon === 'monto_fijo'  ? parseFloat(monto_fijo)           : null;
 
   if (isNaN(finDate.getTime()))
     return res.status(400).json({ status: 'error', message: 'Fecha de vencimiento inválida.' });
@@ -1395,25 +1661,28 @@ app.post('/api/cupones', async (req, res) => {
       return res.status(409).json({ status: 'error', message: 'Ya existe un cupón con ese código.' });
 
     const result = await db.request()
-      .input('codigo',    sql.VarChar(30),    codigoNorm)
-      .input('pct',       sql.Int,            parseInt(descuento_porcentaje, 10))
-      .input('desc_',     sql.NVarChar(200),  descripcion || null)
-      .input('max_usos',  sql.Int,            maxUsos)
-      .input('f_inicio',  sql.DateTime,       inicioDate)
-      .input('f_fin',     sql.DateTime,       finDate)
+      .input('codigo',        sql.VarChar(30),    codigoNorm)
+      .input('tipo',          sql.VarChar(15),    tipoCupon)
+      .input('pct',           sql.Int,            pct)
+      .input('monto_fijo',    sql.Decimal(10,2),  montoFijo)
+      .input('desc_',         sql.NVarChar(200),  descripcion || null)
+      .input('max_usos',      sql.Int,            maxUsos)
+      .input('solo_first',    sql.Bit,            soloFirst)
+      .input('f_inicio',      sql.DateTime,       inicioDate)
+      .input('f_fin',         sql.DateTime,       finDate)
       .query(`
-        INSERT INTO Cupones (codigo, descuento_porcentaje, descripcion, usos_maximos, fecha_inicio, fecha_fin)
+        INSERT INTO Cupones (codigo, tipo_descuento, descuento_porcentaje, monto_fijo, descripcion, usos_maximos, solo_primera_reserva, fecha_inicio, fecha_fin)
         OUTPUT INSERTED.id
-        VALUES (@codigo, @pct, @desc_, @max_usos, @f_inicio, @f_fin)
+        VALUES (@codigo, @tipo, @pct, @monto_fijo, @desc_, @max_usos, @solo_first, @f_inicio, @f_fin)
       `);
 
     const nuevoId = result.recordset[0].id;
-    console.log(`   ✅ Cupón creado: ${codigoNorm} (${descuento_porcentaje}% desc.) ID: ${nuevoId}`);
+    console.log(`   ✅ Cupón creado: ${codigoNorm} (${tipoCupon === 'porcentaje' ? pct + '%' : 'Bs. ' + montoFijo}) ID: ${nuevoId}`);
 
     return res.status(201).json({
       status: 'ok',
       message: `¡Cupón ${codigoNorm} creado exitosamente!`,
-      data: { id: nuevoId, codigo: codigoNorm, descuento_porcentaje: parseInt(descuento_porcentaje, 10) }
+      data: { id: nuevoId, codigo: codigoNorm, tipo_descuento: tipoCupon, descuento_porcentaje: pct, monto_fijo: montoFijo }
     });
 
   } catch (err) {
@@ -1463,11 +1732,14 @@ app.get('/api/cupones/:codigo', async (req, res) => {
   try {
     const db = await getPool();
     const now = new Date();
+    const conductorId = parseInt(req.query.conductor_id, 10) || null;
+
     const result = await db.request()
       .input('codigo', sql.VarChar(30), codigo)
       .input('now', sql.DateTime, now)
       .query(`
-        SELECT id, codigo, descuento_porcentaje, usos_maximos, usos_actuales
+        SELECT id, codigo, tipo_descuento, descuento_porcentaje, monto_fijo,
+               usos_maximos, usos_actuales, solo_primera_reserva, fecha_fin
         FROM Cupones
         WHERE codigo = @codigo
           AND activo = 1
@@ -1482,16 +1754,42 @@ app.get('/api/cupones/:codigo', async (req, res) => {
     if (cupon.usos_maximos !== null && cupon.usos_actuales >= cupon.usos_maximos)
       return res.status(400).json({ status: 'error', message: 'Este cupón ha alcanzado su límite de usos.' });
 
-    console.log(`   ✅ Cupón válido: ${codigo} (${cupon.descuento_porcentaje}% desc.)`);
+    // Validar restricción de primera reserva
+    if (cupon.solo_primera_reserva && conductorId) {
+      const prevReservas = await db.request()
+        .input('cid', sql.Int, conductorId)
+        .query(`SELECT COUNT(1) as cnt FROM Reservas WHERE conductor_id = @cid AND estado NOT IN ('rechazada','cancelada')`);
+      if (prevReservas.recordset[0].cnt > 0)
+        return res.status(400).json({ status: 'error', message: 'Este cupón es solo para tu primera reserva.' });
+    }
+
+    const tipoCupon = cupon.tipo_descuento || 'porcentaje';
+    console.log(`   ✅ Cupón válido: ${codigo} (${tipoCupon === 'porcentaje' ? cupon.descuento_porcentaje + '%' : 'Bs. ' + cupon.monto_fijo})`);
     return res.json({
       status: 'ok',
-      data: { codigo: cupon.codigo, descuento_porcentaje: cupon.descuento_porcentaje }
+      data: {
+        codigo:                cupon.codigo,
+        tipo_descuento:        tipoCupon,
+        descuento_porcentaje:  cupon.descuento_porcentaje,
+        monto_fijo:            cupon.monto_fijo,
+        solo_primera_reserva:  cupon.solo_primera_reserva,
+        fecha_fin:             cupon.fecha_fin
+      }
     });
   } catch (err) {
     console.error('❌ Error al validar cupón:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al validar el cupón.' });
   }
 });
+
+// Helper: calcula el monto de descuento según tipo de cupón
+function aplicarDescuentoCupon(cupon, subtotal) {
+  const tipo = cupon.tipo_descuento || 'porcentaje';
+  if (tipo === 'monto_fijo') {
+    return Math.min(parseFloat(cupon.monto_fijo || 0), subtotal);
+  }
+  return subtotal * ((parseInt(cupon.descuento_porcentaje, 10) || 0) / 100);
+}
 
 // ============================================================
 // RESERVAS — Crear Reserva (Doble Booking Validation + Cupón)
@@ -1628,7 +1926,8 @@ app.post('/api/reservas', requireSession, async (req, res) => {
         .input('codigo', sql.VarChar(30), cuponNorm)
         .input('now2', sql.DateTime, new Date())
         .query(`
-          SELECT id, descuento_porcentaje, usos_maximos, usos_actuales
+          SELECT id, tipo_descuento, descuento_porcentaje, monto_fijo,
+                 usos_maximos, usos_actuales, solo_primera_reserva
           FROM Cupones
           WHERE codigo = @codigo AND activo = 1 AND fecha_inicio <= @now2 AND fecha_fin >= @now2
         `);
@@ -1636,10 +1935,24 @@ app.post('/api/reservas', requireSession, async (req, res) => {
       if (cuponResult.recordset.length > 0) {
         const c = cuponResult.recordset[0];
         if (c.usos_maximos === null || c.usos_actuales < c.usos_maximos) {
-          descuento_aplicado = subtotal * (c.descuento_porcentaje / 100);
-          precio_total = precio_total - descuento_aplicado;
-          cupon_valido = { id: c.id, codigo: cuponNorm, descuento_porcentaje: c.descuento_porcentaje };
-          console.log(`   🎟️ Cupón ${cuponNorm} aplicado: -${c.descuento_porcentaje}% = -Bs. ${descuento_aplicado.toFixed(2)}`);
+          // Validar primera reserva
+          if (c.solo_primera_reserva) {
+            const prevR = await db.request()
+              .input('cid', sql.Int, parseInt(conductor_id, 10))
+              .query(`SELECT COUNT(1) as cnt FROM Reservas WHERE conductor_id = @cid AND estado NOT IN ('rechazada','cancelada')`);
+            if (prevR.recordset[0].cnt > 0) {
+              console.log(`   ⚠️ Cupón ${cuponNorm} rechazado: no es primera reserva del conductor`);
+            } else {
+              descuento_aplicado = aplicarDescuentoCupon(c, subtotal);
+            }
+          } else {
+            descuento_aplicado = aplicarDescuentoCupon(c, subtotal);
+          }
+          if (descuento_aplicado > 0) {
+            precio_total = Math.max(0, precio_total - descuento_aplicado);
+            cupon_valido = { id: c.id, codigo: cuponNorm };
+            console.log(`   🎟️ Cupón ${cuponNorm} aplicado: -Bs. ${descuento_aplicado.toFixed(2)}`);
+          }
         }
       }
     }
@@ -1696,7 +2009,7 @@ app.post('/api/reservas', requireSession, async (req, res) => {
 // PUT /api/reservas/:id/confirmar-pago
 // Body: { conductor_id }
 // ============================================================
-app.put('/api/reservas/:id/confirmar-pago', async (req, res) => {
+app.put('/api/reservas/:id/confirmar-pago', requireSession, async (req, res) => {
   const reserva_id = parseInt(req.params.id, 10);
   const { conductor_id, metodo_pago } = req.body;
   const metodoPago      = metodo_pago === 'efectivo' ? 'efectivo' : 'qr';
@@ -1711,10 +2024,24 @@ app.put('/api/reservas/:id/confirmar-pago', async (req, res) => {
     const check = await db.request()
       .input('id', sql.Int, reserva_id)
       .input('cid', sql.Int, parseInt(conductor_id, 10))
-      .query('SELECT id, estado, precio_total FROM Reservas WHERE id = @id AND conductor_id = @cid');
+      .query('SELECT id, estado, precio_total, estado_pago FROM Reservas WHERE id = @id AND conductor_id = @cid');
 
     if (check.recordset.length === 0)
       return res.status(404).json({ status: 'error', message: 'Reserva no encontrada.' });
+
+    const reserva = check.recordset[0];
+    if (reserva.estado !== 'confirmada') {
+      return res.status(409).json({
+        status: 'error',
+        message: 'Solo puedes pagar una reserva después de que el anfitrión la haya aceptado.'
+      });
+    }
+    if (reserva.estado_pago && reserva.estado_pago !== 'pendiente') {
+      return res.status(409).json({
+        status: 'error',
+        message: 'Esta reserva ya tiene un pago registrado.'
+      });
+    }
 
     await db.request()
       .input('id', sql.Int, reserva_id)
@@ -1735,7 +2062,7 @@ app.put('/api/reservas/:id/confirmar-pago', async (req, res) => {
 // PUT /api/reservas/:id/confirmar-efectivo
 // Body: { anfitrion_id }
 // ============================================================
-app.put('/api/reservas/:id/confirmar-efectivo', async (req, res) => {
+app.put('/api/reservas/:id/confirmar-efectivo', requireSession, async (req, res) => {
   const reserva_id  = parseInt(req.params.id, 10);
   const { anfitrion_id } = req.body;
   console.log(`\n💵 [PUT /api/reservas/${reserva_id}/confirmar-efectivo]`);
@@ -1750,7 +2077,10 @@ app.put('/api/reservas/:id/confirmar-efectivo', async (req, res) => {
         SELECT r.id FROM Reservas r
         JOIN Espacios e ON r.espacio_id = e.id
         JOIN Garajes  g ON e.garaje_id  = g.id
-        WHERE r.id = @id AND g.anfitrion_id = @aid AND r.estado_pago = 'efectivo_pendiente'
+        WHERE r.id = @id
+          AND g.anfitrion_id = @aid
+          AND r.estado = 'confirmada'
+          AND r.estado_pago = 'efectivo_pendiente'
       `);
     if (check.recordset.length === 0)
       return res.status(404).json({ status: 'error', message: 'Reserva no encontrada o el pago no está pendiente de efectivo.' });
@@ -1804,8 +2134,8 @@ app.get('/api/reservas/mis-reservas', async (req, res) => {
       query = `
         SELECT
           r.id, r.fecha_inicio, r.fecha_fin, r.estado, r.precio_total,
-          r.descuento_aplicado, r.cupon_codigo, r.estado_pago, r.multa_exceso,
-          g.id as garaje_id, g.direccion as garaje_direccion, g.tipo_vehiculo, g.instrucciones_acceso, g.metodo_acceso, g.precio_hora,
+          r.descuento_aplicado, r.cupon_codigo, r.estado_pago, r.motivo_rechazo, r.multa_exceso,
+          g.id as garaje_id, g.direccion as garaje_direccion, g.latitud as garaje_latitud, g.longitud as garaje_longitud, g.tipo_vehiculo, g.instrucciones_acceso, g.metodo_acceso, g.precio_hora,
           e.numero_espacio,
           ua.nombre + ' ' + ua.apellidos as anfitrion_nombre,
           CAST(CASE WHEN EXISTS (SELECT 1 FROM Resenas res WHERE res.reserva_id = r.id) THEN 1 ELSE 0 END AS BIT) as ha_revisado
@@ -1820,9 +2150,9 @@ app.get('/api/reservas/mis-reservas', async (req, res) => {
       query = `
         SELECT
           r.id, r.fecha_inicio, r.fecha_fin, r.estado, r.precio_total,
-          r.descuento_aplicado, r.cupon_codigo, r.estado_pago,
+          r.descuento_aplicado, r.cupon_codigo, r.estado_pago, r.motivo_rechazo,
           r.multa_exceso, r.hora_entrada_real, r.hora_salida_real,
-          g.id as garaje_id, g.direccion as garaje_direccion,
+          g.id as garaje_id, g.direccion as garaje_direccion, g.latitud as garaje_latitud, g.longitud as garaje_longitud,
           g.precio_hora,
           e.numero_espacio,
           uc.nombre + ' ' + uc.apellidos as conductor_nombre, uc.telefono as conductor_telefono
@@ -1852,18 +2182,27 @@ app.get('/api/reservas/mis-reservas', async (req, res) => {
 // ============================================================
 // RESERVAS — Cambiar estado
 // PUT /api/reservas/:id/estado
-// Body: { estado }
+// Body: { estado, anfitrion_id, motivo_rechazo? }
 // ============================================================
-app.put('/api/reservas/:id/estado', async (req, res) => {
+app.put('/api/reservas/:id/estado', requireSession, async (req, res) => {
   const reserva_id = parseInt(req.params.id, 10);
-  const { estado, multa_exceso, hora_salida_real, hora_entrada_real } = req.body;
+  const {
+    estado,
+    multa_exceso,
+    hora_salida_real,
+    hora_entrada_real,
+    motivo_rechazo,
+    anfitrion_id,
+    usuario_id
+  } = req.body;
+  const anfitrionId = parseInt(anfitrion_id || usuario_id, 10);
   console.log(`\n🔄 [PUT /api/reservas/${reserva_id}/estado] -> ${estado}`);
 
-  if (!reserva_id || !estado) {
-    return res.status(400).json({ status: 'error', message: 'reserva_id y estado son requeridos.' });
+  if (!reserva_id || !estado || !anfitrionId) {
+    return res.status(400).json({ status: 'error', message: 'reserva_id, estado y anfitrion_id son requeridos.' });
   }
 
-  const validEstados = ['pendiente', 'confirmada', 'rechazada', 'finalizada'];
+  const validEstados = ['confirmada', 'rechazada', 'finalizada'];
   if (!validEstados.includes(estado)) {
     return res.status(400).json({ status: 'error', message: 'Estado inválido.' });
   }
@@ -1873,10 +2212,63 @@ app.put('/api/reservas/:id/estado', async (req, res) => {
 
     const check = await db.request()
       .input('reserva_id', sql.Int, reserva_id)
-      .query('SELECT id FROM Reservas WHERE id = @reserva_id');
+      .input('anfitrion_id', sql.Int, anfitrionId)
+      .query(`
+        SELECT r.id, r.estado, r.estado_pago
+        FROM Reservas r
+        JOIN Espacios e ON r.espacio_id = e.id
+        JOIN Garajes g ON e.garaje_id = g.id
+        WHERE r.id = @reserva_id
+          AND g.anfitrion_id = @anfitrion_id
+      `);
 
     if (check.recordset.length === 0) {
-      return res.status(404).json({ status: 'error', message: 'Reserva no encontrada.' });
+      return res.status(404).json({ status: 'error', message: 'Reserva no encontrada o no te pertenece.' });
+    }
+
+    const reserva = check.recordset[0];
+    const estadoActual = reserva.estado;
+    const estadoPagoActual = reserva.estado_pago || 'pendiente';
+
+    if (estado === 'confirmada' && estadoActual !== 'pendiente') {
+      return res.status(409).json({
+        status: 'error',
+        message: 'Solo puedes aceptar reservas que aún están pendientes.'
+      });
+    }
+    if (estado === 'rechazada') {
+      if (estadoActual !== 'pendiente') {
+        return res.status(409).json({
+          status: 'error',
+          message: 'Solo puedes rechazar reservas que aún están pendientes.'
+        });
+      }
+      if (estadoPagoActual !== 'pendiente') {
+        return res.status(409).json({
+          status: 'error',
+          message: 'No puedes rechazar una reserva que ya tenga un pago registrado.'
+        });
+      }
+      if (!motivo_rechazo || String(motivo_rechazo).trim().length < 5) {
+        return res.status(400).json({
+          status: 'error',
+          message: 'Debes indicar un motivo de rechazo de al menos 5 caracteres.'
+        });
+      }
+    }
+    if (estado === 'finalizada') {
+      if (estadoActual !== 'confirmada') {
+        return res.status(409).json({
+          status: 'error',
+          message: 'Solo puedes finalizar reservas confirmadas.'
+        });
+      }
+      if (!['pagado', 'efectivo_confirmado', 'multa_pagada'].includes(estadoPagoActual)) {
+        return res.status(409).json({
+          status: 'error',
+          message: 'No puedes finalizar la reserva hasta que el pago esté confirmado.'
+        });
+      }
     }
 
     const req2 = db.request()
@@ -1884,6 +2276,13 @@ app.put('/api/reservas/:id/estado', async (req, res) => {
       .input('reserva_id', sql.Int, reserva_id);
 
     let extraSets = '';
+    if (estado === 'confirmada') {
+      extraSets += ', motivo_rechazo = NULL';
+    }
+    if (estado === 'rechazada') {
+      req2.input('motivo_rechazo', sql.NVarChar(500), String(motivo_rechazo).trim());
+      extraSets += ", motivo_rechazo = @motivo_rechazo, estado_pago = 'pendiente'";
+    }
     if (estado === 'finalizada') {
       const multaVal = multa_exceso != null ? Number(multa_exceso) : 0;
       req2.input('multa_exceso', sql.Decimal(10, 2), multaVal);
@@ -1902,7 +2301,17 @@ app.put('/api/reservas/:id/estado', async (req, res) => {
     await req2.query(`UPDATE Reservas SET estado = @estado${extraSets} WHERE id = @reserva_id`);
 
     console.log(`✅ Estado de reserva ${reserva_id} cambiado a ${estado}`);
-    return res.json({ status: 'ok', message: `Reserva ${estado} correctamente.` });
+    return res.json({
+      status: 'ok',
+      message: estado === 'rechazada'
+        ? 'Reserva rechazada correctamente.'
+        : `Reserva ${estado} correctamente.`,
+      data: {
+        reserva_id,
+        estado,
+        motivo_rechazo: estado === 'rechazada' ? String(motivo_rechazo).trim() : null
+      }
+    });
 
   } catch (err) {
     console.error('❌ Error al cambiar estado de reserva:', err.message);
@@ -2360,6 +2769,7 @@ async function startServer() {
   try {
     console.log('⏳ Conectando a SQL Server (Windows Auth)...');
     pool = await sql.connect({ connectionString: CONNECTION_STRING });
+    await ensureCompatibilitySchema(pool);
     console.log('✅ Conexión establecida correctamente.');
 
     app.listen(PORT, () => {
