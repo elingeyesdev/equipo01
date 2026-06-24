@@ -39,6 +39,22 @@
     return unique;
   }
 
+  // Construye una dirección corta y legible a partir de los componentes de
+  // Nominatim, evitando el display_name larguísimo que confunde al conductor.
+  function shortAddress(addr, displayName) {
+    if (addr) {
+      const calle  = [addr.road, addr.pedestrian, addr.house_number].filter(Boolean).join(' ').trim();
+      const zona   = addr.neighbourhood || addr.suburb || addr.quarter || addr.residential || addr.city_district || addr.village || addr.hamlet;
+      const ciudad = addr.city || addr.town || addr.municipality || addr.county;
+      const parts = [calle, zona, ciudad].filter(Boolean);
+      if (parts.length) return parts.slice(0, 3).join(', ');
+    }
+    if (displayName) {
+      return String(displayName).split(',').slice(0, 2).map(s => s.trim()).filter(Boolean).join(', ');
+    }
+    return '';
+  }
+
   async function geocodeAddress(query, options = {}) {
     const q = String(query || '').trim();
     if (!q) throw new Error('Direccion vacia');
@@ -54,7 +70,8 @@
         return {
           lat: Number(data[0].lat),
           lng: Number(data[0].lon),
-          label: data[0].display_name || candidate,
+          label: shortAddress(data[0].address, data[0].display_name) || candidate,
+          fullLabel: data[0].display_name || candidate,
         };
       } catch (err) {
         if (!firstError) firstError = err;
@@ -66,12 +83,14 @@
   }
 
   async function reverseGeocode(lat, lng) {
-    const url = `${REVERSE_URL}?format=jsonv2&accept-language=es&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
+    const url = `${REVERSE_URL}?format=jsonv2&addressdetails=1&accept-language=es&lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lng)}`;
     const data = await readJson(url);
+    const corta = shortAddress(data.address, data.display_name);
     return {
       lat: Number(data.lat || lat),
       lng: Number(data.lon || lng),
-      label: data.display_name || `${lat}, ${lng}`,
+      label: corta || `${Number(lat).toFixed(5)}, ${Number(lng).toFixed(5)}`,
+      fullLabel: data.display_name || '',
     };
   }
 

@@ -1,139 +1,226 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Registro — EstAirbnb</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <title>Crear cuenta — EstAirbnb</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-  <link href="/css/register.css" rel="stylesheet">
+  <link href="/css/auth.css" rel="stylesheet">
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0A2A43">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EstAirbnb">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <script src="/js/pwa.js" defer></script>
 </head>
 <body>
 
-<canvas id="bgCanvas"></canvas>
+<div class="auth">
 
-<div class="card">
-
-  <!-- Brand -->
-  <div class="brand">
-    <div class="brand-mark">
-      <svg width="32" height="32" viewBox="0 0 34 34" fill="none">
-        <path d="M10 8h10c4.42 0 8 3.58 8 8s-3.58 8-8 8h-6v6h-4V8zm4 4v8h6c2.21 0 4-1.79 4-4s-1.79-4-4-4h-6z" fill="white"/>
-      </svg>
+  <!-- ═══ Showcase de marca ═══ -->
+  <aside class="auth-aside">
+    <div class="aside-top">
+      <a class="aside-brand" href="/explorar.html">
+        <span class="aside-mark">
+          <svg width="22" height="22" viewBox="0 0 34 34" fill="none">
+            <g fill="white"><rect x="11" y="8" width="4" height="18" rx="1.3"/><rect x="11" y="8" width="13" height="4" rx="1.3"/><rect x="11" y="15" width="10" height="3.6" rx="1.3"/><rect x="11" y="22" width="13" height="4" rx="1.3"/></g>
+          </svg>
+        </span>
+        <span class="aside-wordmark">EstAirbnb</span>
+      </a>
     </div>
-    <div class="brand-name">EstAirbnb</div>
-    <div class="brand-sub">Crea tu cuenta gratis</div>
-  </div>
 
-  <!-- Alert -->
-  <div id="alertBox" class="alert-box">
-    <i id="alertIcon" class="fa-solid fa-circle-exclamation"></i>
-    <span id="alertMsg"></span>
-  </div>
+    <div class="aside-mid">
+      <p class="aside-eyebrow">Únete a la comunidad</p>
+      <h1 class="aside-title">Tu próximo parqueo<br><em>empieza aquí.</em></h1>
+      <p class="aside-text">Reserva espacios cerca de ti o convierte tu cochera en una fuente de ingresos. Tú eliges cómo participar.</p>
 
-  <form id="registerForm" novalidate>
+      <!-- Mapa de parqueo (ilustración propia) -->
+      <div class="aside-art" aria-hidden="true">
+        <svg viewBox="0 0 440 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g stroke="rgba(255,255,255,.10)" stroke-width="1.5">
+            <rect x="14" y="20" width="120" height="70" rx="6"/>
+            <rect x="150" y="20" width="150" height="70" rx="6"/>
+            <rect x="316" y="20" width="110" height="70" rx="6"/>
+            <rect x="14" y="110" width="120" height="74" rx="6"/>
+            <rect x="150" y="110" width="150" height="74" rx="6"/>
+            <rect x="316" y="110" width="110" height="74" rx="6"/>
+          </g>
+          <path class="route-dash" d="M58 158 L58 100 Q58 92 66 92 L210 92 Q220 92 220 82 L220 54"
+                stroke="#14998C" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="58" cy="158" r="6" fill="#EAF1F4"/>
+          <circle cx="58" cy="158" r="6" fill="none" stroke="#EAF1F4" stroke-width="1.5" class="pin-pulse"/>
+          <g transform="translate(220 54)">
+            <circle r="13" class="pin-pulse" fill="#14998C"/>
+            <path d="M0-12c-6 0-11 5-11 11 0 8 11 17 11 17s11-9 11-17c0-6-5-11-11-11z" fill="#14998C"/>
+            <text x="0" y="3" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#04261f">P</text>
+          </g>
+          <g transform="translate(360 150)">
+            <circle r="11" class="pin-pulse d2" fill="#ffffff"/>
+            <path d="M0-10c-5 0-9 4-9 9 0 7 9 14 9 14s9-7 9-14c0-5-4-9-9-9z" fill="#ffffff"/>
+            <text x="0" y="3" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#0A2A43">P</text>
+          </g>
+          <g transform="translate(95 150)">
+            <circle r="11" class="pin-pulse d3" fill="#ffffff"/>
+            <path d="M0-10c-5 0-9 4-9 9 0 7 9 14 9 14s9-7 9-14c0-5-4-9-9-9z" fill="#ffffff"/>
+            <text x="0" y="3" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#0A2A43">P</text>
+          </g>
+        </svg>
+      </div>
+    </div>
 
-    <!-- Role selection -->
-    <p class="sec-lbl">Quiero</p>
-    <div class="role-grid">
-      <label class="role-option" data-rol="conductor" onclick="seleccionarRol('conductor')">
-        <input type="radio" id="rolConductor" name="role">
-        <div class="role-card">
-          <div class="role-dot"></div>
-          <div class="role-title">Buscar un espacio</div>
-          <div class="role-desc">Encuentra y reserva parqueos seguros cerca de ti.</div>
+    <div class="aside-bottom">
+      <div class="aside-stats">
+        <div>
+          <div class="stat-num">Gratis</div>
+          <div class="stat-lbl">Crear tu cuenta</div>
         </div>
-      </label>
-      <label class="role-option" data-rol="anfitrion" onclick="seleccionarRol('anfitrion')">
-        <input type="radio" id="rolAnfitrion" name="role">
-        <div class="role-card">
-          <div class="role-dot"></div>
-          <div class="role-title">Publicar un espacio</div>
-          <div class="role-desc">Publica tu lugar y genera ingresos extra.</div>
+        <div>
+          <div class="stat-num">2 min</div>
+          <div class="stat-lbl">Para empezar</div>
         </div>
-      </label>
-    </div>
-    <span class="role-error" id="errRol">Selecciona un rol para continuar.</span>
-
-    <div class="divider"></div>
-
-    <!-- Personal info -->
-    <p class="sec-lbl">Información personal</p>
-    <div class="field-grid">
-      <div class="field">
-        <label class="field-lbl" for="inpNombre">Nombre</label>
-        <input id="inpNombre" type="text" placeholder="Juan"
-               autocomplete="given-name" required>
-        <span class="field-error" id="errNombre">Mín. 2 caracteres.</span>
-      </div>
-      <div class="field">
-        <label class="field-lbl" for="inpApellidos">Apellidos</label>
-        <input id="inpApellidos" type="text" placeholder="Pérez"
-               autocomplete="family-name" required>
-        <span class="field-error" id="errApellidos">Mín. 2 caracteres.</span>
-      </div>
-    </div>
-
-    <div class="field-grid">
-      <div class="field">
-        <label class="field-lbl" for="inpEmail">Correo electrónico</label>
-        <input id="inpEmail" type="email" placeholder="tu@ejemplo.com"
-               autocomplete="email" required>
-        <span class="field-error" id="errEmail">Correo no válido.</span>
-      </div>
-      <div class="field">
-        <label class="field-lbl" for="inpTelefono">
-          Teléfono&thinsp;<span style="font-weight:400;color:var(--txt-3)">(opcional)</span>
-        </label>
-        <input id="inpTelefono" type="tel" placeholder="+1 (555) 000-0000"
-               autocomplete="tel">
-      </div>
-    </div>
-
-    <!-- Security -->
-    <p class="sec-lbl" style="margin-top:18px">Seguridad</p>
-    <div class="field-grid">
-      <div class="field">
-        <label class="field-lbl" for="inpPassword">Contraseña</label>
-        <div class="inp-wrap">
-          <input id="inpPassword" type="password" placeholder="••••••••"
-                 autocomplete="new-password" required style="padding-right:44px">
-          <button type="button" id="togglePw" class="btn-eye">
-            <i id="eyeIcon" class="fa-solid fa-eye"></i>
-          </button>
+        <div>
+          <div class="stat-num">100%</div>
+          <div class="stat-lbl">Pagos protegidos</div>
         </div>
-        <div class="strength-bar">
-          <div id="strengthFill" class="strength-fill"></div>
-        </div>
-        <span id="strengthLabel" class="strength-lbl"></span>
-        <span class="field-error" id="errPassword">Mín. 6 caracteres.</span>
-      </div>
-      <div class="field">
-        <label class="field-lbl" for="inpConfirm">Confirmar contraseña</label>
-        <input id="inpConfirm" type="password" placeholder="••••••••"
-               autocomplete="new-password" required>
-        <span class="field-error" id="errConfirm">Las contraseñas no coinciden.</span>
       </div>
     </div>
+  </aside>
 
-    <button type="submit" id="btnRegister" class="btn-primary">Crear cuenta</button>
+  <!-- ═══ Formulario ═══ -->
+  <main class="auth-main">
+    <div class="auth-form wide">
 
-    <p class="terms-txt">
-      Al registrarte aceptas nuestros
-      <a href="#">Términos de servicio</a> y
-      <a href="#">Política de privacidad</a>.
-    </p>
+      <div class="mobile-brand">
+        <span class="m-mark">
+          <svg width="20" height="20" viewBox="0 0 34 34" fill="none">
+            <g fill="white"><rect x="11" y="8" width="4" height="18" rx="1.3"/><rect x="11" y="8" width="13" height="4" rx="1.3"/><rect x="11" y="15" width="10" height="3.6" rx="1.3"/><rect x="11" y="22" width="13" height="4" rx="1.3"/></g>
+          </svg>
+        </span>
+        <span class="m-name">EstAirbnb</span>
+      </div>
 
-  </form>
+      <div class="form-head">
+        <h2 class="form-title">Crea tu cuenta</h2>
+        <p class="form-sub">Es gratis y solo toma un par de minutos.</p>
+      </div>
 
-  <div class="card-footer">
-    ¿Ya tienes cuenta? <a href="/login.html">Inicia sesión</a>
-  </div>
+      <div id="alertBox" class="alert-box">
+        <i id="alertIcon" class="fa-solid fa-circle-exclamation"></i>
+        <span id="alertMsg"></span>
+      </div>
+
+      <form id="registerForm" novalidate>
+
+        <!-- Rol -->
+        <p class="sec-lbl">¿Cómo quieres usar EstAirbnb?</p>
+        <div class="role-grid">
+          <label class="role-option" data-rol="conductor" onclick="seleccionarRol('conductor')">
+            <input type="radio" id="rolConductor" name="role">
+            <div class="role-card">
+              <span class="role-dot"></span>
+              <div class="role-ico"><i class="fa-solid fa-magnifying-glass-location"></i></div>
+              <div class="role-title">Buscar un espacio</div>
+              <div class="role-desc">Encuentra y reserva parqueos seguros cerca de ti.</div>
+            </div>
+          </label>
+          <label class="role-option" data-rol="anfitrion" onclick="seleccionarRol('anfitrion')">
+            <input type="radio" id="rolAnfitrion" name="role">
+            <div class="role-card">
+              <span class="role-dot"></span>
+              <div class="role-ico"><i class="fa-solid fa-house-circle-check"></i></div>
+              <div class="role-title">Publicar un espacio</div>
+              <div class="role-desc">Publica tu lugar y genera ingresos extra.</div>
+            </div>
+          </label>
+        </div>
+        <span class="role-error" id="errRol">Selecciona una opción para continuar.</span>
+
+        <div class="divider"></div>
+
+        <!-- Información personal -->
+        <p class="sec-lbl">Información personal</p>
+        <div class="field-grid">
+          <div class="field">
+            <label class="field-lbl" for="inpNombre">Nombre</label>
+            <input id="inpNombre" type="text" placeholder="Juan"
+                   autocomplete="given-name" required>
+            <span class="field-error" id="errNombre">Mín. 2 caracteres.</span>
+          </div>
+          <div class="field">
+            <label class="field-lbl" for="inpApellidos">Apellidos</label>
+            <input id="inpApellidos" type="text" placeholder="Pérez"
+                   autocomplete="family-name" required>
+            <span class="field-error" id="errApellidos">Mín. 2 caracteres.</span>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <div class="field">
+            <label class="field-lbl" for="inpEmail">Correo electrónico</label>
+            <input id="inpEmail" type="email" placeholder="tu@ejemplo.com"
+                   autocomplete="email" required>
+            <span class="field-error" id="errEmail">Correo no válido.</span>
+          </div>
+          <div class="field">
+            <label class="field-lbl" for="inpTelefono">
+              Teléfono&thinsp;<span style="font-weight:400;color:var(--text-3)">(opcional)</span>
+            </label>
+            <input id="inpTelefono" type="tel" placeholder="+591 700 00000"
+                   autocomplete="tel">
+          </div>
+        </div>
+
+        <!-- Seguridad -->
+        <p class="sec-lbl mt">Seguridad</p>
+        <div class="field-grid">
+          <div class="field">
+            <label class="field-lbl" for="inpPassword">Contraseña</label>
+            <div class="inp-wrap">
+              <input id="inpPassword" type="password" placeholder="••••••••"
+                     autocomplete="new-password" required style="padding-right:44px">
+              <button type="button" id="togglePw" class="btn-eye" aria-label="Mostrar contraseña">
+                <i id="eyeIcon" class="fa-solid fa-eye"></i>
+              </button>
+            </div>
+            <div class="strength-bar">
+              <div id="strengthFill" class="strength-fill"></div>
+            </div>
+            <span id="strengthLabel" class="strength-lbl"></span>
+            <span class="field-error" id="errPassword">Mín. 6 caracteres.</span>
+          </div>
+          <div class="field">
+            <label class="field-lbl" for="inpConfirm">Confirmar contraseña</label>
+            <input id="inpConfirm" type="password" placeholder="••••••••"
+                   autocomplete="new-password" required>
+            <span class="field-error" id="errConfirm">Las contraseñas no coinciden.</span>
+          </div>
+        </div>
+
+        <button type="submit" id="btnRegister" class="btn-primary">Crear cuenta</button>
+
+        <p class="terms-txt">
+          Al registrarte aceptas nuestros
+          <a href="#">Términos de servicio</a> y
+          <a href="#">Política de privacidad</a>.
+        </p>
+
+      </form>
+
+      <div class="form-foot">
+        ¿Ya tienes cuenta? <a href="/login.html">Inicia sesión</a>
+      </div>
+
+    </div>
+  </main>
 
 </div>
 
-<script src="/js/mesh-bg.js"></script>
 <script src="/js/register.js"></script>
-<script src="/js/navbar-badge.js"></script>
 </body>
 </html>

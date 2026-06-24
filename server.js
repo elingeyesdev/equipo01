@@ -144,6 +144,9 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use('/uploads', express.static(path.join(__dirname, 'public', 'uploads')));
 app.use('/adminlte', express.static(path.join(__dirname, 'AdminLTE-master', 'dist')));
 
+// Raíz → pantalla de inicio de sesión (evita "Cannot GET /")
+app.get('/', (req, res) => res.redirect('/login.html'));
+
 // ============================================================
 // MIDDLEWARE — Verificar sesión (usuario_id requerido)
 // Aplica a rutas que necesitan usuario autenticado.
@@ -223,10 +226,10 @@ setInterval(async () => {
         AND fecha_inicio < DATEADD(MINUTE, -30, GETDATE())
     `);
     if (result.rowsAffected[0] > 0) {
-      console.log(`🕒 [TTL] ${result.rowsAffected[0]} reserva(s) pendientes expiradas → canceladas automáticamente.`);
+      console.log(`[TTL] ${result.rowsAffected[0]} reserva(s) pendientes expiradas → canceladas automáticamente.`);
     }
   } catch (err) {
-    console.error('❌ [TTL] Error en limpieza automática:', err.message);
+    console.error('[ERROR] [TTL] Error en limpieza automática:', err.message);
   }
 }, 2 * 60 * 60 * 1000);
 
@@ -237,7 +240,7 @@ setInterval(async () => {
 // rol: 'anfitrion' | 'conductor'
 // ============================================================
 app.post('/api/auth/register', async (req, res) => {
-  console.log('\n📝 [POST /api/auth/register]');
+  console.log('\n[POST /api/auth/register]');
   const { nombre, apellidos, email, password, telefono, rol } = req.body;
 
   // Validaciones
@@ -305,7 +308,7 @@ app.post('/api/auth/register', async (req, res) => {
       `);
     }
 
-    console.log(`✅ Usuario registrado con ID: ${newId} | Rol: ${rol_nombre}`);
+    console.log(`[OK] Usuario registrado con ID: ${newId} | Rol: ${rol_nombre}`);
 
     return res.status(201).json({
       status: 'ok',
@@ -321,7 +324,7 @@ app.post('/api/auth/register', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('❌ Error en registro:', err.message);
+    console.error('[ERROR] Error en registro:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al crear la cuenta.' });
   }
 });
@@ -332,7 +335,7 @@ app.post('/api/auth/register', async (req, res) => {
 // Body: { email, password }
 // ============================================================
 app.post('/api/auth/login', async (req, res) => {
-  console.log('\n🔑 [POST /api/auth/login]');
+  console.log('\n[POST /api/auth/login]');
   const { email, password } = req.body;
 
   if (!email || !password)
@@ -343,7 +346,7 @@ app.post('/api/auth/login', async (req, res) => {
   // ── Brute Force Check ──────────────────────────────────────
   const blockCheck = checkLoginBlock(emailKey);
   if (blockCheck.blocked) {
-    console.warn(`🚫 [BRUTE FORCE] Cuenta bloqueada: ${emailKey} | Intentos: ${blockCheck.count} | Espera: ${blockCheck.mins} min`);
+    console.warn(`[WARN] [BRUTE FORCE] Cuenta bloqueada: ${emailKey} | Intentos: ${blockCheck.count} | Espera: ${blockCheck.mins} min`);
     return res.status(429).json({
       status: 'error',
       message: `Demasiados intentos fallidos. Cuenta bloqueada por ${blockCheck.mins} minuto(s). Inténtalo más tarde.`
@@ -372,7 +375,7 @@ app.post('/api/auth/login', async (req, res) => {
       recordLoginFail(emailKey);
       const st = checkLoginBlock(emailKey);
       const remaining = MAX_LOGIN_ATTEMPTS - (st.count || 0);
-      console.warn(`⚠️  [BRUTE FORCE] Email no encontrado: ${emailKey} | Intentos: ${st.count}`);
+      console.warn(`[WARN] [BRUTE FORCE] Email no encontrado: ${emailKey} | Intentos: ${st.count}`);
       return res.status(401).json({
         status: 'error',
         message: 'Correo o contraseña incorrectos.',
@@ -387,7 +390,7 @@ app.post('/api/auth/login', async (req, res) => {
       recordLoginFail(emailKey);
       const st = checkLoginBlock(emailKey);
       const remaining = MAX_LOGIN_ATTEMPTS - (st.count || 0);
-      console.warn(`⚠️  [BRUTE FORCE] Contraseña incorrecta: ${emailKey} | Intentos: ${st.count}`);
+      console.warn(`[WARN] [BRUTE FORCE] Contraseña incorrecta: ${emailKey} | Intentos: ${st.count}`);
 
       if (st.blocked) {
         return res.status(429).json({
@@ -405,7 +408,7 @@ app.post('/api/auth/login', async (req, res) => {
 
     // ── Login exitoso: resetear contador ──────────────────────
     clearLoginAttempts(emailKey);
-    console.log(`✅ Login exitoso: ${user.email} (ID: ${user.id}) | Rol: ${user.rol_nombre}`);
+    console.log(`[OK] Login exitoso: ${user.email} (ID: ${user.id}) | Rol: ${user.rol_nombre}`);
 
     const mapped_rol_id = user.rol_nombre === 'anfitrion' ? 1 : 2;
 
@@ -425,7 +428,7 @@ app.post('/api/auth/login', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('❌ Error en login:', err.message);
+    console.error('[ERROR] Error en login:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al iniciar sesión.' });
   }
 });
@@ -436,7 +439,7 @@ app.post('/api/auth/login', async (req, res) => {
 // ============================================================
 app.get('/api/perfil/general', async (req, res) => {
   const usuario_id = parseInt(req.query.usuario_id, 10);
-  console.log(`\n📖 [GET /api/perfil/general] ID: ${usuario_id}`);
+  console.log(`\n[GET /api/perfil/general] ID: ${usuario_id}`);
 
   if (!usuario_id) {
     return res.status(400).json({ status: 'error', message: 'usuario_id requerido.' });
@@ -466,11 +469,11 @@ app.get('/api/perfil/general', async (req, res) => {
     const row = result.recordset[0];
     row.rol_id = row.rol_nombre === 'anfitrion' ? 1 : 2;
 
-    console.log('✅ Perfil cargado:', row);
+    console.log('[OK] Perfil cargado:', row);
     return res.json({ status: 'ok', data: row });
 
   } catch (err) {
-    console.error('❌ Error al cargar perfil:', err.message);
+    console.error('[ERROR] Error al cargar perfil:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al cargar el perfil.' });
   }
 });
@@ -481,9 +484,9 @@ app.get('/api/perfil/general', async (req, res) => {
 // Body: { usuario_id, nombre, apellidos, telefono }
 // ============================================================
 app.put('/api/perfil/general', async (req, res) => {
-  console.log('\n📩 [PUT /api/perfil/general]');
+  console.log('\n[PUT /api/perfil/general]');
   const { usuario_id, nombre, apellidos, telefono } = req.body;
-  console.log('📦 Datos:', { usuario_id, nombre, apellidos, telefono });
+  console.log('Datos:', { usuario_id, nombre, apellidos, telefono });
 
   if (!nombre || String(nombre).trim().length < 2)
     return res.status(400).json({ status: 'error', message: 'El nombre es obligatorio (mín. 2 caracteres).' });
@@ -514,7 +517,7 @@ app.put('/api/perfil/general', async (req, res) => {
         WHERE id = @usuario_id
       `);
 
-    console.log('✅ Filas afectadas:', result.rowsAffected[0]);
+    console.log('[OK] Filas afectadas:', result.rowsAffected[0]);
 
     if (result.rowsAffected[0] === 0)
       return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
@@ -522,7 +525,7 @@ app.put('/api/perfil/general', async (req, res) => {
     return res.json({ status: 'ok', message: '¡Perfil actualizado correctamente!', data: { usuario_id, nombre, apellidos, telefono } });
 
   } catch (err) {
-    console.error('❌ Error al actualizar:', err.message);
+    console.error('[ERROR] Error al actualizar:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al actualizar el perfil.' });
   }
 });
@@ -554,7 +557,7 @@ app.post('/api/perfil/upload-foto', (req, res) => {
     }
 
     const foto_url = `/uploads/perfiles/${req.file.filename}`;
-    console.log(`\n🖼️  [POST /api/perfil/upload-foto] Archivo: ${foto_url} | Usuario: ${usuario_id}`);
+    console.log(`\n[POST /api/perfil/upload-foto] Archivo: ${foto_url} | Usuario: ${usuario_id}`);
 
     try {
       const db = await getPool();
@@ -588,11 +591,11 @@ app.post('/api/perfil/upload-foto', (req, res) => {
         .input('usuario_id', sql.Int, usuario_id)
         .query(`UPDATE ${tabla} SET foto_url = @foto_url WHERE id = @usuario_id`);
 
-      console.log('✅ foto_url guardada en BD:', foto_url);
+      console.log('[OK] foto_url guardada en BD:', foto_url);
       return res.json({ status: 'ok', message: '¡Foto actualizada!', foto_url });
 
     } catch (dbErr) {
-      console.error('❌ Error BD al guardar foto:', dbErr.message);
+      console.error('[ERROR] Error BD al guardar foto:', dbErr.message);
       fs.unlinkSync(req.file.path);
       return res.status(500).json({ status: 'error', message: 'Error interno al guardar la foto.' });
     }
@@ -605,7 +608,7 @@ app.post('/api/perfil/upload-foto', (req, res) => {
 // Body: { usuario_id, passwordActual, passwordNueva }
 // ============================================================
 app.put('/api/perfil/seguridad/password', async (req, res) => {
-  console.log('\n🔐 [PUT /api/perfil/seguridad/password]');
+  console.log('\n[PUT /api/perfil/seguridad/password]');
   const { usuario_id, passwordActual, passwordNueva } = req.body;
 
   if (!usuario_id)
@@ -632,7 +635,7 @@ app.put('/api/perfil/seguridad/password', async (req, res) => {
     // Comparar contraseña actual con el hash
     const coincide = await bcrypt.compare(passwordActual, hashActual);
     if (!coincide) {
-      console.log('❌ La contraseña actual no coincide');
+      console.log('[ERROR] La contraseña actual no coincide');
       return res.status(401).json({ status: 'error', message: 'La contraseña actual es incorrecta.' });
     }
 
@@ -645,12 +648,12 @@ app.put('/api/perfil/seguridad/password', async (req, res) => {
       .input('id', sql.Int, parseInt(usuario_id, 10))
       .query('UPDATE Credenciales SET password_hash = @password WHERE id = @id');
 
-    console.log('✅ Contraseña actualizada para usuario:', usuario_id);
+    console.log('[OK] Contraseña actualizada para usuario:', usuario_id);
 
     return res.json({ status: 'ok', message: '¡Contraseña actualizada correctamente!' });
 
   } catch (err) {
-    console.error('❌ Error al cambiar contraseña:', err.message);
+    console.error('[ERROR] Error al cambiar contraseña:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al cambiar la contraseña.' });
   }
 });
@@ -663,7 +666,7 @@ app.put('/api/perfil/seguridad/password', async (req, res) => {
 // ============================================================
 app.get('/api/perfil/privacidad', async (req, res) => {
   const usuario_id = parseInt(req.query.usuario_id, 10);
-  console.log(`\n🔒 [GET /api/perfil/privacidad] ID: ${usuario_id}`);
+  console.log(`\n[GET /api/perfil/privacidad] ID: ${usuario_id}`);
 
   if (!usuario_id)
     return res.status(400).json({ status: 'error', message: 'usuario_id requerido.' });
@@ -687,11 +690,11 @@ app.get('/api/perfil/privacidad', async (req, res) => {
     if (result.recordset.length === 0)
       return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
 
-    console.log('✅ Privacidad cargada:', result.recordset[0]);
+    console.log('[OK] Privacidad cargada:', result.recordset[0]);
     return res.json({ status: 'ok', data: result.recordset[0] });
 
   } catch (err) {
-    console.error('❌ Error al cargar privacidad:', err.message);
+    console.error('[ERROR] Error al cargar privacidad:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno.' });
   }
 });
@@ -702,7 +705,7 @@ app.get('/api/perfil/privacidad', async (req, res) => {
 // Body: { usuario_id, priv_telefono, priv_calificaciones, priv_email }
 // ============================================================
 app.put('/api/perfil/privacidad', async (req, res) => {
-  console.log('\n🔒 [PUT /api/perfil/privacidad]');
+  console.log('\n[PUT /api/perfil/privacidad]');
   const { usuario_id, priv_telefono, priv_calificaciones, priv_email } = req.body;
 
   if (!usuario_id)
@@ -733,11 +736,11 @@ app.put('/api/perfil/privacidad', async (req, res) => {
         WHERE id = @id
       `);
 
-    console.log('✅ Privacidad actualizada para usuario:', usuario_id);
+    console.log('[OK] Privacidad actualizada para usuario:', usuario_id);
     return res.json({ status: 'ok', message: '¡Preferencias de privacidad guardadas!' });
 
   } catch (err) {
-    console.error('❌ Error al guardar privacidad:', err.message);
+    console.error('[ERROR] Error al guardar privacidad:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al guardar la privacidad.' });
   }
 });
@@ -774,8 +777,8 @@ app.post('/api/garajes', (req, res) => {  // requireSession no aplica: body es m
       return res.status(400).json({ status: 'error', message: 'usuario_id requerido.' });
     if (!direccion || String(direccion).trim().length < 5)
       return res.status(400).json({ status: 'error', message: 'La dirección es obligatoria (mín. 5 caracteres).' });
-    if (!precio_hora || isNaN(precio_hora) || Number(precio_hora) <= 0)
-      return res.status(400).json({ status: 'error', message: 'El precio por hora debe ser un número positivo.' });
+    if (!precio_hora || isNaN(precio_hora) || Number(precio_hora) < 1 || Number(precio_hora) > 200)
+      return res.status(400).json({ status: 'error', message: 'El precio por hora debe estar entre Bs. 1 y Bs. 200.' });
     if (!espacios || espacios.length === 0)
       return res.status(400).json({ status: 'error', message: 'Debes configurar al menos 1 espacio de parqueo en el mapa.' });
     if (espacios.length > 200)
@@ -797,7 +800,7 @@ app.post('/api/garajes', (req, res) => {  // requireSession no aplica: body es m
     const tipos = espacios.map(e => e.tipo_vehiculo).filter(Boolean);
     const tipoPrincipal = tipos.length > 0 ? tipos[0] : 'auto';
 
-    console.log(`\n🏠 [POST /api/garajes] Usuario: ${usuario_id} | Dir: ${direccion} | Espacios: ${espacios.length}`);
+    console.log(`\n[POST /api/garajes] Usuario: ${usuario_id} | Dir: ${direccion} | Espacios: ${espacios.length}`);
 
     try {
       const db = await getPool();
@@ -859,7 +862,7 @@ app.post('/api/garajes', (req, res) => {  // requireSession no aplica: body es m
         `);
 
       const garajeId = insertResult.recordset[0].nuevoId;
-      console.log(`   ✅ Garaje creado con ID: ${garajeId}`);
+      console.log(`   [OK] Garaje creado con ID: ${garajeId}`);
 
       // ── Paso 1B: Insertar Espacios definidos por el anfitrión ──
       for (const esp of espacios) {
@@ -872,7 +875,7 @@ app.post('/api/garajes', (req, res) => {  // requireSession no aplica: body es m
           .input('tipo', sql.VarChar(20), tipoValido)
           .query("INSERT INTO Espacios (garaje_id, numero_espacio, estado, fila, columna, tipo_vehiculo) VALUES (@garaje_id, @num, 'libre', @fila, @col, @tipo)");
       }
-      console.log(`   🅿️ ${espacios.length} Espacio(s) insertados.`);
+      console.log(`   ${espacios.length} Espacio(s) insertados.`);
 
       // ── Paso 1C: Insertar Comodidades del garaje ──
       if (comodidades && comodidades.length > 0) {
@@ -884,7 +887,7 @@ app.post('/api/garajes', (req, res) => {  // requireSession no aplica: body es m
               .query('INSERT INTO ComodidadesGaraje (garaje_id, clave) VALUES (@garaje_id, @clave)');
           }
         }
-        console.log(`   🏷️ ${comodidades.length} comodidad(es) insertadas.`);
+        console.log(`   ${comodidades.length} comodidad(es) insertadas.`);
       }
 
       // ── Paso 2: Guardar fotos en FotosGaraje ──
@@ -898,7 +901,7 @@ app.post('/api/garajes', (req, res) => {  // requireSession no aplica: body es m
             .query('INSERT INTO FotosGaraje (garaje_id, foto_url) VALUES (@garaje_id, @foto_url)');
           fotosGuardadas.push(foto_url);
         }
-        console.log(`   📷 ${fotosGuardadas.length} foto(s) guardada(s).`);
+        console.log(`   ${fotosGuardadas.length} foto(s) guardada(s).`);
       }
 
       return res.status(201).json({
@@ -918,7 +921,7 @@ app.post('/api/garajes', (req, res) => {  // requireSession no aplica: body es m
       });
 
     } catch (dbErr) {
-      console.error('❌ Error al publicar garaje:', dbErr.message);
+      console.error('[ERROR] Error al publicar garaje:', dbErr.message);
       // Limpiar archivos subidos si la BD falló
       if (req.files) {
         req.files.forEach(f => { try { fs.unlinkSync(f.path); } catch (_) { } });
@@ -935,7 +938,7 @@ app.post('/api/garajes', (req, res) => {  // requireSession no aplica: body es m
 // ============================================================
 app.get('/api/garajes/mis-espacios', async (req, res) => {
   const usuario_id = parseInt(req.query.usuario_id, 10);
-  console.log(`\n🏠 [GET /api/garajes/mis-espacios] Usuario: ${usuario_id}`);
+  console.log(`\n[GET /api/garajes/mis-espacios] Usuario: ${usuario_id}`);
 
   if (!usuario_id)
     return res.status(400).json({ status: 'error', message: 'usuario_id requerido.' });
@@ -980,11 +983,11 @@ app.get('/api/garajes/mis-espacios', async (req, res) => {
         ORDER BY g.fecha_creacion DESC
       `);
 
-    console.log(`   ✅ ${result.recordset.length} garaje(s) encontrado(s).`);
+    console.log(`   [OK] ${result.recordset.length} garaje(s) encontrado(s).`);
     return res.json({ status: 'ok', data: result.recordset });
 
   } catch (err) {
-    console.error('❌ Error al listar garajes:', err.message);
+    console.error('[ERROR] Error al listar garajes:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al cargar los espacios.' });
   }
 });
@@ -997,7 +1000,7 @@ app.get('/api/garajes/mis-espacios', async (req, res) => {
 app.put('/api/garajes/:id/estado', async (req, res) => {
   const garaje_id = parseInt(req.params.id, 10);
   const { usuario_id } = req.body;
-  console.log(`\n🔄 [PUT /api/garajes/${garaje_id}/estado] Usuario: ${usuario_id}`);
+  console.log(`\n[PUT /api/garajes/${garaje_id}/estado] Usuario: ${usuario_id}`);
 
   if (!garaje_id || !usuario_id)
     return res.status(400).json({ status: 'error', message: 'garaje_id y usuario_id requeridos.' });
@@ -1022,7 +1025,7 @@ app.put('/api/garajes/:id/estado', async (req, res) => {
       .input('id', sql.Int, garaje_id)
       .query('UPDATE Garajes SET estado_activo = @nuevoEstado WHERE id = @id');
 
-    console.log(`   ✅ Garaje ${garaje_id}: estado_activo → ${nuevoEstado}`);
+    console.log(`   [OK] Garaje ${garaje_id}: estado_activo → ${nuevoEstado}`);
 
     return res.json({
       status: 'ok',
@@ -1031,7 +1034,7 @@ app.put('/api/garajes/:id/estado', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('❌ Error al cambiar estado:', err.message);
+    console.error('[ERROR] Error al cambiar estado:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al cambiar el estado.' });
   }
 });
@@ -1054,7 +1057,7 @@ app.put('/api/garajes/:id/editar', requireSession, async (req, res) => {
     fidelidad_descuento_pct, fidelidad_dias_validez
   } = req.body;
 
-  console.log(`\n✏️  [PUT /api/garajes/${garaje_id}/editar] Usuario: ${usuario_id}`);
+  console.log(`\n[PUT /api/garajes/${garaje_id}/editar] Usuario: ${usuario_id}`);
 
   if (!garaje_id || !usuario_id)
     return res.status(400).json({ status: 'error', message: 'garaje_id y usuario_id requeridos.' });
@@ -1132,11 +1135,11 @@ app.put('/api/garajes/:id/editar', requireSession, async (req, res) => {
         WHERE id = @id
       `);
 
-    console.log(`   ✅ Garaje ${garaje_id} actualizado.`);
+    console.log(`   [OK] Garaje ${garaje_id} actualizado.`);
     return res.json({ status: 'ok', message: '¡Espacio actualizado correctamente!' });
 
   } catch (err) {
-    console.error('❌ Error al editar garaje:', err.message);
+    console.error('[ERROR] Error al editar garaje:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al actualizar el espacio.' });
   }
 });
@@ -1149,7 +1152,7 @@ app.put('/api/garajes/:id/editar', requireSession, async (req, res) => {
 app.delete('/api/garajes/:id', requireSession, async (req, res) => {
   const garaje_id = parseInt(req.params.id, 10);
   const { usuario_id } = req.body;
-  console.log(`\n🗑️ [DELETE /api/garajes/${garaje_id}] Usuario: ${usuario_id}`);
+  console.log(`\n[DELETE /api/garajes/${garaje_id}] Usuario: ${usuario_id}`);
 
   if (!garaje_id || !usuario_id) {
     return res.status(400).json({ status: 'error', message: 'garaje_id y usuario_id requeridos.' });
@@ -1195,7 +1198,7 @@ app.delete('/api/garajes/:id', requireSession, async (req, res) => {
 
       await transaction.commit();
 
-      console.log(`   ✅ Garaje ${garaje_id} eliminado correctamente.`);
+      console.log(`   [OK] Garaje ${garaje_id} eliminado correctamente.`);
       return res.json({ status: 'ok', message: 'Garaje eliminado correctamente.' });
     } catch (txErr) {
       await transaction.rollback().catch(() => {});
@@ -1203,7 +1206,7 @@ app.delete('/api/garajes/:id', requireSession, async (req, res) => {
     }
 
   } catch (err) {
-    console.error('❌ Error al eliminar garaje:', err.message);
+    console.error('[ERROR] Error al eliminar garaje:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al eliminar el garaje.' });
   }
 });
@@ -1214,7 +1217,7 @@ app.delete('/api/garajes/:id', requireSession, async (req, res) => {
 // Query: precio_min, precio_max, tipo_vehiculo
 // ============================================================
 app.get('/api/explorar', async (req, res) => {
-  console.log('\n🔍 [GET /api/explorar]');
+  console.log('\n[GET /api/explorar]');
   let { precio_min, precio_max, tipo_vehiculo, busqueda, page, limit, fecha_entrada, fecha_salida, nivel_seguridad, metodo_acceso } = req.query;
 
   // Parámetros de paginación por defecto
@@ -1317,7 +1320,7 @@ app.get('/api/explorar', async (req, res) => {
     // Limpiar total_registros del array final enviado al frontend (opcional pero limpio)
     garajes.forEach(g => delete g.total_registros);
 
-    console.log(`   ✅ Explorar: página ${currentPage}/${totalPaginas} (${garajes.length} registros devueltos de ${totalRegistros} en total).`);
+    console.log(`   [OK] Explorar: página ${currentPage}/${totalPaginas} (${garajes.length} registros devueltos de ${totalRegistros} en total).`);
 
     return res.json({
       status: 'ok',
@@ -1331,7 +1334,7 @@ app.get('/api/explorar', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('❌ Error en explorar:', err.message);
+    console.error('[ERROR] Error en explorar:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al cargar los garajes.' });
   }
 });
@@ -1342,7 +1345,7 @@ app.get('/api/explorar', async (req, res) => {
 // ============================================================
 app.get('/api/explorar/:id', async (req, res) => {
   const garaje_id = parseInt(req.params.id, 10);
-  console.log(`\n🔍 [GET /api/explorar/${garaje_id}]`);
+  console.log(`\n[GET /api/explorar/${garaje_id}]`);
 
   if (!garaje_id) {
     return res.status(400).json({ status: 'error', message: 'ID de garaje inválido.' });
@@ -1410,11 +1413,11 @@ app.get('/api/explorar/:id', async (req, res) => {
       .query('SELECT clave FROM ComodidadesGaraje WHERE garaje_id = @garaje_id2');
     garaje.comodidades = comodidadesResult.recordset.map(c => c.clave);
 
-    console.log(`   ✅ Garaje ${garaje_id} cargado con Host: ${garaje.anfitrion_nombre}, ${garaje.fotos.length} foto(s) y ${garaje.comodidades.length} comodidad(es).`);
+    console.log(`   [OK] Garaje ${garaje_id} cargado con Host: ${garaje.anfitrion_nombre}, ${garaje.fotos.length} foto(s) y ${garaje.comodidades.length} comodidad(es).`);
     return res.json({ status: 'ok', data: garaje });
 
   } catch (err) {
-    console.error('❌ Error en detalle garaje:', err.message);
+    console.error('[ERROR] Error en detalle garaje:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al cargar el detalle del garaje.' });
   }
 });
@@ -1427,7 +1430,7 @@ app.get('/api/explorar/:id', async (req, res) => {
 app.get('/api/garajes/:id/preview', requireSession, async (req, res) => {
   const garaje_id = parseInt(req.params.id, 10);
   const usuario_id = parseInt(req.query.usuario_id, 10);
-  console.log(`\n👁️ [GET /api/garajes/${garaje_id}/preview] Usuario: ${usuario_id}`);
+  console.log(`\n[GET /api/garajes/${garaje_id}/preview] Usuario: ${usuario_id}`);
 
   if (!garaje_id || !usuario_id) {
     return res.status(400).json({ status: 'error', message: 'ID de garaje y usuario_id requeridos.' });
@@ -1493,7 +1496,7 @@ app.get('/api/garajes/:id/preview', requireSession, async (req, res) => {
 
     return res.json({ status: 'ok', data: garaje });
   } catch (err) {
-    console.error('❌ Error en preview garaje:', err.message);
+    console.error('[ERROR] Error en preview garaje:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al cargar la vista previa.' });
   }
 });
@@ -1504,7 +1507,7 @@ app.get('/api/garajes/:id/preview', requireSession, async (req, res) => {
 // ============================================================
 app.get('/api/garajes/:id/espacios', async (req, res) => {
   const garaje_id = parseInt(req.params.id, 10);
-  console.log(`\n🅿️ [GET /api/garajes/${garaje_id}/espacios]`);
+  console.log(`\n[GET /api/garajes/${garaje_id}/espacios]`);
 
   if (!garaje_id) {
     return res.status(400).json({ status: 'error', message: 'ID de garaje inválido.' });
@@ -1523,11 +1526,11 @@ app.get('/api/garajes/:id/espacios', async (req, res) => {
         ORDER BY e.fila ASC, e.columna ASC
       `);
 
-    console.log(`   ✅ ${result.recordset.length} espacio(s) encontrados para garaje ${garaje_id}.`);
+    console.log(`   [OK] ${result.recordset.length} espacio(s) encontrados para garaje ${garaje_id}.`);
     return res.json({ status: 'ok', data: result.recordset });
 
   } catch (err) {
-    console.error('❌ Error al listar espacios:', err.message);
+    console.error('[ERROR] Error al listar espacios:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al cargar los espacios.' });
   }
 });
@@ -1538,7 +1541,7 @@ app.get('/api/garajes/:id/espacios', async (req, res) => {
 // ============================================================
 app.get('/api/garajes/:id/resenas', async (req, res) => {
   const garaje_id = parseInt(req.params.id, 10);
-  console.log(`\n💬 [GET /api/garajes/${garaje_id}/resenas]`);
+  console.log(`\n[GET /api/garajes/${garaje_id}/resenas]`);
   try {
     const db = await getPool();
     const result = await db.request()
@@ -1554,7 +1557,7 @@ app.get('/api/garajes/:id/resenas', async (req, res) => {
       `);
     return res.json({ status: 'ok', data: result.recordset });
   } catch (err) {
-    console.error('❌ Error al obtener reseñas:', err.message);
+    console.error('[ERROR] Error al obtener reseñas:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al obtener las reseñas.' });
   }
 });
@@ -1564,7 +1567,7 @@ app.get('/api/garajes/:id/resenas', async (req, res) => {
 // POST /api/resenas
 // ============================================================
 app.post('/api/resenas', requireSession, async (req, res) => {
-  console.log('\n💬 [POST /api/resenas]');
+  console.log('\n[POST /api/resenas]');
   const { garaje_id, reserva_id, conductor_id, calificacion, comentario } = req.body;
   if (!garaje_id || !reserva_id || !conductor_id || !calificacion) {
     return res.status(400).json({ status: 'error', message: 'Faltan campos obligatorios.' });
@@ -1599,7 +1602,7 @@ app.post('/api/resenas', requireSession, async (req, res) => {
       `);
     return res.json({ status: 'ok', message: 'Reseña publicada exitosamente.' });
   } catch (err) {
-    console.error('❌ Error al publicar reseña:', err.message);
+    console.error('[ERROR] Error al publicar reseña:', err.message);
     // Duplicate key (UQ_Resenas_Reserva) → ya reseñó esta reserva
     if (err.message && err.message.includes('UQ_Resenas_Reserva'))
       return res.status(409).json({ status: 'error', message: 'Ya publicaste una reseña para esta reserva.' });
@@ -1615,7 +1618,7 @@ app.post('/api/resenas', requireSession, async (req, res) => {
 //         solo_primera_reserva? }
 // ============================================================
 app.post('/api/cupones', async (req, res) => {
-  console.log('\n🎟️  [POST /api/cupones]');
+  console.log('\n[POST /api/cupones]');
   const {
     codigo, descuento_porcentaje, fecha_fin, usos_maximos,
     fecha_inicio, descripcion,
@@ -1677,7 +1680,7 @@ app.post('/api/cupones', async (req, res) => {
       `);
 
     const nuevoId = result.recordset[0].id;
-    console.log(`   ✅ Cupón creado: ${codigoNorm} (${tipoCupon === 'porcentaje' ? pct + '%' : 'Bs. ' + montoFijo}) ID: ${nuevoId}`);
+    console.log(`   [OK] Cupón creado: ${codigoNorm} (${tipoCupon === 'porcentaje' ? pct + '%' : 'Bs. ' + montoFijo}) ID: ${nuevoId}`);
 
     return res.status(201).json({
       status: 'ok',
@@ -1686,7 +1689,7 @@ app.post('/api/cupones', async (req, res) => {
     });
 
   } catch (err) {
-    console.error('❌ Error al crear cupón:', err.message);
+    console.error('[ERROR] Error al crear cupón:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al crear el cupón.' });
   }
 });
@@ -1713,7 +1716,7 @@ app.get('/api/cupones/disponibles', async (req, res) => {
       `);
     return res.json({ status: 'ok', data: result.recordset });
   } catch (err) {
-    console.error('❌ Error al listar cupones:', err.message);
+    console.error('[ERROR] Error al listar cupones:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno.' });
   }
 });
@@ -1724,7 +1727,7 @@ app.get('/api/cupones/disponibles', async (req, res) => {
 // ============================================================
 app.get('/api/cupones/:codigo', async (req, res) => {
   const codigo = String(req.params.codigo || '').toUpperCase().trim();
-  console.log(`\n🎟️  [GET /api/cupones/${codigo}]`);
+  console.log(`\n[GET /api/cupones/${codigo}]`);
 
   if (!codigo)
     return res.status(400).json({ status: 'error', message: 'Código requerido.' });
@@ -1764,7 +1767,7 @@ app.get('/api/cupones/:codigo', async (req, res) => {
     }
 
     const tipoCupon = cupon.tipo_descuento || 'porcentaje';
-    console.log(`   ✅ Cupón válido: ${codigo} (${tipoCupon === 'porcentaje' ? cupon.descuento_porcentaje + '%' : 'Bs. ' + cupon.monto_fijo})`);
+    console.log(`   [OK] Cupón válido: ${codigo} (${tipoCupon === 'porcentaje' ? cupon.descuento_porcentaje + '%' : 'Bs. ' + cupon.monto_fijo})`);
     return res.json({
       status: 'ok',
       data: {
@@ -1777,7 +1780,7 @@ app.get('/api/cupones/:codigo', async (req, res) => {
       }
     });
   } catch (err) {
-    console.error('❌ Error al validar cupón:', err.message);
+    console.error('[ERROR] Error al validar cupón:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al validar el cupón.' });
   }
 });
@@ -1797,7 +1800,7 @@ function aplicarDescuentoCupon(cupon, subtotal) {
 // Body: { espacio_id, conductor_id, fecha_inicio, fecha_fin, cupon_codigo? }
 // ============================================================
 app.post('/api/reservas', requireSession, async (req, res) => {
-  console.log('\n📅 [POST /api/reservas]');
+  console.log('\n[POST /api/reservas]');
   const { espacio_id, conductor_id, fecha_inicio, fecha_fin, cupon_codigo } = req.body;
 
   if (!espacio_id || !conductor_id || !fecha_inicio || !fecha_fin) {
@@ -1941,7 +1944,7 @@ app.post('/api/reservas', requireSession, async (req, res) => {
               .input('cid', sql.Int, parseInt(conductor_id, 10))
               .query(`SELECT COUNT(1) as cnt FROM Reservas WHERE conductor_id = @cid AND estado NOT IN ('rechazada','cancelada')`);
             if (prevR.recordset[0].cnt > 0) {
-              console.log(`   ⚠️ Cupón ${cuponNorm} rechazado: no es primera reserva del conductor`);
+              console.log(`   [WARN] Cupón ${cuponNorm} rechazado: no es primera reserva del conductor`);
             } else {
               descuento_aplicado = aplicarDescuentoCupon(c, subtotal);
             }
@@ -1951,7 +1954,7 @@ app.post('/api/reservas', requireSession, async (req, res) => {
           if (descuento_aplicado > 0) {
             precio_total = Math.max(0, precio_total - descuento_aplicado);
             cupon_valido = { id: c.id, codigo: cuponNorm };
-            console.log(`   🎟️ Cupón ${cuponNorm} aplicado: -Bs. ${descuento_aplicado.toFixed(2)}`);
+            console.log(`   Cupón ${cuponNorm} aplicado: -Bs. ${descuento_aplicado.toFixed(2)}`);
           }
         }
       }
@@ -1983,7 +1986,7 @@ app.post('/api/reservas', requireSession, async (req, res) => {
         .query('UPDATE Cupones SET usos_actuales = usos_actuales + 1 WHERE id = @cid');
     }
 
-    console.log(`✅ Reserva ${nuevaReservaId} creada. Base: Bs. ${subtotal.toFixed(2)} | Comisión: Bs. ${tarifa_servicio.toFixed(2)} | Descuento: Bs. ${descuento_aplicado.toFixed(2)} | Total: Bs. ${precio_total.toFixed(2)}`);
+    console.log(`[OK] Reserva ${nuevaReservaId} creada. Base: Bs. ${subtotal.toFixed(2)} | Comisión: Bs. ${tarifa_servicio.toFixed(2)} | Descuento: Bs. ${descuento_aplicado.toFixed(2)} | Total: Bs. ${precio_total.toFixed(2)}`);
 
     return res.status(201).json({
       status: 'ok',
@@ -1999,7 +2002,7 @@ app.post('/api/reservas', requireSession, async (req, res) => {
     });
 
   } catch (err) {
-    console.error('❌ Error general creando reserva:', err.message);
+    console.error('[ERROR] Error general creando reserva:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al crear reserva' });
   }
 });
@@ -2014,7 +2017,7 @@ app.put('/api/reservas/:id/confirmar-pago', requireSession, async (req, res) => 
   const { conductor_id, metodo_pago } = req.body;
   const metodoPago      = metodo_pago === 'efectivo' ? 'efectivo' : 'qr';
   const nuevoEstadoPago = metodoPago === 'qr' ? 'pagado' : 'efectivo_pendiente';
-  console.log(`\n💳 [PUT /api/reservas/${reserva_id}/confirmar-pago] metodo=${metodoPago}`);
+  console.log(`\n[PUT /api/reservas/${reserva_id}/confirmar-pago] metodo=${metodoPago}`);
 
   if (!reserva_id || !conductor_id)
     return res.status(400).json({ status: 'error', message: 'reserva_id y conductor_id requeridos.' });
@@ -2048,11 +2051,11 @@ app.put('/api/reservas/:id/confirmar-pago', requireSession, async (req, res) => 
       .input('ep', sql.VarChar(30), nuevoEstadoPago)
       .query('UPDATE Reservas SET estado_pago = @ep WHERE id = @id');
 
-    console.log(`   ✅ Pago registrado para reserva ${reserva_id} — estado_pago: ${nuevoEstadoPago}`);
+    console.log(`   [OK] Pago registrado para reserva ${reserva_id} — estado_pago: ${nuevoEstadoPago}`);
     return res.json({ status: 'ok', message: 'Pago registrado exitosamente.', data: { reserva_id, estado_pago: nuevoEstadoPago } });
 
   } catch (err) {
-    console.error('❌ Error al confirmar pago:', err.message);
+    console.error('[ERROR] Error al confirmar pago:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al confirmar el pago.' });
   }
 });
@@ -2065,7 +2068,7 @@ app.put('/api/reservas/:id/confirmar-pago', requireSession, async (req, res) => 
 app.put('/api/reservas/:id/confirmar-efectivo', requireSession, async (req, res) => {
   const reserva_id  = parseInt(req.params.id, 10);
   const { anfitrion_id } = req.body;
-  console.log(`\n💵 [PUT /api/reservas/${reserva_id}/confirmar-efectivo]`);
+  console.log(`\n[PUT /api/reservas/${reserva_id}/confirmar-efectivo]`);
   if (!reserva_id || !anfitrion_id)
     return res.status(400).json({ status: 'error', message: 'reserva_id y anfitrion_id requeridos.' });
   try {
@@ -2087,10 +2090,10 @@ app.put('/api/reservas/:id/confirmar-efectivo', requireSession, async (req, res)
     await db.request()
       .input('id', sql.Int, reserva_id)
       .query("UPDATE Reservas SET estado_pago = 'efectivo_confirmado' WHERE id = @id");
-    console.log(`   ✅ Efectivo confirmado para reserva ${reserva_id}`);
+    console.log(`   [OK] Efectivo confirmado para reserva ${reserva_id}`);
     return res.json({ status: 'ok', message: 'Pago en efectivo confirmado correctamente.' });
   } catch (err) {
-    console.error('❌ Error al confirmar efectivo:', err.message);
+    console.error('[ERROR] Error al confirmar efectivo:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno.' });
   }
 });
@@ -2101,7 +2104,7 @@ app.put('/api/reservas/:id/confirmar-efectivo', requireSession, async (req, res)
 // Query: usuario_id, rol_id, estado?, fecha_desde?, fecha_hasta?
 // ============================================================
 app.get('/api/reservas/mis-reservas', async (req, res) => {
-  console.log('\n📅 [GET /api/reservas/mis-reservas]');
+  console.log('\n[GET /api/reservas/mis-reservas]');
   const { usuario_id, rol_id, estado, fecha_desde, fecha_hasta } = req.query;
 
   if (!usuario_id || !rol_id) {
@@ -2170,11 +2173,11 @@ app.get('/api/reservas/mis-reservas', async (req, res) => {
     }
 
     const result = await request.query(query);
-    console.log(`   ✅ ${result.recordset.length} reserva(s) devueltas${estado ? ` (filtro: ${estado})` : ''}.`);
+    console.log(`   [OK] ${result.recordset.length} reserva(s) devueltas${estado ? ` (filtro: ${estado})` : ''}.`);
     return res.json({ status: 'ok', data: result.recordset });
 
   } catch (err) {
-    console.error('❌ Error al obtener mis reservas:', err.message);
+    console.error('[ERROR] Error al obtener mis reservas:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al consultar mis reservas.' });
   }
 });
@@ -2196,7 +2199,7 @@ app.put('/api/reservas/:id/estado', requireSession, async (req, res) => {
     usuario_id
   } = req.body;
   const anfitrionId = parseInt(anfitrion_id || usuario_id, 10);
-  console.log(`\n🔄 [PUT /api/reservas/${reserva_id}/estado] -> ${estado}`);
+  console.log(`\n[PUT /api/reservas/${reserva_id}/estado] -> ${estado}`);
 
   if (!reserva_id || !estado || !anfitrionId) {
     return res.status(400).json({ status: 'error', message: 'reserva_id, estado y anfitrion_id son requeridos.' });
@@ -2300,7 +2303,7 @@ app.put('/api/reservas/:id/estado', requireSession, async (req, res) => {
 
     await req2.query(`UPDATE Reservas SET estado = @estado${extraSets} WHERE id = @reserva_id`);
 
-    console.log(`✅ Estado de reserva ${reserva_id} cambiado a ${estado}`);
+    console.log(`[OK] Estado de reserva ${reserva_id} cambiado a ${estado}`);
     return res.json({
       status: 'ok',
       message: estado === 'rechazada'
@@ -2314,7 +2317,7 @@ app.put('/api/reservas/:id/estado', requireSession, async (req, res) => {
     });
 
   } catch (err) {
-    console.error('❌ Error al cambiar estado de reserva:', err.message);
+    console.error('[ERROR] Error al cambiar estado de reserva:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al cambiar el estado.' });
   }
 });
@@ -2345,7 +2348,7 @@ app.get('/api/reservas/verificar-existente', async (req, res) => {
 
     return res.json({ status: 'ok', existe: result.recordset.length > 0 });
   } catch (err) {
-    console.error('❌ Error al verificar reserva existente:', err.message);
+    console.error('[ERROR] Error al verificar reserva existente:', err.message);
     return res.status(500).json({ status: 'error' });
   }
 });
@@ -2370,7 +2373,7 @@ app.get('/api/reservas/activas-count', async (req, res) => {
       `);
     return res.json({ status: 'ok', count: result.recordset[0].cuenta || 0 });
   } catch (err) {
-    console.error('❌ Error al contar reservas activas:', err.message);
+    console.error('[ERROR] Error al contar reservas activas:', err.message);
     return res.status(500).json({ status: 'error' });
   }
 });
@@ -2399,7 +2402,7 @@ app.put('/api/reservas/:id/pagar-multa', async (req, res) => {
       .query(`UPDATE Reservas SET estado_pago = 'multa_pagada' WHERE id = @id`);
     return res.json({ status: 'ok', message: 'Multa pagada correctamente.' });
   } catch (err) {
-    console.error('❌ Error al pagar multa:', err.message);
+    console.error('[ERROR] Error al pagar multa:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno.' });
   }
 });
@@ -2426,7 +2429,7 @@ app.get('/api/reservas/check-garaje', async (req, res) => {
       `);
     return res.json({ status: 'ok', tiene_reserva: result.recordset[0].cuenta > 0 });
   } catch (err) {
-    console.error('❌ Error al verificar reserva en garaje:', err.message);
+    console.error('[ERROR] Error al verificar reserva en garaje:', err.message);
     return res.status(500).json({ status: 'error' });
   }
 });
@@ -2453,7 +2456,7 @@ app.get('/api/reservas/pendientes-count', async (req, res) => {
 
     return res.json({ status: 'ok', count: result.recordset[0].cuenta || 0 });
   } catch (err) {
-    console.error('❌ Error al contar reservas pendientes:', err.message);
+    console.error('[ERROR] Error al contar reservas pendientes:', err.message);
     return res.status(500).json({ status: 'error' });
   }
 });
@@ -2466,7 +2469,7 @@ app.get('/api/reservas/pendientes-count', async (req, res) => {
 app.get('/api/garajes/:id/espacios-admin', async (req, res) => {
   const garaje_id = parseInt(req.params.id, 10);
   const usuario_id = parseInt(req.query.usuario_id, 10);
-  console.log(`\n🛠️ [GET /api/garajes/${garaje_id}/espacios-admin] Usuario: ${usuario_id}`);
+  console.log(`\n[GET /api/garajes/${garaje_id}/espacios-admin] Usuario: ${usuario_id}`);
 
   if (!garaje_id || !usuario_id)
     return res.status(400).json({ status: 'error', message: 'garaje_id y usuario_id requeridos.' });
@@ -2495,11 +2498,11 @@ app.get('/api/garajes/:id/espacios-admin', async (req, res) => {
         ORDER BY e.fila ASC, e.columna ASC
       `);
 
-    console.log(`   ✅ ${result.recordset.length} espacio(s) encontrados (admin).`);
+    console.log(`   [OK] ${result.recordset.length} espacio(s) encontrados (admin).`);
     return res.json({ status: 'ok', data: { garaje, espacios: result.recordset } });
 
   } catch (err) {
-    console.error('❌ Error al listar espacios (admin):', err.message);
+    console.error('[ERROR] Error al listar espacios (admin):', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al cargar los espacios.' });
   }
 });
@@ -2512,7 +2515,7 @@ app.get('/api/garajes/:id/espacios-admin', async (req, res) => {
 app.put('/api/garajes/espacio/:id/estado', async (req, res) => {
   const espacio_id = parseInt(req.params.id, 10);
   const { usuario_id, estado } = req.body;
-  console.log(`\n🔧 [PUT /api/garajes/espacio/${espacio_id}/estado] -> ${estado}`);
+  console.log(`\n[PUT /api/garajes/espacio/${espacio_id}/estado] -> ${estado}`);
 
   if (!espacio_id || !usuario_id || !estado)
     return res.status(400).json({ status: 'error', message: 'espacio_id, usuario_id y estado son requeridos.' });
@@ -2548,12 +2551,12 @@ app.put('/api/garajes/espacio/:id/estado', async (req, res) => {
       .query('UPDATE Espacios SET estado = @estado WHERE id = @espacio_id');
 
     const label = estado === 'mantenimiento' ? 'en mantenimiento' : 'habilitado';
-    console.log(`   ✅ Espacio ${espacio_id} ahora está ${label}.`);
+    console.log(`   [OK] Espacio ${espacio_id} ahora está ${label}.`);
 
     return res.json({ status: 'ok', message: `Espacio ${label} correctamente.` });
 
   } catch (err) {
-    console.error('❌ Error al cambiar estado de espacio:', err.message);
+    console.error('[ERROR] Error al cambiar estado de espacio:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al cambiar el estado.' });
   }
 });
@@ -2565,7 +2568,7 @@ app.put('/api/garajes/espacio/:id/estado', async (req, res) => {
 // ============================================================
 app.post('/api/favoritos/toggle', async (req, res) => {
   const { conductor_id, garaje_id } = req.body;
-  console.log(`\n❤️ [POST /api/favoritos/toggle] Conductor: ${conductor_id} | Garaje: ${garaje_id}`);
+  console.log(`\n[POST /api/favoritos/toggle] Conductor: ${conductor_id} | Garaje: ${garaje_id}`);
 
   if (!conductor_id || !garaje_id)
     return res.status(400).json({ status: 'error', message: 'conductor_id y garaje_id son requeridos.' });
@@ -2586,7 +2589,7 @@ app.post('/api/favoritos/toggle', async (req, res) => {
         .input('garaje_id', sql.Int, parseInt(garaje_id, 10))
         .query('DELETE FROM Favoritos WHERE conductor_id = @conductor_id AND garaje_id = @garaje_id');
 
-      console.log(`   💔 Garaje ${garaje_id} quitado de favoritos.`);
+      console.log(`   Garaje ${garaje_id} quitado de favoritos.`);
       return res.json({ status: 'ok', favorito: false, message: 'Eliminado de favoritos.' });
     } else {
       // No existe → agregar a favoritos
@@ -2595,12 +2598,12 @@ app.post('/api/favoritos/toggle', async (req, res) => {
         .input('garaje_id', sql.Int, parseInt(garaje_id, 10))
         .query('INSERT INTO Favoritos (conductor_id, garaje_id) VALUES (@conductor_id, @garaje_id)');
 
-      console.log(`   ❤️ Garaje ${garaje_id} agregado a favoritos.`);
+      console.log(`   Garaje ${garaje_id} agregado a favoritos.`);
       return res.json({ status: 'ok', favorito: true, message: '¡Agregado a favoritos!' });
     }
 
   } catch (err) {
-    console.error('❌ Error en toggle favorito:', err.message);
+    console.error('[ERROR] Error en toggle favorito:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al gestionar favoritos.' });
   }
 });
@@ -2611,7 +2614,7 @@ app.post('/api/favoritos/toggle', async (req, res) => {
 // ============================================================
 app.get('/api/favoritos', async (req, res) => {
   const conductor_id = parseInt(req.query.conductor_id, 10);
-  console.log(`\n❤️ [GET /api/favoritos] Conductor: ${conductor_id}`);
+  console.log(`\n[GET /api/favoritos] Conductor: ${conductor_id}`);
 
   if (!conductor_id)
     return res.status(400).json({ status: 'error', message: 'conductor_id requerido.' });
@@ -2649,11 +2652,11 @@ app.get('/api/favoritos', async (req, res) => {
         ORDER BY f.fecha_agregado DESC
       `);
 
-    console.log(`   ✅ ${result.recordset.length} favorito(s) encontrados.`);
+    console.log(`   [OK] ${result.recordset.length} favorito(s) encontrados.`);
     return res.json({ status: 'ok', data: result.recordset });
 
   } catch (err) {
-    console.error('❌ Error al listar favoritos:', err.message);
+    console.error('[ERROR] Error al listar favoritos:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al cargar favoritos.' });
   }
 });
@@ -2680,7 +2683,7 @@ app.get('/api/favoritos/ids', async (req, res) => {
     return res.json({ status: 'ok', ids });
 
   } catch (err) {
-    console.error('❌ Error al obtener IDs de favoritos:', err.message);
+    console.error('[ERROR] Error al obtener IDs de favoritos:', err.message);
     return res.status(500).json({ status: 'error', ids: [] });
   }
 });
@@ -2691,7 +2694,7 @@ app.get('/api/favoritos/ids', async (req, res) => {
 // ============================================================
 app.get('/api/preferencias', async (req, res) => {
   const conductor_id = parseInt(req.query.conductor_id, 10);
-  console.log(`\n⚙️ [GET /api/preferencias] Conductor: ${conductor_id}`);
+  console.log(`\n[GET /api/preferencias] Conductor: ${conductor_id}`);
 
   if (!conductor_id)
     return res.status(400).json({ status: 'error', message: 'conductor_id requerido.' });
@@ -2710,11 +2713,11 @@ app.get('/api/preferencias', async (req, res) => {
     if (result.recordset.length === 0)
       return res.status(404).json({ status: 'error', message: 'Conductor no encontrado.' });
 
-    console.log('✅ Preferencias cargadas:', result.recordset[0]);
+    console.log('[OK] Preferencias cargadas:', result.recordset[0]);
     return res.json({ status: 'ok', data: result.recordset[0] });
 
   } catch (err) {
-    console.error('❌ Error al cargar preferencias:', err.message);
+    console.error('[ERROR] Error al cargar preferencias:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno.' });
   }
 });
@@ -2725,7 +2728,7 @@ app.get('/api/preferencias', async (req, res) => {
 // Body: { conductor_id, placa_vehiculo, tipo_vehiculo_defecto, zona_preferencia }
 // ============================================================
 app.put('/api/preferencias', async (req, res) => {
-  console.log('\n⚙️ [PUT /api/preferencias]');
+  console.log('\n[PUT /api/preferencias]');
   const { conductor_id, placa_vehiculo, tipo_vehiculo_defecto, zona_preferencia } = req.body;
 
   if (!conductor_id)
@@ -2747,12 +2750,303 @@ app.put('/api/preferencias', async (req, res) => {
         WHERE id = @id
       `);
 
-    console.log('✅ Preferencias actualizadas para conductor:', conductor_id);
+    console.log('[OK] Preferencias actualizadas para conductor:', conductor_id);
     return res.json({ status: 'ok', message: '¡Preferencias guardadas correctamente!' });
 
   } catch (err) {
-    console.error('❌ Error al guardar preferencias:', err.message);
+    console.error('[ERROR] Error al guardar preferencias:', err.message);
     return res.status(500).json({ status: 'error', message: 'Error interno al guardar preferencias.' });
+  }
+});
+
+// ============================================================
+// VEHÍCULOS — Listar vehículos del conductor
+// GET /api/vehiculos?conductor_id=X
+// ============================================================
+app.get('/api/vehiculos', async (req, res) => {
+  const conductor_id = parseInt(req.query.conductor_id, 10);
+  if (!conductor_id)
+    return res.status(400).json({ status: 'error', message: 'conductor_id requerido.' });
+  try {
+    const db = await getPool();
+    const result = await db.request()
+      .input('cid', sql.Int, conductor_id)
+      .query(`SELECT id, placa, marca, modelo, color, tipo, es_principal, fecha_reg
+              FROM Vehiculos WHERE conductor_id = @cid
+              ORDER BY es_principal DESC, id DESC`);
+    return res.json({ status: 'ok', data: result.recordset });
+  } catch (err) {
+    console.error('[ERROR] Error al listar vehículos:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al cargar vehículos.' });
+  }
+});
+
+// ============================================================
+// VEHÍCULOS — Crear vehículo
+// POST /api/vehiculos
+// Body: { conductor_id, placa, marca, modelo, color?, tipo?, es_principal? }
+// ============================================================
+app.post('/api/vehiculos', requireSession, async (req, res) => {
+  const { conductor_id, placa, marca, modelo, color, tipo, es_principal } = req.body;
+  if (!conductor_id || !placa || !marca || !modelo)
+    return res.status(400).json({ status: 'error', message: 'conductor_id, placa, marca y modelo son obligatorios.' });
+  const tiposValidos = ['auto', 'moto', 'camioneta'];
+  const tipoVeh = tiposValidos.includes(tipo) ? tipo : 'auto';
+  try {
+    const db = await getPool();
+    if (es_principal) {
+      await db.request()
+        .input('cid', sql.Int, parseInt(conductor_id, 10))
+        .query('UPDATE Vehiculos SET es_principal = 0 WHERE conductor_id = @cid');
+    }
+    const result = await db.request()
+      .input('cid',       sql.Int,         parseInt(conductor_id, 10))
+      .input('placa',     sql.NVarChar(20), String(placa).toUpperCase().trim())
+      .input('marca',     sql.NVarChar(50), String(marca).trim())
+      .input('modelo',    sql.NVarChar(50), String(modelo).trim())
+      .input('color',     sql.NVarChar(30), color ? String(color).trim() : null)
+      .input('tipo',      sql.VarChar(20),  tipoVeh)
+      .input('principal', sql.Bit,          es_principal ? 1 : 0)
+      .query(`INSERT INTO Vehiculos (conductor_id, placa, marca, modelo, color, tipo, es_principal)
+              OUTPUT INSERTED.id
+              VALUES (@cid, @placa, @marca, @modelo, @color, @tipo, @principal)`);
+    console.log(`[OK] Vehículo registrado: ${String(placa).toUpperCase().trim()} para conductor ${conductor_id}`);
+    return res.status(201).json({
+      status: 'ok',
+      message: '¡Vehículo registrado exitosamente!',
+      data: { id: result.recordset[0].id }
+    });
+  } catch (err) {
+    console.error('[ERROR] Error al crear vehículo:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al registrar el vehículo.' });
+  }
+});
+
+// ============================================================
+// VEHÍCULOS — Actualizar vehículo
+// PUT /api/vehiculos/:id
+// ============================================================
+app.put('/api/vehiculos/:id', requireSession, async (req, res) => {
+  const vehiculo_id = parseInt(req.params.id, 10);
+  const { conductor_id, placa, marca, modelo, color, tipo, es_principal } = req.body;
+  if (!vehiculo_id || !conductor_id)
+    return res.status(400).json({ status: 'error', message: 'vehiculo_id y conductor_id requeridos.' });
+  const tiposValidos = ['auto', 'moto', 'camioneta'];
+  const tipoVeh = tiposValidos.includes(tipo) ? tipo : 'auto';
+  try {
+    const db = await getPool();
+    if (es_principal) {
+      await db.request()
+        .input('cid', sql.Int, parseInt(conductor_id, 10))
+        .query('UPDATE Vehiculos SET es_principal = 0 WHERE conductor_id = @cid');
+    }
+    await db.request()
+      .input('id',        sql.Int,         vehiculo_id)
+      .input('cid',       sql.Int,         parseInt(conductor_id, 10))
+      .input('placa',     sql.NVarChar(20), String(placa).toUpperCase().trim())
+      .input('marca',     sql.NVarChar(50), String(marca).trim())
+      .input('modelo',    sql.NVarChar(50), String(modelo).trim())
+      .input('color',     sql.NVarChar(30), color ? String(color).trim() : null)
+      .input('tipo',      sql.VarChar(20),  tipoVeh)
+      .input('principal', sql.Bit,          es_principal ? 1 : 0)
+      .query(`UPDATE Vehiculos
+              SET placa=@placa, marca=@marca, modelo=@modelo, color=@color, tipo=@tipo, es_principal=@principal
+              WHERE id=@id AND conductor_id=@cid`);
+    return res.json({ status: 'ok', message: '¡Vehículo actualizado correctamente!' });
+  } catch (err) {
+    console.error('[ERROR] Error al actualizar vehículo:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al actualizar el vehículo.' });
+  }
+});
+
+// ============================================================
+// VEHÍCULOS — Eliminar vehículo
+// DELETE /api/vehiculos/:id
+// Body/Query: conductor_id
+// ============================================================
+app.delete('/api/vehiculos/:id', requireSession, async (req, res) => {
+  const vehiculo_id  = parseInt(req.params.id, 10);
+  const conductor_id = parseInt(req.body.conductor_id || req.query.conductor_id, 10);
+  if (!vehiculo_id || !conductor_id)
+    return res.status(400).json({ status: 'error', message: 'vehiculo_id y conductor_id requeridos.' });
+  try {
+    const db = await getPool();
+    await db.request()
+      .input('id',  sql.Int, vehiculo_id)
+      .input('cid', sql.Int, conductor_id)
+      .query('DELETE FROM Vehiculos WHERE id = @id AND conductor_id = @cid');
+    return res.json({ status: 'ok', message: 'Vehículo eliminado correctamente.' });
+  } catch (err) {
+    console.error('[ERROR] Error al eliminar vehículo:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al eliminar el vehículo.' });
+  }
+});
+
+// ============================================================
+// SOPORTE — Crear ticket de soporte/disputa
+// POST /api/soporte/tickets
+// Body: { usuario_id, categoria, asunto, descripcion, reserva_id? }
+// ============================================================
+app.post('/api/soporte/tickets', requireSession, async (req, res) => {
+  const { usuario_id, categoria, asunto, descripcion, reserva_id } = req.body;
+  if (!usuario_id || !asunto || !descripcion)
+    return res.status(400).json({ status: 'error', message: 'usuario_id, asunto y descripcion son obligatorios.' });
+  const CATS_VALIDAS = ['consulta', 'disputa', 'reembolso', 'problema_acceso', 'otro'];
+  const cat = CATS_VALIDAS.includes(categoria) ? categoria : 'otro';
+  try {
+    const db = await getPool();
+    const result = await db.request()
+      .input('uid',    sql.Int,           parseInt(usuario_id, 10))
+      .input('cat',    sql.VarChar(30),   cat)
+      .input('asunto', sql.NVarChar(200), String(asunto).trim())
+      .input('desc',   sql.NVarChar(sql.MAX), String(descripcion).trim())
+      .input('rid',    sql.Int,           reserva_id ? parseInt(reserva_id, 10) : null)
+      .query(`INSERT INTO Tickets (usuario_id, categoria, asunto, descripcion, reserva_id)
+              OUTPUT INSERTED.id
+              VALUES (@uid, @cat, @asunto, @desc, @rid)`);
+    console.log(`[OK] Ticket creado #${result.recordset[0].id} — cat: ${cat} — usuario: ${usuario_id}`);
+    return res.status(201).json({
+      status: 'ok',
+      message: '¡Tu reporte fue enviado. Te responderemos a la brevedad posible!',
+      data: { id: result.recordset[0].id }
+    });
+  } catch (err) {
+    console.error('[ERROR] Error al crear ticket:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al enviar el reporte.' });
+  }
+});
+
+// ============================================================
+// SOPORTE — Listar tickets del usuario
+// GET /api/soporte/tickets?usuario_id=X
+// ============================================================
+app.get('/api/soporte/tickets', async (req, res) => {
+  const usuario_id = parseInt(req.query.usuario_id, 10);
+  if (!usuario_id)
+    return res.status(400).json({ status: 'error', message: 'usuario_id requerido.' });
+  try {
+    const db = await getPool();
+    const result = await db.request()
+      .input('uid', sql.Int, usuario_id)
+      .query(`SELECT id, categoria, asunto, estado, fecha_creacion, respuesta
+              FROM Tickets WHERE usuario_id = @uid
+              ORDER BY fecha_creacion DESC`);
+    return res.json({ status: 'ok', data: result.recordset });
+  } catch (err) {
+    console.error('[ERROR] Error al listar tickets:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al cargar los reportes.' });
+  }
+});
+
+// ============================================================
+// HISTORIAL — Actividad detallada del usuario con filtros de fecha
+// GET /api/historial?usuario_id=X&desde=YYYY-MM-DD&hasta=YYYY-MM-DD
+// ============================================================
+app.get('/api/historial', async (req, res) => {
+  const usuario_id = parseInt(req.query.usuario_id, 10);
+  if (!usuario_id)
+    return res.status(400).json({ status: 'error', message: 'usuario_id requerido.' });
+
+  const desde = req.query.desde ? new Date(req.query.desde) : null;
+  const hasta = req.query.hasta ? new Date(req.query.hasta + 'T23:59:59') : null;
+
+  try {
+    const db = await getPool();
+
+    const rolRes = await db.request()
+      .input('uid', sql.Int, usuario_id)
+      .query('SELECT rol FROM Credenciales WHERE id = @uid');
+
+    if (rolRes.recordset.length === 0)
+      return res.status(404).json({ status: 'error', message: 'Usuario no encontrado.' });
+
+    const rol = rolRes.recordset[0].rol;
+    const req2 = db.request().input('uid', sql.Int, usuario_id);
+    let whereExtra = '';
+
+    if (desde) { req2.input('desde', sql.DateTime, desde); whereExtra += ' AND r.fecha_creacion >= @desde'; }
+    if (hasta) { req2.input('hasta', sql.DateTime, hasta); whereExtra += ' AND r.fecha_creacion <= @hasta'; }
+
+    let query;
+    if (rol === 'conductor') {
+      query = `
+        SELECT r.id, r.fecha_inicio, r.fecha_fin, r.precio_total, r.tarifa_servicio,
+               r.descuento_aplicado, r.estado, r.estado_pago, r.cupon_codigo, r.fecha_creacion,
+               g.direccion AS garaje_direccion, e.numero_espacio,
+               NULL AS conductor_nombre, NULL AS conductor_apellidos
+        FROM Reservas r
+        JOIN Espacios e ON r.espacio_id = e.id
+        JOIN Garajes  g ON e.garaje_id  = g.id
+        WHERE r.conductor_id = @uid ${whereExtra}
+        ORDER BY r.fecha_creacion DESC`;
+    } else {
+      query = `
+        SELECT r.id, r.fecha_inicio, r.fecha_fin, r.precio_total, r.tarifa_servicio,
+               r.descuento_aplicado, r.estado, r.estado_pago, r.cupon_codigo, r.fecha_creacion,
+               g.direccion AS garaje_direccion, e.numero_espacio,
+               uc.nombre AS conductor_nombre, uc.apellidos AS conductor_apellidos
+        FROM Reservas r
+        JOIN Espacios       e  ON r.espacio_id  = e.id
+        JOIN Garajes        g  ON e.garaje_id   = g.id
+        JOIN UsuarioConductor uc ON r.conductor_id = uc.id
+        WHERE g.anfitrion_id = @uid ${whereExtra}
+        ORDER BY r.fecha_creacion DESC`;
+    }
+
+    const result = await req2.query(query);
+    return res.json({ status: 'ok', data: result.recordset, rol });
+  } catch (err) {
+    console.error('[ERROR] Error al cargar historial:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno al cargar el historial.' });
+  }
+});
+
+// ============================================================
+// CUPONES — Listar todos los cupones del anfitrión (con estado)
+// GET /api/cupones/mis-cupones?anfitrion_id=X
+// ============================================================
+app.get('/api/cupones/mis-cupones', async (req, res) => {
+  try {
+    const db  = await getPool();
+    const now = new Date();
+    const result = await db.request()
+      .input('now', sql.DateTime, now)
+      .query(`
+        SELECT id, codigo, tipo_descuento, descuento_porcentaje, monto_fijo,
+               descripcion, usos_maximos, usos_actuales, solo_primera_reserva,
+               fecha_inicio, fecha_fin, activo,
+               CASE
+                 WHEN activo = 0             THEN 'inactivo'
+                 WHEN fecha_fin < @now       THEN 'expirado'
+                 WHEN fecha_inicio > @now    THEN 'programado'
+                 WHEN usos_maximos IS NOT NULL AND usos_actuales >= usos_maximos THEN 'agotado'
+                 ELSE 'activo'
+               END AS estado_calculado
+        FROM Cupones
+        ORDER BY fecha_creacion DESC`);
+    return res.json({ status: 'ok', data: result.recordset });
+  } catch (err) {
+    console.error('[ERROR] Error al listar mis-cupones:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno.' });
+  }
+});
+
+// ============================================================
+// CUPONES — Desactivar / activar cupón
+// PUT /api/cupones/:id/toggle
+// ============================================================
+app.put('/api/cupones/:id/toggle', requireSession, async (req, res) => {
+  const cupon_id = parseInt(req.params.id, 10);
+  if (!cupon_id) return res.status(400).json({ status: 'error', message: 'cupon_id requerido.' });
+  try {
+    const db = await getPool();
+    await db.request()
+      .input('id', sql.Int, cupon_id)
+      .query('UPDATE Cupones SET activo = 1 - activo WHERE id = @id');
+    return res.json({ status: 'ok', message: 'Estado del cupón actualizado.' });
+  } catch (err) {
+    console.error('[ERROR] Error al toggle cupón:', err.message);
+    return res.status(500).json({ status: 'error', message: 'Error interno.' });
   }
 });
 
@@ -2767,22 +3061,23 @@ app.get('/api/status', (req, res) => {
 // ============================================================
 async function startServer() {
   try {
-    console.log('⏳ Conectando a SQL Server (Windows Auth)...');
+    console.log('[INFO]  Conectando a SQL Server (Windows Auth)...');
     pool = await sql.connect({ connectionString: CONNECTION_STRING });
     await ensureCompatibilitySchema(pool);
-    console.log('✅ Conexión establecida correctamente.');
+    console.log('[OK]    Conexión establecida correctamente.');
 
     app.listen(PORT, () => {
       console.log('');
-      console.log('🚗 ══════════════════════════════════════════════');
-      console.log(`🚗  EstAirbnb :: puerto ${PORT}`);
-      console.log(`🚗  Login:      http://localhost:${PORT}/login.html`);
-      console.log('🚗 ══════════════════════════════════════════════');
+      console.log('  ──────────────────────────────────────────────');
+      console.log('   EstAirbnb · Servidor en ejecución');
+      console.log(`   Local:  http://localhost:${PORT}`);
+      console.log(`   Login:  http://localhost:${PORT}/login.html`);
+      console.log('  ──────────────────────────────────────────────');
       console.log('');
     });
 
   } catch (err) {
-    console.error('❌ No se pudo conectar a SQL Server:', err.message);
+    console.error('[ERROR] No se pudo conectar a SQL Server:', err.message);
     process.exit(1);
   }
 }
@@ -2803,10 +3098,10 @@ setInterval(async () => {
         AND fecha_creacion < DATEADD(HOUR, -2, GETDATE())
     `);
     if (result.rowsAffected[0] > 0) {
-      console.log(`\n⏱️  [TTL] ${result.rowsAffected[0]} reserva(s) pendiente(s) canceladas por vencimiento (>2h).`);
+      console.log(`\n[TTL] ${result.rowsAffected[0]} reserva(s) pendiente(s) canceladas por vencimiento (>2h).`);
     }
   } catch (err) {
-    console.error('❌ Error en TTL de reservas:', err.message);
+    console.error('[ERROR] Error en TTL de reservas:', err.message);
   }
 }, 15 * 60 * 1000);
 

@@ -240,9 +240,19 @@ function formatCoord(value) {
 function updateLocationStatus(targetEl, location, idleMessage) {
   if (!targetEl) return;
   const hasCoords = Number.isFinite(location?.lat) && Number.isFinite(location?.lng);
-  targetEl.innerHTML = hasCoords
-    ? `<i class="fa-solid fa-location-dot" style="margin-top:2px;"></i><span>Punto seleccionado: ${formatCoord(location.lat)}, ${formatCoord(location.lng)}${location.label ? `<br><small style="display:block;margin-top:4px;color:#475569;font-weight:600;">${escapeHTML(location.label)}</small>` : ''}</span>`
-    : `<i class="fa-solid fa-location-dot" style="margin-top:2px;"></i><span>${idleMessage}</span>`;
+  targetEl.classList.toggle('is-marked', hasCoords);
+  if (hasCoords) {
+    const label = (location.label || '').trim();
+    const labelCorto = label.length > 90 ? label.slice(0, 90).trim() + '…' : label;
+    targetEl.innerHTML =
+      `<i class="fa-solid fa-circle-check" style="margin-top:2px;"></i>` +
+      `<span><strong>Ubicación marcada</strong>` +
+      (labelCorto ? `<br><small style="display:block;margin-top:3px;opacity:.9;font-weight:600;" title="${escapeHTML(label)}">${escapeHTML(labelCorto)}</small>` : '') +
+      `<br><small style="display:block;margin-top:2px;opacity:.65;">${formatCoord(location.lat)}, ${formatCoord(location.lng)}</small>` +
+      `</span>`;
+  } else {
+    targetEl.innerHTML = `<i class="fa-solid fa-location-dot" style="margin-top:2px;"></i><span>${escapeHTML(idleMessage)}</span>`;
+  }
 }
 
 function ensureBaseTileLayer(mapInstance) {
@@ -574,8 +584,14 @@ function removeFile(index) {
   renderPreviews();
 }
 
+function actualizarFotoCount() {
+  const fc = document.getElementById('fotoCount');
+  if (fc) fc.textContent = selectedFiles.length;
+}
+
 function renderPreviews() {
   photoPreviewGrid.innerHTML = '';
+  actualizarFotoCount();
 
   selectedFiles.forEach((file, idx) => {
     const reader = new FileReader();
@@ -1122,8 +1138,9 @@ function initFormSubmit() {
     inpDireccion.focus();
     return;
   }
-  if (!precio_hora || Number(precio_hora) <= 0) {
-    showToast('Ingresa un precio por hora válido.', 'error');
+  const _precioNum = Number(precio_hora);
+  if (!precio_hora || !Number.isFinite(_precioNum) || _precioNum < 1 || _precioNum > 200) {
+    showToast('El precio por hora debe estar entre Bs. 1 y Bs. 200.', 'error');
     inpPrecio.focus();
     return;
   }
@@ -1224,6 +1241,7 @@ function initFormSubmit() {
       formGaraje.reset();
       selectedFiles = [];
       photoPreviewGrid.innerHTML = '';
+      actualizarFotoCount();
       espaciosConfigurados = [];
       resetGarajeLocation();
       // Reset Tilemap
@@ -1415,8 +1433,8 @@ function crearTarjetaGaraje(garaje) {
 // ============================================================
 // Reemplazo moderno de la tarjeta de garaje
 function crearTarjetaGaraje(garaje) {
-  const card = document.createElement('div');
-  card.className = 'host-garaje-card';
+  const card = document.createElement('article');
+  card.className = 'hg-row';
   card.id = `garaje-${garaje.id}`;
 
   const activo = !!garaje.estado_activo;
@@ -1440,73 +1458,35 @@ function crearTarjetaGaraje(garaje) {
   })();
 
   const fotoHTML = garaje.foto_principal
-    ? `<img src="${garaje.foto_principal}" class="w-full h-full object-cover transition-transform duration-500" alt="Foto del parqueo" loading="lazy">`
-    : `<div class="w-full h-full flex flex-col items-center justify-center bg-surface-container-highest text-on-surface-variant opacity-70">
-         <span class="material-symbols-outlined text-4xl mb-2">image</span>
-         <span class="font-label text-xs uppercase tracking-widest">Sin foto</span>
-       </div>`;
+    ? `<img src="${garaje.foto_principal}" alt="Foto del parqueo" loading="lazy">`
+    : `<div class="hg-row-noimg"><span class="material-symbols-outlined">image</span></div>`;
 
   card.innerHTML = `
-    <div class="host-garaje-media">
+    <div class="hg-row-media">
       ${fotoHTML}
-      <div class="host-garaje-overlay"></div>
-      <div class="host-garaje-topbar">
-        <span class="host-garaje-status ${activo ? 'is-active' : 'is-inactive'}">
-          <span class="host-garaje-dot"></span>
-          ${activo ? 'Activo' : 'Inactivo'}
-        </span>
-        <button type="button" class="host-garaje-preview-chip" onclick="abrirVistaPreviaGarajeById(${garaje.id})">
-          <span class="material-symbols-outlined">visibility</span>
-          Vista previa
-        </button>
+      <span class="hg-row-flag ${activo ? 'is-active' : 'is-inactive'}"><span class="hg-dot"></span>${activo ? 'Activo' : 'Inactivo'}</span>
+    </div>
+    <div class="hg-row-main">
+      <div class="hg-row-head">
+        <h3 class="hg-row-title">${escapeHTML(garaje.direccion)}</h3>
+        <p class="hg-row-loc"><span class="material-symbols-outlined">location_on</span>${direccionPrincipal}</p>
       </div>
-      <div class="host-garaje-price">
-        <span class="host-garaje-price-value">Bs. ${Number(garaje.precio_hora).toFixed(2)}</span>
-        <span class="host-garaje-price-label">/ hora</span>
+      <div class="hg-row-chips">
+        <span class="hg-chip"><span class="material-symbols-outlined">directions_car</span>${escapeHTML(tipoLabel)}</span>
+        <span class="hg-chip"><span class="material-symbols-outlined">schedule</span>${escapeHTML(horarioResumen)}</span>
+        <span class="hg-chip"><span class="material-symbols-outlined">security</span>${escapeHTML(garaje.nivel_seguridad || 'Estándar')}</span>
+        <span class="hg-chip"><span class="material-symbols-outlined">key</span>${escapeHTML(garaje.metodo_acceso || 'Manual')}</span>
+        ${garaje.fidelidad_activo ? `<span class="hg-chip hg-chip--loyalty"><span class="material-symbols-outlined">workspace_premium</span>${garaje.fidelidad_descuento_pct}% dto · ${garaje.fidelidad_visitas} visitas</span>` : ''}
       </div>
     </div>
-    <div class="host-garaje-body">
-      <div class="host-garaje-head">
-        <div class="host-garaje-head-copy">
-          <h3 class="host-garaje-title">${escapeHTML(garaje.direccion)}</h3>
-          <p class="host-garaje-subtitle">
-            <span class="material-symbols-outlined">location_on</span>
-            ${direccionPrincipal}
-          </p>
-        </div>
-        <button type="button" class="host-garaje-icon-btn" onclick="abrirEditModalById(${garaje.id})" title="Editar">
-          <span class="material-symbols-outlined">edit</span>
-        </button>
-      </div>
-      <p class="host-garaje-description">${garaje.descripcion ? escapeHTML(garaje.descripcion) : 'Sin descripción pública todavía.'}</p>
-      <div class="host-garaje-chip-row">
-        <span class="host-garaje-chip"><span class="material-symbols-outlined">directions_car</span>${escapeHTML(tipoLabel)}</span>
-        <span class="host-garaje-chip"><span class="material-symbols-outlined">schedule</span>${escapeHTML(horarioResumen)}</span>
-        <span class="host-garaje-chip"><span class="material-symbols-outlined">security</span>${escapeHTML(garaje.nivel_seguridad || 'Estándar')}</span>
-        <span class="host-garaje-chip"><span class="material-symbols-outlined">key</span>${escapeHTML(garaje.metodo_acceso || 'Manual')}</span>
-      </div>
-
-      ${garaje.fidelidad_activo ? `
-        <div class="host-garaje-loyalty">
-          <i class="fa-solid fa-medal"></i>
-          <span>Fidelidad activa: ${garaje.fidelidad_visitas} visitas → ${garaje.fidelidad_descuento_pct}% dto.</span>
-        </div>` : ''}
-
-      <div class="host-garaje-actions">
-        <div class="host-garaje-actions-grid">
-          <button type="button" class="host-garaje-action-btn" onclick="window.location.href='/panel-mantenimiento.html?id=${garaje.id}'">
-            <span class="material-symbols-outlined">build</span>
-            Espacios
-          </button>
-          <button type="button" class="host-garaje-action-btn ${activo ? 'warning' : 'success'}" onclick="toggleEstado(${garaje.id}, this)" id="btnEstado-${garaje.id}">
-            <span class="material-symbols-outlined">${activo ? 'pause_circle' : 'play_circle'}</span>
-            ${activo ? 'Pausar' : 'Activar'}
-          </button>
-          <button type="button" class="host-garaje-action-btn danger" onclick="abrirEliminarGarajeConfirm(${garaje.id})" style="grid-column:span 2">
-            <span class="material-symbols-outlined">delete</span>
-            Eliminar garaje
-          </button>
-        </div>
+    <div class="hg-row-side">
+      <div class="hg-row-price"><span class="hg-price-val">Bs. ${Number(garaje.precio_hora).toFixed(2)}</span><span class="hg-price-unit">/ hora</span></div>
+      <div class="hg-row-actions">
+        <button type="button" class="hg-act" title="Vista previa" aria-label="Vista previa" onclick="abrirVistaPreviaGarajeById(${garaje.id})"><span class="material-symbols-outlined">visibility</span></button>
+        <button type="button" class="hg-act" title="Gestionar espacios" aria-label="Espacios" onclick="window.location.href='/panel-mantenimiento.html?id=${garaje.id}'"><span class="material-symbols-outlined">build</span></button>
+        <button type="button" class="hg-act" title="Editar" aria-label="Editar" onclick="abrirEditModalById(${garaje.id})"><span class="material-symbols-outlined">edit</span></button>
+        <button type="button" class="hg-act ${activo ? 'is-warn' : 'is-ok'}" title="${activo ? 'Pausar' : 'Activar'}" aria-label="${activo ? 'Pausar' : 'Activar'}" onclick="toggleEstado(${garaje.id}, this)" id="btnEstado-${garaje.id}"><span class="material-symbols-outlined">${activo ? 'pause' : 'play_arrow'}</span></button>
+        <button type="button" class="hg-act is-danger" title="Eliminar" aria-label="Eliminar" onclick="abrirEliminarGarajeConfirm(${garaje.id})"><span class="material-symbols-outlined">delete</span></button>
       </div>
     </div>
   `;
@@ -1660,10 +1640,13 @@ async function cargarReservasRecibidas() {
 
     if (res.ok && data.status === 'ok') {
       const reservas = data.data;
+      _reservasCache = reservas;
 
       if (reservas.length === 0) {
         emptyEl.style.display = 'block';
         contadorEl.textContent = '';
+        const toolbar = document.getElementById('reservasToolbar');
+        if (toolbar) toolbar.style.display = 'none';
         const badge = document.getElementById('tabBadgeReservas');
         if (badge) badge.style.display = 'none';
         return;
@@ -1686,101 +1669,184 @@ async function cargarReservasRecibidas() {
         badge.style.display = 'none';
       }
 
-      const estadoBadge = {
-        pendiente:  '<span class="reserva-badge pendiente"><i class="fa-solid fa-clock"></i> Pendiente</span>',
-        confirmada: '<span class="reserva-badge confirmada"><i class="fa-solid fa-circle-check"></i> Confirmada</span>',
-        rechazada:  '<span class="reserva-badge rechazada"><i class="fa-solid fa-circle-xmark"></i> Rechazada</span>',
-        finalizada: '<span class="reserva-badge finalizada"><i class="fa-solid fa-flag-checkered"></i> Finalizada</span>',
-        cancelada:  '<span class="reserva-badge rechazada"><i class="fa-solid fa-ban"></i> Cancelada</span>',
-      };
-
-      const container = document.createElement('div');
-
-      reservas.forEach(r => {
-        const fechaInicio = new Date(r.fecha_inicio).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' });
-        const fechaFin    = new Date(r.fecha_fin).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' });
-        const total = Number(r.precio_total || 0);
-        const multa = Number(r.multa_exceso || 0);
-        const descuento = Number(r.descuento_aplicado || 0);
-
-        let accionesHTML = '';
-        if (r.estado === 'pendiente') {
-          accionesHTML =
-            `<span style="display:inline-flex;align-items:center;gap:4px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-user-clock"></i> Esperando tu decisión</span><br>` +
-            `<button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)"><i class="fa-solid fa-check"></i> Aceptar</button>` +
-            `<button class="btn-reserva rechazar" onclick="rechazarReservaConMotivo(${r.id}, this)"><i class="fa-solid fa-xmark"></i> Rechazar</button>`;
-        } else if (r.estado === 'confirmada') {
-          if (r.estado_pago === 'pagado') {
-            accionesHTML =
-              `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-qrcode"></i> Pago QR registrado</span><br>` +
-              `<button class="btn-reserva" style="background:#475569;color:white;border:none;" onclick="abrirMultaModal(${r.id}, '${r.fecha_fin}', ${r.precio_hora || 0})"><i class="fa-solid fa-flag-checkered"></i> Registrar Salida</button>`;
-          } else if (r.estado_pago === 'efectivo_pendiente') {
-            accionesHTML =
-              `<span style="display:inline-flex;align-items:center;gap:4px;background:#fff7ed;color:#92400e;border:1px solid #fed7aa;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-money-bill-wave"></i> Pendiente de pago en efectivo</span><br>` +
-              `<button class="btn-reserva confirmar" onclick="confirmarPagoEfectivo(${r.id}, this)"><i class="fa-solid fa-hand-holding-dollar"></i> Confirmar efectivo recibido</button>`;
-          } else if (r.estado_pago === 'efectivo_confirmado') {
-            accionesHTML =
-              `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-circle-check"></i> Efectivo confirmado</span><br>` +
-              `<button class="btn-reserva" style="background:#475569;color:white;border:none;" onclick="abrirMultaModal(${r.id}, '${r.fecha_fin}', ${r.precio_hora || 0})"><i class="fa-solid fa-flag-checkered"></i> Registrar Salida</button>`;
-          } else {
-            accionesHTML =
-              `<span style="display:inline-flex;align-items:center;gap:4px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-hourglass-half"></i> Esperando pago del conductor</span>`;
-          }
-        }
-
-        const multaBadge = multa > 0
-          ? `<span class="reserva-multa-badge"><i class="fa-solid fa-triangle-exclamation"></i> Multa Bs. ${multa.toFixed(2)}</span>`
-          : '';
-
-        const cuponHTML = (r.cupon_codigo && descuento > 0)
-          ? `<span style="font-size:0.75rem;color:#16a34a;font-weight:600;"><i class="fa-solid fa-tag"></i> Cupón: ${escapeHTML(r.cupon_codigo)} (-Bs. ${descuento.toFixed(2)})</span>`
-          : '';
-
-        const cardClass = r.estado === 'pendiente' ? 'reserva-card is-pendiente'
-                        : r.estado === 'confirmada' ? 'reserva-card is-confirmada'
-                        : 'reserva-card';
-
-        const motivoRechazoHTML = (r.estado === 'rechazada' && r.motivo_rechazo)
-          ? `<div style="margin:8px 0 10px;padding:10px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;font-size:0.8rem;color:#991b1b;"><strong>Motivo enviado al conductor:</strong><br>${escapeHTML(r.motivo_rechazo)}</div>`
-          : '';
-
-        const card = document.createElement('div');
-        card.className = cardClass;
-        card.innerHTML = `
-          <div class="reserva-card-header">
-            <div>
-              <div class="reserva-card-conductor">${escapeHTML(r.conductor_nombre || 'N/A')}</div>
-              ${r.conductor_telefono ? `<div class="reserva-card-telefono"><i class="fa-solid fa-phone" style="margin-right:4px"></i>${escapeHTML(r.conductor_telefono)}</div>` : ''}
-            </div>
-            <div>${estadoBadge[r.estado] || r.estado}</div>
-          </div>
-          <div class="reserva-card-meta">
-            <span><i class="fa-solid fa-warehouse" style="color:#64748b"></i> ${escapeHTML(r.garaje_direccion)}</span>
-            <span><i class="fa-solid fa-parking" style="color:#64748b"></i> Espacio ${escapeHTML(r.numero_espacio || '—')}</span>
-          </div>
-          <div class="reserva-card-meta">
-            <span><i class="fa-regular fa-clock" style="color:#64748b"></i> Entrada: <strong>${fechaInicio}</strong></span>
-            <span><i class="fa-solid fa-right-from-bracket" style="color:#64748b"></i> Salida: <strong>${fechaFin}</strong></span>
-          </div>
-          <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
-            <span class="reserva-card-total">Bs. ${total.toFixed(2)}</span>
-            ${multaBadge}
-            ${cuponHTML}
-          </div>
-          ${motivoRechazoHTML}
-          ${accionesHTML ? `<div class="reserva-card-actions">${accionesHTML}</div>` : ''}
-        `;
-        container.appendChild(card);
-      });
-
-      tableWrapper.appendChild(container);
+      // Sub-pestañas por estado + buscador + render filtrado (filtro persistente)
+      renderReservasToolbar();
       tableWrapper.style.display = 'block';
+      renderReservasList();
     }
   } catch (err) {
     document.getElementById('loadingReservas').style.display = 'none';
     console.error('Error al cargar reservas:', err);
     showToast('Error al cargar las reservas recibidas.', 'error');
   }
+}
+
+// ============================================================
+// Reservas recibidas — sub-filtros por estado + buscador
+// ============================================================
+let _reservasCache = [];
+let _reservasFiltro = 'todas';
+let _reservasBusqueda = '';
+
+const RSV_FILTROS = [
+  { key: 'todas',      label: 'Todas',       match: () => true },
+  { key: 'pendiente',  label: 'Pendientes',  match: r => r.estado === 'pendiente' },
+  { key: 'confirmada', label: 'Activas',     match: r => r.estado === 'confirmada' },
+  { key: 'finalizada', label: 'Finalizadas', match: r => r.estado === 'finalizada' },
+  { key: 'rechazada',  label: 'Rechazadas',  match: r => r.estado === 'rechazada' || r.estado === 'cancelada' },
+];
+
+function renderReservasToolbar() {
+  const toolbar = document.getElementById('reservasToolbar');
+  if (!toolbar) return;
+  toolbar.style.display = 'flex';
+  toolbar.innerHTML = `
+    <div class="rsv-subtabs">
+      ${RSV_FILTROS.map(f => {
+        const c = _reservasCache.filter(f.match).length;
+        const active = f.key === _reservasFiltro ? ' active' : '';
+        const urgent = f.key === 'pendiente' && c > 0 ? ' is-urgent' : '';
+        return `<button type="button" class="rsv-subtab${active}${urgent}" data-filtro="${f.key}" onclick="setReservaFiltro('${f.key}')">${f.label}<span class="rsv-count">${c}</span></button>`;
+      }).join('')}
+    </div>
+    <div class="rsv-search">
+      <i class="fa-solid fa-magnifying-glass"></i>
+      <input type="text" id="reservasSearchInput" placeholder="Buscar conductor o garaje..." oninput="onReservaBusqueda(this.value)">
+    </div>`;
+  const inp = document.getElementById('reservasSearchInput');
+  if (inp) inp.value = _reservasBusqueda;
+}
+
+function setReservaFiltro(key) {
+  _reservasFiltro = key;
+  document.querySelectorAll('#reservasToolbar .rsv-subtab').forEach(b => {
+    b.classList.toggle('active', b.dataset.filtro === key);
+  });
+  renderReservasList();
+}
+
+function onReservaBusqueda(value) {
+  _reservasBusqueda = value || '';
+  renderReservasList();
+}
+
+function renderReservasList() {
+  const wrapper = document.getElementById('reservasTableWrapper');
+  if (!wrapper) return;
+
+  const filtroObj = RSV_FILTROS.find(f => f.key === _reservasFiltro) || RSV_FILTROS[0];
+  let lista = _reservasCache.filter(filtroObj.match);
+
+  const q = _reservasBusqueda.trim().toLowerCase();
+  if (q) {
+    lista = lista.filter(r =>
+      `${r.conductor_nombre || ''} ${r.garaje_direccion || ''} ${r.numero_espacio || ''}`
+        .toLowerCase().includes(q)
+    );
+  }
+
+  if (!lista.length) {
+    wrapper.innerHTML = emptyReservaFiltroHTML(_reservasFiltro, q);
+    return;
+  }
+  wrapper.innerHTML = `<div class="reserva-cards">${lista.map(buildReservaCardHTML).join('')}</div>`;
+}
+
+function emptyReservaFiltroHTML(key, q) {
+  const msgs = {
+    todas:      'No hay reservas que coincidan.',
+    pendiente:  'No tienes reservas pendientes por revisar.',
+    confirmada: 'No tienes reservas activas en este momento.',
+    finalizada: 'Aún no tienes reservas finalizadas.',
+    rechazada:  'No hay reservas rechazadas o canceladas.',
+  };
+  const icons = { todas: 'search_off', pendiente: 'inbox', confirmada: 'event_available', finalizada: 'flag', rechazada: 'block' };
+  const icon = q ? 'search_off' : (icons[key] || 'inbox');
+  const text = q ? `Sin resultados para "<strong>${escapeHTML(q)}</strong>".` : (msgs[key] || msgs.todas);
+  return `<div class="rsv-filter-empty"><span class="material-symbols-outlined">${icon}</span><p>${text}</p></div>`;
+}
+
+function buildReservaCardHTML(r) {
+  const fechaInicio = new Date(r.fecha_inicio).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' });
+  const fechaFin    = new Date(r.fecha_fin).toLocaleString('es-DO', { dateStyle: 'short', timeStyle: 'short' });
+  const total = Number(r.precio_total || 0);
+  const multa = Number(r.multa_exceso || 0);
+  const descuento = Number(r.descuento_aplicado || 0);
+
+  const estadoBadge = {
+    pendiente:  '<span class="reserva-badge pendiente"><i class="fa-solid fa-clock"></i> Pendiente</span>',
+    confirmada: '<span class="reserva-badge confirmada"><i class="fa-solid fa-circle-check"></i> Confirmada</span>',
+    rechazada:  '<span class="reserva-badge rechazada"><i class="fa-solid fa-circle-xmark"></i> Rechazada</span>',
+    finalizada: '<span class="reserva-badge finalizada"><i class="fa-solid fa-flag-checkered"></i> Finalizada</span>',
+    cancelada:  '<span class="reserva-badge rechazada"><i class="fa-solid fa-ban"></i> Cancelada</span>',
+  };
+
+  let accionesHTML = '';
+  if (r.estado === 'pendiente') {
+    accionesHTML =
+      `<span style="display:inline-flex;align-items:center;gap:4px;background:#fff7ed;color:#c2410c;border:1px solid #fed7aa;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-user-clock"></i> Esperando tu decisión</span><br>` +
+      `<button class="btn-reserva confirmar" onclick="cambiarEstadoReserva(${r.id}, 'confirmada', this)"><i class="fa-solid fa-check"></i> Aceptar</button>` +
+      `<button class="btn-reserva rechazar" onclick="rechazarReservaConMotivo(${r.id}, this)"><i class="fa-solid fa-xmark"></i> Rechazar</button>`;
+  } else if (r.estado === 'confirmada') {
+    if (r.estado_pago === 'pagado') {
+      accionesHTML =
+        `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-qrcode"></i> Pago QR registrado</span><br>` +
+        `<button class="btn-reserva" style="background:#475569;color:white;border:none;" onclick="abrirMultaModal(${r.id}, '${r.fecha_fin}', ${r.precio_hora || 0})"><i class="fa-solid fa-flag-checkered"></i> Registrar Salida</button>`;
+    } else if (r.estado_pago === 'efectivo_pendiente') {
+      accionesHTML =
+        `<span style="display:inline-flex;align-items:center;gap:4px;background:#fff7ed;color:#92400e;border:1px solid #fed7aa;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-money-bill-wave"></i> Pendiente de pago en efectivo</span><br>` +
+        `<button class="btn-reserva confirmar" onclick="confirmarPagoEfectivo(${r.id}, this)"><i class="fa-solid fa-hand-holding-dollar"></i> Confirmar efectivo recibido</button>`;
+    } else if (r.estado_pago === 'efectivo_confirmado') {
+      accionesHTML =
+        `<span style="display:inline-flex;align-items:center;gap:4px;background:#f0fdf4;color:#15803d;border:1px solid #bbf7d0;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-circle-check"></i> Efectivo confirmado</span><br>` +
+        `<button class="btn-reserva" style="background:#475569;color:white;border:none;" onclick="abrirMultaModal(${r.id}, '${r.fecha_fin}', ${r.precio_hora || 0})"><i class="fa-solid fa-flag-checkered"></i> Registrar Salida</button>`;
+    } else {
+      accionesHTML =
+        `<span style="display:inline-flex;align-items:center;gap:4px;background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;border-radius:20px;font-size:0.7rem;font-weight:700;padding:3px 10px;margin-bottom:8px;"><i class="fa-solid fa-hourglass-half"></i> Esperando pago del conductor</span>`;
+    }
+  }
+
+  const multaBadge = multa > 0
+    ? `<span class="reserva-multa-badge"><i class="fa-solid fa-triangle-exclamation"></i> Multa Bs. ${multa.toFixed(2)}</span>`
+    : '';
+
+  const cuponHTML = (r.cupon_codigo && descuento > 0)
+    ? `<span style="font-size:0.75rem;color:#16a34a;font-weight:600;"><i class="fa-solid fa-tag"></i> Cupón: ${escapeHTML(r.cupon_codigo)} (-Bs. ${descuento.toFixed(2)})</span>`
+    : '';
+
+  const cardClass = r.estado === 'pendiente' ? 'reserva-card is-pendiente'
+                  : r.estado === 'confirmada' ? 'reserva-card is-confirmada'
+                  : 'reserva-card';
+
+  const motivoRechazoHTML = (r.estado === 'rechazada' && r.motivo_rechazo)
+    ? `<div style="margin:8px 0 10px;padding:10px 12px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;font-size:0.8rem;color:#991b1b;"><strong>Motivo enviado al conductor:</strong><br>${escapeHTML(r.motivo_rechazo)}</div>`
+    : '';
+
+  return `
+    <div class="${cardClass}">
+      <div class="reserva-card-header">
+        <div>
+          <div class="reserva-card-conductor">${escapeHTML(r.conductor_nombre || 'N/A')}</div>
+          ${r.conductor_telefono ? `<div class="reserva-card-telefono"><i class="fa-solid fa-phone" style="margin-right:4px"></i>${escapeHTML(r.conductor_telefono)}</div>` : ''}
+        </div>
+        <div>${estadoBadge[r.estado] || escapeHTML(r.estado)}</div>
+      </div>
+      <div class="reserva-card-meta">
+        <span><i class="fa-solid fa-warehouse" style="color:#64748b"></i> ${escapeHTML(r.garaje_direccion)}</span>
+        <span><i class="fa-solid fa-parking" style="color:#64748b"></i> Espacio ${escapeHTML(r.numero_espacio || '—')}</span>
+      </div>
+      <div class="reserva-card-meta">
+        <span><i class="fa-regular fa-clock" style="color:#64748b"></i> Entrada: <strong>${fechaInicio}</strong></span>
+        <span><i class="fa-solid fa-right-from-bracket" style="color:#64748b"></i> Salida: <strong>${fechaFin}</strong></span>
+      </div>
+      <div style="display:flex;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:8px;">
+        <span class="reserva-card-total">Bs. ${total.toFixed(2)}</span>
+        ${multaBadge}
+        ${cuponHTML}
+      </div>
+      ${motivoRechazoHTML}
+      ${accionesHTML ? `<div class="reserva-card-actions">${accionesHTML}</div>` : ''}
+    </div>`;
 }
 
 // ============================================================
@@ -1961,8 +2027,9 @@ async function guardarEdicionGaraje() {
     showToast('La dirección debe tener al menos 5 caracteres.', 'error');
     return;
   }
-  if (!precio_hora || Number(precio_hora) <= 0) {
-    showToast('Ingresa un precio por hora válido.', 'error');
+  const _editPrecioNum = Number(precio_hora);
+  if (!precio_hora || !Number.isFinite(_editPrecioNum) || _editPrecioNum < 1 || _editPrecioNum > 200) {
+    showToast('El precio por hora debe estar entre Bs. 1 y Bs. 200.', 'error');
     return;
   }
 
@@ -2155,4 +2222,16 @@ document.addEventListener('DOMContentLoaded', () => {
   if (typeof initWizard === 'function') initWizard();
   cargarMisGarajes();
   // Reservas se carga al hacer click en la tab
+
+  // Deep-link desde el dashboard: ?tab=reservas abre la pestaña,
+  // ?publicar=1 abre el wizard de publicación. Guardado para no romper nada.
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('tab') === 'reservas' && typeof switchTab === 'function') {
+      switchTab('reservas');
+    }
+    if (params.get('publicar') === '1' && typeof openModalFormulario === 'function') {
+      setTimeout(() => openModalFormulario(), 150);
+    }
+  } catch (_) { /* noop */ }
 });

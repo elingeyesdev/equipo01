@@ -1,78 +1,168 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Iniciar Sesión — EstAirbnb</title>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..600&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
-  <link href="/css/login.css" rel="stylesheet">
+  <link href="/css/auth.css" rel="stylesheet">
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0A2A43">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EstAirbnb">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <script src="/js/pwa.js" defer></script>
 </head>
 <body>
 
-<!-- Mesh gradient canvas -->
-<canvas id="bgCanvas"></canvas>
+<div class="auth">
 
-<!-- Glassmorphic card -->
-<div class="card">
-
-  <div class="brand">
-    <div class="brand-mark">
-      <svg width="34" height="34" viewBox="0 0 34 34" fill="none">
-        <path d="M10 8h10c4.42 0 8 3.58 8 8s-3.58 8-8 8h-6v6h-4V8zm4 4v8h6c2.21 0 4-1.79 4-4s-1.79-4-4-4h-6z" fill="white"/>
-      </svg>
-    </div>
-    <div class="brand-name">EstAirbnb</div>
-    <div class="brand-sub">Bienvenido de vuelta</div>
-  </div>
-
-  <div id="alertBox" class="alert-box">
-    <i id="alertIcon" class="fa-solid fa-circle-exclamation"></i>
-    <span id="alertMsg"></span>
-  </div>
-
-  <form id="loginForm" novalidate>
-
-    <div class="field">
-      <label class="field-lbl" for="inpEmail">Correo electrónico</label>
-      <input id="inpEmail" type="email" name="email"
-             placeholder="tu@ejemplo.com" autocomplete="email" required>
-      <span class="field-error" id="errEmail">Ingresa un correo válido.</span>
+  <!-- ═══ Showcase de marca ═══ -->
+  <aside class="auth-aside">
+    <div class="aside-top">
+      <a class="aside-brand" href="/explorar.html">
+        <span class="aside-mark">
+          <svg width="22" height="22" viewBox="0 0 34 34" fill="none">
+            <g fill="white"><rect x="11" y="8" width="4" height="18" rx="1.3"/><rect x="11" y="8" width="13" height="4" rx="1.3"/><rect x="11" y="15" width="10" height="3.6" rx="1.3"/><rect x="11" y="22" width="13" height="4" rx="1.3"/></g>
+          </svg>
+        </span>
+        <span class="aside-wordmark">EstAirbnb</span>
+      </a>
     </div>
 
-    <div class="field">
-      <div class="field-hdr">
-        <label class="field-lbl" for="inpPassword">Contraseña</label>
-        <a class="link-sm" href="#">¿La olvidaste?</a>
+    <div class="aside-mid">
+      <p class="aside-eyebrow">Estaciona sin vueltas</p>
+      <h1 class="aside-title">Encuentra tu lugar<br><em>antes de llegar.</em></h1>
+      <p class="aside-text">Reserva espacios verificados en segundos y olvídate de dar vueltas buscando dónde dejar el auto.</p>
+
+      <!-- Mapa de parqueo (ilustración propia) -->
+      <div class="aside-art" aria-hidden="true">
+        <svg viewBox="0 0 440 200" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <!-- manzanas -->
+          <g stroke="rgba(255,255,255,.10)" stroke-width="1.5">
+            <rect x="14" y="20" width="120" height="70" rx="6"/>
+            <rect x="150" y="20" width="150" height="70" rx="6"/>
+            <rect x="316" y="20" width="110" height="70" rx="6"/>
+            <rect x="14" y="110" width="120" height="74" rx="6"/>
+            <rect x="150" y="110" width="150" height="74" rx="6"/>
+            <rect x="316" y="110" width="110" height="74" rx="6"/>
+          </g>
+          <!-- ruta sugerida -->
+          <path class="route-dash" d="M58 158 L58 100 Q58 92 66 92 L210 92 Q220 92 220 82 L220 54"
+                stroke="#14998C" stroke-width="2.5" stroke-linecap="round"/>
+          <!-- origen -->
+          <circle cx="58" cy="158" r="6" fill="#EAF1F4"/>
+          <circle cx="58" cy="158" r="6" fill="none" stroke="#EAF1F4" stroke-width="1.5" class="pin-pulse"/>
+
+          <!-- pines de parqueo -->
+          <g transform="translate(220 54)">
+            <circle r="13" class="pin-pulse" fill="#14998C"/>
+            <path d="M0-12c-6 0-11 5-11 11 0 8 11 17 11 17s11-9 11-17c0-6-5-11-11-11z" fill="#14998C"/>
+            <text x="0" y="3" text-anchor="middle" font-family="Inter,sans-serif" font-size="11" font-weight="700" fill="#04261f">P</text>
+          </g>
+          <g transform="translate(360 150)">
+            <circle r="11" class="pin-pulse d2" fill="#ffffff"/>
+            <path d="M0-10c-5 0-9 4-9 9 0 7 9 14 9 14s9-7 9-14c0-5-4-9-9-9z" fill="#ffffff"/>
+            <text x="0" y="3" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#0A2A43">P</text>
+          </g>
+          <g transform="translate(95 150)">
+            <circle r="11" class="pin-pulse d3" fill="#ffffff"/>
+            <path d="M0-10c-5 0-9 4-9 9 0 7 9 14 9 14s9-7 9-14c0-5-4-9-9-9z" fill="#ffffff"/>
+            <text x="0" y="3" text-anchor="middle" font-family="Inter,sans-serif" font-size="10" font-weight="700" fill="#0A2A43">P</text>
+          </g>
+        </svg>
       </div>
-      <div class="inp-wrap">
-        <input id="inpPassword" type="password" name="password"
-               placeholder="••••••••" autocomplete="current-password" required
-               style="padding-right:44px">
-        <button type="button" id="togglePw" class="btn-eye">
-          <i id="eyeIcon" class="fa-solid fa-eye"></i>
-        </button>
+    </div>
+
+    <div class="aside-bottom">
+      <div class="aside-stats">
+        <div>
+          <div class="stat-num">2.500+</div>
+          <div class="stat-lbl">Espacios disponibles</div>
+        </div>
+        <div>
+          <div class="stat-num">98%</div>
+          <div class="stat-lbl">Reservas confirmadas</div>
+        </div>
+        <div>
+          <div class="stat-num">&lt;30s</div>
+          <div class="stat-lbl">Para reservar</div>
+        </div>
       </div>
-      <span class="field-error" id="errPassword">La contraseña es obligatoria.</span>
     </div>
+  </aside>
 
-    <div class="chk-row">
-      <input type="checkbox" id="remember" name="remember">
-      <label for="remember">Recordarme por 30 días</label>
+  <!-- ═══ Formulario ═══ -->
+  <main class="auth-main">
+    <div class="auth-form">
+
+      <div class="mobile-brand">
+        <span class="m-mark">
+          <svg width="20" height="20" viewBox="0 0 34 34" fill="none">
+            <g fill="white"><rect x="11" y="8" width="4" height="18" rx="1.3"/><rect x="11" y="8" width="13" height="4" rx="1.3"/><rect x="11" y="15" width="10" height="3.6" rx="1.3"/><rect x="11" y="22" width="13" height="4" rx="1.3"/></g>
+          </svg>
+        </span>
+        <span class="m-name">EstAirbnb</span>
+      </div>
+
+      <div class="form-head">
+        <h2 class="form-title">Inicia sesión</h2>
+        <p class="form-sub">Bienvenido de vuelta. Accede a tus reservas y espacios.</p>
+      </div>
+
+      <div id="alertBox" class="alert-box">
+        <i id="alertIcon" class="fa-solid fa-circle-exclamation"></i>
+        <span id="alertMsg"></span>
+      </div>
+
+      <form id="loginForm" novalidate>
+
+        <div class="field">
+          <label class="field-lbl" for="inpEmail">Correo electrónico</label>
+          <input id="inpEmail" type="email" name="email"
+                 placeholder="tu@ejemplo.com" autocomplete="email" required>
+          <span class="field-error" id="errEmail">Ingresa un correo válido.</span>
+        </div>
+
+        <div class="field">
+          <div class="field-hdr">
+            <label class="field-lbl" for="inpPassword">Contraseña</label>
+            <a class="link-sm" href="#">¿La olvidaste?</a>
+          </div>
+          <div class="inp-wrap">
+            <input id="inpPassword" type="password" name="password"
+                   placeholder="••••••••" autocomplete="current-password" required
+                   style="padding-right:44px">
+            <button type="button" id="togglePw" class="btn-eye" aria-label="Mostrar contraseña">
+              <i id="eyeIcon" class="fa-solid fa-eye"></i>
+            </button>
+          </div>
+          <span class="field-error" id="errPassword">La contraseña es obligatoria.</span>
+        </div>
+
+        <div class="chk-row">
+          <input type="checkbox" id="remember" name="remember">
+          <label for="remember">Recordarme por 30 días</label>
+        </div>
+
+        <button type="submit" id="btnLogin" class="btn-primary">Iniciar sesión</button>
+
+      </form>
+
+      <div class="form-foot">
+        ¿No tienes cuenta? <a href="/register.html">Regístrate gratis</a>
+      </div>
+
     </div>
-
-    <button type="submit" id="btnLogin" class="btn-primary">Iniciar Sesión</button>
-
-  </form>
-
-  <div class="card-footer">
-    ¿No tienes cuenta? <a href="/register.html">Regístrate gratis</a>
-  </div>
+  </main>
 
 </div>
 
-<script src="/js/mesh-bg.js"></script>
 <script src="/js/login.js"></script>
-<script src="/js/navbar-badge.js"></script>
 </body>
 </html>

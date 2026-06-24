@@ -25,3 +25,15 @@ Thumbs.db
 
 # Librerías de terceros locales
 AdminLTE-master/
+
+# Documentación / manuales / herramientas (no forman parte del código del proyecto)
+docs/
+tools/
+/*.pdf
+/*.docx
+~$*.docx
+~$*.doc
+
+# Archivos temporales sueltos
+Ctmp_test.txt
+guia_extraida.txt

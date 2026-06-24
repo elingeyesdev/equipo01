@@ -13,22 +13,68 @@
 }
 
 /* ============================
+   Base + Cabecera editorial
+============================ */
+body { background: var(--c-paper); }
+html.dark body { background: #0d1117; }
+
+.fav-shell {
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 48px 28px 84px;
+}
+@media (max-width: 768px) { .fav-shell { padding: 32px 18px 60px; } }
+
+.fav-header { margin-bottom: 30px; }
+.fav-eyebrow {
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .16em;
+  text-transform: uppercase;
+  color: var(--c-secondary);
+  margin-bottom: 12px;
+}
+.fav-title {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-weight: 500;
+  font-size: clamp(32px, 4.4vw, 50px);
+  line-height: 1.02;
+  letter-spacing: -.5px;
+  color: var(--c-primary);
+  margin: 0;
+}
+.fav-subtitle {
+  margin: 14px 0 0;
+  font-size: 16px;
+  color: var(--c-on-muted);
+  line-height: 1.55;
+  max-width: 46ch;
+}
+html.dark .fav-title { color: #e6edf3; }
+html.dark .fav-subtitle { color: #8b949e; }
+
+/* ============================
    Counter Badge
 ============================ */
 .fav-counter {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: var(--fav-accent-soft);
-  color: #002542;
+  background: rgba(12,110,98,.08);
+  color: var(--c-secondary-dark);
   padding: 8px 18px;
   border-radius: 999px;
   font-size: 0.88rem;
   font-weight: 600;
   margin-bottom: 28px;
-  border: 1px solid rgba(255, 71, 87, 0.15);
+  border: 1px solid rgba(12,110,98,.2);
   animation: fadeInUp 0.4s ease;
 }
+.fav-counter i { color: var(--c-secondary); }
+.fav-counter strong { font-weight: 800; }
 
 /* ============================
    Loading State
@@ -73,25 +119,27 @@
 }
 
 .fav-empty-icon {
-  width: 96px;
-  height: 96px;
+  width: 92px;
+  height: 92px;
   border-radius: 50%;
-  background: linear-gradient(135deg, #fff0f1, #ffe0e3);
+  background: var(--c-paper-2);
+  border: 1px solid var(--c-warm-border);
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 28px;
+  margin-bottom: 26px;
 }
 
 .fav-empty-icon i {
-  font-size: 2.8rem;
-  color: var(--fav-accent);
-  opacity: 0.6;
+  font-size: 2.4rem;
+  color: var(--c-outline);
 }
 
 .fav-empty h3 {
-  font-size: 1.6rem;
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-size: 1.7rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   color: #002542;
   margin-bottom: 10px;
 }
@@ -107,22 +155,21 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: linear-gradient(135deg, #002542, #1b3b5a);
+  background: var(--c-primary);
   color: #fff;
-  padding: 12px 28px;
-  border-radius: 10px;
+  padding: 13px 28px;
+  border-radius: 11px;
   font-weight: 700;
   font-size: 0.9rem;
   text-decoration: none;
-  transition: all 0.25s ease;
-  box-shadow: 0 4px 14px rgba(0, 37, 66, 0.2);
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
 }
 
 .fav-empty-btn:hover {
-  background: linear-gradient(135deg, #006a62, #009688);
+  background: var(--c-primary-light);
   color: #fff;
   transform: translateY(-2px);
-  box-shadow: 0 8px 20px rgba(0, 106, 98, 0.25);
+  box-shadow: 0 12px 24px -10px rgba(0, 37, 66, 0.7);
 }
 
 /* ============================
@@ -138,12 +185,12 @@
    Favorite Card
 ============================ */
 .fav-card {
-  background: #fff;
+  background: var(--c-surface);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-  transition: transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.3s ease;
-  border: 1px solid rgba(0, 0, 0, 0.06);
+  box-shadow: 0 1px 2px rgba(10, 42, 67, 0.04);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
+  border: 1px solid var(--c-warm-border);
   display: flex;
   flex-direction: column;
   animation: fadeInUp 0.45s ease both;
@@ -151,9 +198,11 @@
 }
 
 .fav-card:hover {
-  transform: translateY(-6px);
-  box-shadow: 0 16px 40px rgba(0, 37, 66, 0.12);
+  transform: translateY(-4px);
+  border-color: var(--c-warm-border-2);
+  box-shadow: 0 18px 38px -20px rgba(10, 42, 67, 0.4);
 }
+.dark .fav-card:hover { border-color: #3a4452; }
 
 /* Stagger */
 .fav-card:nth-child(1) { animation-delay: 0.05s; }
@@ -168,7 +217,7 @@
   position: relative;
   height: 200px;
   overflow: hidden;
-  background: #f0f2f5;
+  background: var(--c-paper);
 }
 
 .fav-card-img-wrap img {
@@ -209,12 +258,13 @@
   left: 12px;
   padding: 4px 12px;
   border-radius: 20px;
-  font-size: 0.7rem;
+  font-size: 0.68rem;
   font-weight: 700;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
-  backdrop-filter: blur(10px);
-  background: rgba(24, 119, 242, 0.85);
+  backdrop-filter: blur(8px);
+  background: rgba(10, 42, 67, 0.58);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   color: #fff;
   display: flex;
   align-items: center;
@@ -244,24 +294,25 @@
   width: 36px;
   height: 36px;
   border-radius: 50%;
-  border: none;
+  border: 1px solid rgba(255, 255, 255, 0.5);
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.1rem;
-  color: #ff4757;
-  background: rgba(255, 255, 255, 0.9);
+  font-size: 1rem;
+  color: #41525f;
+  background: rgba(255, 255, 255, 0.88);
   backdrop-filter: blur(8px);
-  transition: transform 0.2s ease, background 0.2s ease;
+  transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
   z-index: 5;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .fav-card-remove:hover {
-  background: #ff4757;
+  background: #e5484d;
+  border-color: #e5484d;
   color: #fff;
-  transform: scale(1.15);
+  transform: scale(1.12);
 }
 
 /* Card Body */
@@ -301,7 +352,7 @@
 
 .fav-card-badges span {
   font-size: 0.68rem;
-  background: #f0f2f5;
+  background: var(--c-paper);
   color: #43474d;
   padding: 3px 9px;
   border-radius: 6px;
@@ -312,7 +363,7 @@
 }
 
 .fav-card-badges span i {
-  color: #006a62;
+  color: var(--c-outline);
   font-size: 0.65rem;
 }
 
@@ -322,13 +373,15 @@
   align-items: center;
   justify-content: space-between;
   padding-top: 14px;
-  border-top: 1px solid #f0f2f5;
+  border-top: 1px solid var(--c-paper);
   margin-top: auto;
 }
 
 .fav-card-precio {
-  font-size: 1.2rem;
-  font-weight: 800;
+  font-family: var(--font-display);
+  font-size: 1.45rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
   color: #002542;
 }
 
@@ -336,30 +389,32 @@
   font-size: 0.72rem;
   font-weight: 500;
   color: #73777e;
+  font-family: 'Inter', sans-serif;
 }
+.dark .fav-card-precio { color: #e4e6f0; }
 
 .fav-card-action {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  background: linear-gradient(135deg, #006a62, #009688);
+  background: var(--c-secondary);
   color: #fff;
-  padding: 8px 18px;
-  border-radius: 8px;
+  padding: 9px 18px;
+  border-radius: 9px;
   font-size: 0.82rem;
   font-weight: 700;
   text-decoration: none;
-  transition: all 0.2s ease;
+  transition: background 0.2s ease, transform 0.15s ease, box-shadow 0.2s ease;
   border: none;
   cursor: pointer;
   font-family: inherit;
 }
 
 .fav-card-action:hover {
-  background: linear-gradient(135deg, #005049, #006a62);
+  background: var(--c-secondary-dark);
   color: #fff;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 106, 98, 0.3);
+  box-shadow: 0 8px 18px -8px rgba(0, 106, 98, 0.6);
 }
 
 /* ============================
@@ -465,10 +520,11 @@
 .dark .fav-card-remove { background: rgba(26, 26, 46, 0.9); }
 .dark .fav-empty h3 { color: #e4e6f0; }
 .dark .fav-empty p { color: #8b8fa3; }
-.dark .fav-counter { background: rgba(255, 71, 87, 0.1); color: #e4e6f0; }
+.dark .fav-counter { background: rgba(20, 153, 140, 0.12); border-color: rgba(20,153,140,.28); color: #e4e6f0; }
+.dark .fav-counter i { color: #5eead4; }
 
 /* ── Flatpickr overrides ── */
-.flatpickr-calendar { font-family: 'Inter', sans-serif; border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.18); border: 1px solid #e2e8f0; }
+.flatpickr-calendar { font-family: 'Inter', sans-serif; border-radius: 12px; box-shadow: 0 12px 40px rgba(0,0,0,.18); border: 1px solid var(--c-warm-border); }
 .flatpickr-day.selected, .flatpickr-day.selected:hover { background: #006a62; border-color: #006a62; }
 .flatpickr-day.today { border-color: #006a62; }
 #fechaEntrada, #fechaSalida { cursor: pointer; caret-color: transparent; }
@@ -485,8 +541,8 @@
 .reserva-wizard-overlay.open{opacity:1;pointer-events:auto}
 .reserva-wizard-modal{background:#fff;border-radius:20px;width:100%;max-width:560px;max-height:90vh;display:flex;flex-direction:column;box-shadow:0 24px 60px rgba(0,0,0,.22);transform:translateY(16px) scale(.97);transition:transform .3s cubic-bezier(.34,1.56,.64,1)}
 .reserva-wizard-overlay.open .reserva-wizard-modal{transform:none}
-.dark .reserva-wizard-modal{background:#1e293b;color:#e2e8f0}
-.reserva-wizard-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid #e2e8f0;gap:12px;flex-direction:column}
+.dark .reserva-wizard-modal{background:#1e293b;color:var(--c-warm-border)}
+.reserva-wizard-header{display:flex;align-items:center;justify-content:space-between;padding:18px 20px 14px;border-bottom:1px solid var(--c-warm-border);gap:12px;flex-direction:column}
 .dark .reserva-wizard-header{border-color:#334155}
 .wizard-garaje-titulo{font-size:.78rem;font-weight:700;color:#006a62;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:100%;padding:0 8px}
 .reserva-wizard-steps-row{display:flex;align-items:center;width:100%;gap:0}
@@ -494,60 +550,60 @@
 .reserva-step-item{display:flex;flex-direction:column;align-items:center;gap:3px;cursor:default}
 .reserva-step-circle{width:28px;height:28px;border-radius:50%;border:2px solid #c3c6ce;display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#73777e;transition:all .25s}
 .reserva-step-item.active .reserva-step-circle{background:#006a62;border-color:#006a62;color:#fff;box-shadow:0 0 0 3px rgba(0,106,98,.2)}
-.reserva-step-item.completed .reserva-step-circle{background:#d1fae5;border-color:#006a62;color:#006a62}
+.reserva-step-item.completed .reserva-step-circle{background:rgba(12,110,98,.14);border-color:#006a62;color:#006a62}
 .reserva-step-item span{font-size:.65rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em}
 .reserva-step-item.active span{color:#006a62}
-.reserva-step-divider{flex:1;height:2px;background:#e2e8f0;margin:0 6px;align-self:center;margin-bottom:14px}
+.reserva-step-divider{flex:1;height:2px;background:var(--c-warm-border);margin:0 6px;align-self:center;margin-bottom:14px}
 .dark .reserva-step-divider{background:#334155}
-.reserva-wizard-close{width:34px;height:34px;border-radius:50%;border:none;background:#f1f5f9;color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:background .2s,color .2s;flex-shrink:0}
-.reserva-wizard-close:hover{background:#fee2e2;color:#dc2626}
+.reserva-wizard-close{width:34px;height:34px;border-radius:50%;border:none;background:var(--c-paper);color:#64748b;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:.9rem;transition:background .2s,color .2s;flex-shrink:0}
+.reserva-wizard-close:hover{background:var(--c-paper);color:#002542}
 .dark .reserva-wizard-close{background:#334155;color:#94a3b8}
 .reserva-wizard-body{flex:1;overflow-y:auto;padding:24px 24px 12px}
 .reserva-panel{display:none}
 .reserva-panel.active{display:block}
-.reserva-panel-title{font-size:1.1rem;font-weight:700;color:#002542;margin-bottom:4px;display:flex;align-items:center;gap:8px}
-.dark .reserva-panel-title{color:#e2e8f0}
+.reserva-panel-title{font-family:var(--font-display);font-size:1.4rem;font-weight:500;letter-spacing:-.01em;color:#002542;margin-bottom:4px;display:flex;align-items:center;gap:9px}
+.dark .reserva-panel-title{color:var(--c-warm-border)}
 .reserva-panel-title i{color:#006a62}
 .reserva-panel-sub{font-size:.83rem;color:#64748b;margin-bottom:18px}
-.reserva-espacio-info{display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 14px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;font-size:.85rem;font-weight:600;color:#166534}
+.reserva-espacio-info{display:flex;align-items:center;gap:8px;margin-top:12px;padding:10px 14px;background:rgba(12,110,98,.07);border:1px solid rgba(12,110,98,.22);border-radius:10px;font-size:.85rem;font-weight:600;color:#005049}
 .reserva-espacio-info.hidden{display:none}
-.reserva-espacio-info i{color:#16a34a}
+.reserva-espacio-info i{color:#006a62}
 .reserva-dates-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
 .reserva-date-field{display:flex;flex-direction:column;gap:6px}
 .reserva-date-field label{font-size:.75rem;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.04em;display:flex;align-items:center;gap:5px}
 .reserva-date-field label i{color:#006a62}
-.reserva-date-field input{padding:10px 12px;border:1.5px solid #e2e8f0;border-radius:10px;font-family:inherit;font-size:.88rem;color:#002542;background:#f8fafc;outline:none;transition:border-color .2s}
+.reserva-date-field input{padding:10px 12px;border:1.5px solid var(--c-warm-border);border-radius:10px;font-family:inherit;font-size:.88rem;color:#002542;background:var(--c-paper-2);outline:none;transition:border-color .2s}
 .reserva-date-field input:focus{border-color:#006a62;box-shadow:0 0 0 3px rgba(0,106,98,.12)}
-.dark .reserva-date-field input{background:#1e293b;border-color:#334155;color:#e2e8f0}
-.reserva-precio-live{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;font-size:.88rem;color:#166534;font-weight:600;margin-top:4px}
+.dark .reserva-date-field input{background:#1e293b;border-color:#334155;color:var(--c-warm-border)}
+.reserva-precio-live{display:flex;justify-content:space-between;align-items:center;padding:12px 16px;background:rgba(12,110,98,.07);border-radius:10px;border:1px solid rgba(12,110,98,.22);font-size:.88rem;color:#005049;font-weight:600;margin-top:4px}
 .reserva-precio-live.hidden{display:none}
 .reserva-total{font-size:1.2rem;font-weight:800;color:#006a62}
 .reserva-alert{padding:10px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;font-size:.83rem;color:#dc2626;font-weight:600;margin-top:8px}
 .reserva-alert.hidden{display:none}
-.reserva-summary{border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;margin-bottom:16px}
+.reserva-summary{border:1px solid var(--c-warm-border);border-radius:12px;overflow:hidden;margin-bottom:16px}
 .dark .reserva-summary{border-color:#334155}
-.reserva-summary-row{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;font-size:.88rem;color:#64748b;border-bottom:1px solid #f1f5f9}
+.reserva-summary-row{display:flex;justify-content:space-between;align-items:center;padding:10px 16px;font-size:.88rem;color:#64748b;border-bottom:1px solid var(--c-paper)}
 .dark .reserva-summary-row{border-color:#1e293b;color:#94a3b8}
 .reserva-summary-row:last-child{border-bottom:none}
 .reserva-summary-row strong{color:#002542;font-weight:700}
-.dark .reserva-summary-row strong{color:#e2e8f0}
-.reserva-summary-row.total{background:linear-gradient(135deg,#f0fdf4,#dcfce7);padding:14px 16px}
-.reserva-summary-row.total span{font-size:.95rem;font-weight:700;color:#166534}
-.reserva-summary-row.total strong{font-size:1.2rem;color:#006a62}
+.dark .reserva-summary-row strong{color:var(--c-warm-border)}
+.reserva-summary-row.total{background:rgba(12,110,98,.06);padding:14px 16px}
+.reserva-summary-row.total span{font-size:.95rem;font-weight:700;color:#002542}
+.reserva-summary-row.total strong{font-family:var(--font-display);font-weight:600;font-size:1.32rem;color:#006a62}
 .reserva-accept-check{display:flex;align-items:center;gap:10px;padding:10px 0;font-size:.85rem;color:#64748b}
 .reserva-accept-check input{width:16px;height:16px;accent-color:#006a62;cursor:pointer}
 .reserva-accept-check label{cursor:pointer}
 .reserva-policy-note{font-size:.75rem;color:#94a3b8;display:flex;align-items:center;gap:5px;margin-top:4px}
 .reserva-policy-note i{color:#94a3b8}
-.reserva-wizard-footer{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 18px;border-top:1px solid #e2e8f0;gap:10px}
+.reserva-wizard-footer{display:flex;align-items:center;justify-content:space-between;padding:14px 20px 18px;border-top:1px solid var(--c-warm-border);gap:10px}
 .dark .reserva-wizard-footer{border-color:#334155}
 .reserva-step-counter{font-size:.75rem;font-weight:600;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;flex:1;text-align:center}
-.reserva-btn-sec{padding:10px 18px;border-radius:10px;border:1.5px solid #e2e8f0;background:transparent;color:#64748b;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s}
+.reserva-btn-sec{padding:10px 18px;border-radius:10px;border:1.5px solid var(--c-warm-border);background:transparent;color:#64748b;font-family:inherit;font-size:.85rem;font-weight:600;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s}
 .reserva-btn-sec:hover{border-color:#006a62;color:#006a62}
-.reserva-btn-primary{padding:10px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,#006a62,#005049);color:#fff;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;box-shadow:0 4px 12px rgba(0,106,98,.25)}
-.reserva-btn-primary:hover{background:linear-gradient(135deg,#005049,#003d38);box-shadow:0 6px 16px rgba(0,106,98,.35);transform:translateY(-1px)}
-.reserva-btn-confirm{padding:10px 22px;border-radius:10px;border:none;background:linear-gradient(135deg,#16a34a,#15803d);color:#fff;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s;box-shadow:0 4px 12px rgba(22,163,74,.25)}
-.reserva-btn-confirm:hover:not(:disabled){background:linear-gradient(135deg,#15803d,#14532d);transform:translateY(-1px)}
+.reserva-btn-primary{padding:10px 22px;border-radius:10px;border:none;background:var(--c-primary);color:#fff;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s}
+.reserva-btn-primary:hover{background:var(--c-primary-light);box-shadow:0 10px 20px -10px rgba(0,37,66,.7);transform:translateY(-1px)}
+.reserva-btn-confirm{padding:10px 22px;border-radius:10px;border:none;background:var(--c-secondary);color:#fff;font-family:inherit;font-size:.85rem;font-weight:700;cursor:pointer;display:flex;align-items:center;gap:6px;transition:all .2s}
+.reserva-btn-confirm:hover:not(:disabled){background:var(--c-secondary-dark);transform:translateY(-1px);box-shadow:0 10px 20px -10px rgba(0,106,98,.6)}
 .reserva-btn-confirm:disabled{opacity:.45;cursor:not-allowed;transform:none}
 @media(max-width:480px){
   .reserva-dates-grid{grid-template-columns:1fr}

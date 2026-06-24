@@ -57,11 +57,11 @@
   const btnThemeToggle   = document.getElementById('btnThemeToggle');
   const themeIcon        = document.getElementById('themeIcon');
 
-  // ─── Vehicle type labels ───
+  // ─── Vehicle type labels (sin emojis) ───
   const TIPO_LABELS = {
-    auto: '🚗 Auto',
-    moto: '🏍️ Moto',
-    camioneta: '🚙 Camioneta'
+    auto: 'Auto',
+    moto: 'Moto',
+    camioneta: 'Camioneta'
   };
 
   // ─── Theme Toggle ───
@@ -202,60 +202,49 @@
     // Image section
     let imagenHTML;
     if (garaje.foto_portada) {
-      imagenHTML = `<img src="${garaje.foto_portada}" alt="Foto de ${garaje.direccion}" class="explore-card-img" loading="lazy">`;
+      imagenHTML = `<img src="${garaje.foto_portada}" alt="Foto de ${garaje.direccion}" class="ec-img" loading="lazy">`;
     } else {
       imagenHTML = `
-        <div class="explore-card-img-placeholder">
-          <i class="fa-solid fa-warehouse"></i>
-          <span>Sin foto</span>
+        <div class="ec-noimg">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21V10l9-6 9 6v11"/><path d="M3 21h18"/><path d="M9 21v-6h6v6"/></svg>
         </div>`;
     }
 
-    // Vehicle type icon
-    const tipoIcons = { auto: 'fa-car-side', moto: 'fa-motorcycle', camioneta: 'fa-truck-pickup' };
-    const tipoLabel = TIPO_LABELS[garaje.tipo_vehiculo] || garaje.tipo_vehiculo;
-    const tipoIcon = tipoIcons[garaje.tipo_vehiculo] || 'fa-car';
-
-    // Security icon
-    const segIcons = { 'Básico': 'fa-shield', 'Estándar': 'fa-shield-halved', 'Premium': 'fa-shield-heart' };
-    const segIcon = segIcons[garaje.nivel_seguridad] || 'fa-shield-halved';
-
-    // Price formatting
-    const precio = parseFloat(garaje.precio_hora).toFixed(2);
-
-    // Description preview
-    const descripcion = garaje.descripcion
-      ? garaje.descripcion
-      : 'Espacio de parqueo disponible.';
-
-    const isFav = favoritosIds.has(garaje.id);
+    const tipoLabel = TIPO_LABELS[garaje.tipo_vehiculo] || garaje.tipo_vehiculo || 'Auto';
+    const precio    = parseFloat(garaje.precio_hora).toFixed(2);
+    const seguridad = garaje.nivel_seguridad || 'Estándar';
+    const acceso    = garaje.metodo_acceso || 'Manual';
+    const isFav     = favoritosIds.has(garaje.id);
 
     card.innerHTML = `
-      ${imagenHTML}
-      <div class="explore-card-overlay"></div>
-      <div class="explore-card-content">
-        <div class="explore-card-top">
-          <span class="explore-card-tag">
-            <i class="fa-solid ${tipoIcon}"></i> ${tipoLabel}
+      <div class="ec-media">
+        ${imagenHTML}
+        <span class="ec-type">${tipoLabel}</span>
+        <button class="btn-fav-heart ${isFav ? 'is-fav' : ''}" data-garaje-id="${garaje.id}" title="${isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
+          <i class="fa-${isFav ? 'solid' : 'regular'} fa-heart"></i>
+        </button>
+      </div>
+      <div class="ec-body">
+        <h3 class="ec-addr">${garaje.direccion}</h3>
+        <div class="ec-meta">
+          <span class="ec-meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+            ${seguridad}
           </span>
-          <button class="btn-fav-heart ${isFav ? 'is-fav' : ''}" data-garaje-id="${garaje.id}" title="${isFav ? 'Quitar de favoritos' : 'Agregar a favoritos'}">
-            <i class="fa-${isFav ? 'solid' : 'regular'} fa-heart"></i>
-          </button>
+          <span class="ec-meta-sep"></span>
+          <span class="ec-meta-item">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="8" cy="15" r="4"/><path d="M10.8 12.2 19 4"/><path d="m16 7 2 2"/><path d="m13 10 2 2"/></svg>
+            ${acceso}
+          </span>
         </div>
-        <div class="explore-card-bottom">
-          <div class="explore-card-price-float">
-            <span class="price-amount">Bs. ${precio}</span>
-            <span class="price-unit">/ hora</span>
+        <div class="ec-foot">
+          <div class="ec-price">
+            <span class="ec-amount">Bs.&nbsp;${precio}</span>
+            <span class="ec-unit">/hora</span>
           </div>
-          <div class="explore-card-direccion">${garaje.direccion}</div>
-          <div class="explore-card-hover-reveal">
-            <div class="explore-card-descripcion">${descripcion}</div>
-            <div class="explore-card-chips">
-              <span class="chip-seg"><i class="fa-solid ${segIcon}"></i> ${garaje.nivel_seguridad || 'Estándar'}</span>
-              <span class="chip-access"><i class="fa-solid fa-right-to-bracket"></i> ${garaje.metodo_acceso || 'Manual'}</span>
-            </div>
-            <span class="explore-card-cta">Ver detalles <i class="fa-solid fa-arrow-right"></i></span>
-          </div>
+          <span class="ec-cta">Ver detalles
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14"/><path d="m12 5 7 7-7 7"/></svg>
+          </span>
         </div>
       </div>
     `;

@@ -50,9 +50,9 @@
 
   // ─── Vehicle Labels ───
   const TIPO_LABELS = {
-    auto: '🚗 Auto',
-    moto: '🏍️ Moto',
-    camioneta: '🚙 Camioneta'
+    auto: 'Auto',
+    moto: 'Moto',
+    camioneta: 'Camioneta'
   };
 
   // ============================================================

@@ -39,6 +39,15 @@ body { font-family: 'Inter', sans-serif; }
   --shadow-md: 0 4px 16px rgba(0,37,66,.09), 0 2px 6px rgba(0,37,66,.05);
   --shadow-lg: 0 8px 28px rgba(0,37,66,.11), 0 4px 10px rgba(0,37,66,.06);
   --shadow-xl: 0 16px 48px rgba(0,37,66,.13), 0 6px 16px rgba(0,37,66,.07);
+
+  /* Lenguaje editorial (compartido con auth) — aditivo */
+  --font-display:   'Fraunces', Georgia, serif;
+  --c-paper:        #F4F1EA;   /* fondo cálido tipo papel */
+  --c-paper-2:      #FBFAF6;   /* superficie cálida sutil */
+  --c-warm-border:  #E4DFD3;   /* borde cálido */
+  --c-warm-border-2:#D2CBBA;
+  --c-teal-bright:  #14998C;
+  --c-ink:          #0A2A43;
 }
 
 /* ── Navbar principal ────────────────────────────────────── */
@@ -367,10 +376,33 @@ html.dark .empty-state  { background: #161b22; border-color: #30363d; }
 html.dark .empty-icon   { background: #21262d; }
 html.dark .page-header-text h1 { color: #e6edf3; }
 
+/* ── Barra de navegación inferior (móvil, tipo app) ──────── */
+.cbottom-nav { display: none; }
+.cbottom-nav .cbn-item {
+  flex: 1; display: flex; flex-direction: column; align-items: center; gap: 2px;
+  text-decoration: none; color: #5B6572; font-size: .66rem; font-weight: 600;
+  padding: 7px 2px; transition: color .15s ease;
+}
+.cbottom-nav .cbn-item .material-symbols-outlined { font-size: 23px; }
+.cbottom-nav .cbn-item.active { color: #006a62; }
+.cbottom-nav .cbn-label { line-height: 1; }
+html.dark .cbottom-nav { background: #0d1117; border-top-color: #21262d; }
+html.dark .cbottom-nav .cbn-item { color: #8b949e; }
+html.dark .cbottom-nav .cbn-item.active { color: #2dd4bf; }
+
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 768px) {
   .nav-links { display: none; }
   .nav-inner { padding: 0 16px; }
   .page-wrap { padding: 24px 16px 48px; }
   .page-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+
+  /* Mostrar barra inferior y reservar espacio para que no tape el contenido */
+  .cbottom-nav {
+    display: flex; position: fixed; left: 0; right: 0; bottom: 0; z-index: 1000;
+    background: #fff; border-top: 1px solid var(--c-warm-border, #E4DFD3);
+    box-shadow: 0 -4px 16px rgba(10,42,67,.07);
+    padding-top: 4px; padding-bottom: calc(4px + env(safe-area-inset-bottom));
+  }
+  body { padding-bottom: 66px; }
 }

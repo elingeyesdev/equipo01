@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700;900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..600&amp;display=swap" rel="stylesheet"/>
 <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
 <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" rel="stylesheet">
 <link href="/css/dark-theme.css" rel="stylesheet">
@@ -89,23 +90,24 @@ tailwind.config = {
 #filterDrawer.open { left:0; }
 .drawer-input { width:100%;background:#eceef0;border:none;border-radius:10px;padding:11px 14px;font-family:inherit;font-size:.9rem;color:#191c1e;outline:none;transition:background .2s; }
 .drawer-input:focus { background:#e0e3e5; }
-.drawer-select { cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2343474d' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;background-color:#eceef0;padding-right:38px; }
-#btnToggleFiltros { display:inline-flex;align-items:center;gap:8px;padding:10px 20px;border-radius:10px;border:1.5px solid #c3c6ce;background:#fff;color:#002542;font-family:inherit;font-size:.88rem;font-weight:700;cursor:pointer;transition:all .2s;box-shadow:0 1px 4px rgba(0,37,66,.06); }
-#btnToggleFiltros:hover { border-color:#006a62;color:#006a62;background:#f0fdf9; }
-/* Dark mode overrides */
-.dark #filterDrawer { background:#1e293b; }
-.dark .drawer-input,.dark .drawer-select { background:#334155;color:#e2e8f0; }
-.dark .drawer-input:focus { background:#3f4f63; }
-.dark #btnToggleFiltros { background:#1e293b;border-color:#334155;color:#e2e8f0; }
+.drawer-select { cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2343474d' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;padding-right:38px; }
 </style>
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0A2A43">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EstAirbnb">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <script src="/js/pwa.js" defer></script>
 </head>
-<body class="bg-background text-on-background font-body antialiased selection:bg-secondary-container selection:text-on-secondary-container flex flex-col min-h-screen">
+<body class="text-on-background font-body antialiased selection:bg-secondary-container selection:text-on-secondary-container flex flex-col min-h-screen">
 <!-- Navbar -->
 <nav class="app-navbar" id="topNavbar">
   <div class="nav-inner">
     <div style="display:flex;align-items:center;">
       <a href="/" class="nav-brand">
-        <span class="brand-icon"><span class="material-symbols-outlined">local_parking</span></span>
+        <span class="brand-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="7" y="5" width="2.8" height="14" rx="1"/><rect x="7" y="5" width="10" height="2.8" rx="1"/><rect x="7" y="10.6" width="7.8" height="2.6" rx="1"/><rect x="7" y="16.2" width="10" height="2.8" rx="1"/></svg></span>
         EstAirbnb
       </a>
       <div class="nav-links">
@@ -140,124 +142,116 @@ tailwind.config = {
 <!-- Filter Drawer -->
 <aside id="filterDrawer">
   <!-- Drawer Header -->
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:20px 24px;border-bottom:1px solid #e2e8f0;flex-shrink:0;position:sticky;top:0;background:inherit;z-index:1;">
-    <div style="display:flex;align-items:center;gap:12px;">
-      <div style="width:38px;height:38px;background:linear-gradient(135deg,#002542,#436182);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
-        <span class="material-symbols-outlined" style="color:#fff;font-size:1.1rem;">tune</span>
-      </div>
-      <span style="font-size:1rem;font-weight:800;color:#002542;letter-spacing:-.01em;">Filtros</span>
-    </div>
-    <button onclick="cerrarFiltros()" style="width:36px;height:36px;border:none;background:#eceef0;border-radius:10px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:#43474d;font-size:1rem;transition:background .15s;">
-      <i class="fa-solid fa-xmark"></i>
+  <div class="fdrawer-head">
+    <span class="fdrawer-title">Filtros</span>
+    <button class="fdrawer-close" onclick="cerrarFiltros()" aria-label="Cerrar filtros">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6 6 18M6 6l12 12"/></svg>
     </button>
   </div>
   <!-- Drawer Body -->
-  <div style="padding:24px;flex:1;display:flex;flex-direction:column;gap:20px;">
+  <div class="fdrawer-body">
     <!-- Ubicación -->
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <label style="font-size:.72rem;font-weight:700;color:#43474d;text-transform:uppercase;letter-spacing:.06em;" for="filtroBusqueda">Ubicación</label>
-      <div style="position:relative;">
-        <span class="material-symbols-outlined" style="position:absolute;left:12px;top:50%;transform:translateY(-50%);color:#73777e;pointer-events:none;font-size:1.1rem;">search</span>
+    <div class="ffield">
+      <label class="flabel" for="filtroBusqueda">Ubicación</label>
+      <div class="finput-icon">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
         <input class="drawer-input" id="filtroBusqueda" type="text" placeholder="Zona, barrio o calle..." style="padding-left:40px;"/>
       </div>
     </div>
     <!-- Llegada / Salida -->
-    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <label style="font-size:.72rem;font-weight:700;color:#43474d;text-transform:uppercase;letter-spacing:.06em;" for="filtroEntrada">Llegada</label>
-        <input class="drawer-input" id="filtroEntrada" type="datetime-local" style="font-size:.82rem;padding:10px 12px;"/>
+    <div class="ffield-row">
+      <div class="ffield">
+        <label class="flabel" for="filtroEntrada">Llegada</label>
+        <input class="drawer-input" id="filtroEntrada" type="datetime-local" style="font-size:.82rem;"/>
       </div>
-      <div style="display:flex;flex-direction:column;gap:8px;">
-        <label style="font-size:.72rem;font-weight:700;color:#43474d;text-transform:uppercase;letter-spacing:.06em;" for="filtroSalida">Salida</label>
-        <input class="drawer-input" id="filtroSalida" type="datetime-local" style="font-size:.82rem;padding:10px 12px;"/>
+      <div class="ffield">
+        <label class="flabel" for="filtroSalida">Salida</label>
+        <input class="drawer-input" id="filtroSalida" type="datetime-local" style="font-size:.82rem;"/>
       </div>
     </div>
     <!-- Precio -->
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <label style="font-size:.72rem;font-weight:700;color:#43474d;text-transform:uppercase;letter-spacing:.06em;">Precio (Bs./hora)</label>
-      <div style="display:flex;align-items:center;gap:8px;">
-        <div style="position:relative;flex:1;">
-          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.72rem;font-weight:700;color:#73777e;pointer-events:none;">Bs.</span>
-          <input class="drawer-input" id="filtroPrecioMin" type="number" min="0" step="0.5" placeholder="Mín" style="padding-left:30px;"/>
+    <div class="ffield">
+      <label class="flabel">Precio (Bs./hora)</label>
+      <div class="fprice">
+        <div class="fprice-box">
+          <span class="fprice-pre">Bs.</span>
+          <input class="drawer-input" id="filtroPrecioMin" type="number" min="0" step="0.5" placeholder="Mín" style="padding-left:34px;"/>
         </div>
-        <span style="color:#73777e;font-weight:700;flex-shrink:0;">—</span>
-        <div style="position:relative;flex:1;">
-          <span style="position:absolute;left:10px;top:50%;transform:translateY(-50%);font-size:.72rem;font-weight:700;color:#73777e;pointer-events:none;">Bs.</span>
-          <input class="drawer-input" id="filtroPrecioMax" type="number" min="0" step="0.5" placeholder="Máx" style="padding-left:30px;"/>
+        <span class="fprice-dash"></span>
+        <div class="fprice-box">
+          <span class="fprice-pre">Bs.</span>
+          <input class="drawer-input" id="filtroPrecioMax" type="number" min="0" step="0.5" placeholder="Máx" style="padding-left:34px;"/>
         </div>
       </div>
     </div>
     <!-- Tipo vehículo -->
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <label style="font-size:.72rem;font-weight:700;color:#43474d;text-transform:uppercase;letter-spacing:.06em;" for="filtroTipoVehiculo">Tipo de Vehículo</label>
+    <div class="ffield">
+      <label class="flabel" for="filtroTipoVehiculo">Tipo de vehículo</label>
       <select class="drawer-input drawer-select" id="filtroTipoVehiculo">
         <option value="">Cualquier tamaño</option>
-        <option value="auto">🚗 Auto Sedán</option>
-        <option value="moto">🏍️ Motocicleta</option>
-        <option value="camioneta">🚙 Camioneta / SUV</option>
+        <option value="auto">Auto sedán</option>
+        <option value="moto">Motocicleta</option>
+        <option value="camioneta">Camioneta / SUV</option>
       </select>
     </div>
     <!-- Seguridad -->
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <label style="font-size:.72rem;font-weight:700;color:#43474d;text-transform:uppercase;letter-spacing:.06em;" for="filtroSeguridad">Nivel de Seguridad</label>
+    <div class="ffield">
+      <label class="flabel" for="filtroSeguridad">Nivel de seguridad</label>
       <select class="drawer-input drawer-select" id="filtroSeguridad">
         <option value="">Cualquier nivel</option>
-        <option value="Básico">🔓 Básico</option>
-        <option value="Estándar">🔒 Estándar</option>
-        <option value="Premium">🛡️ Premium</option>
+        <option value="Básico">Básico</option>
+        <option value="Estándar">Estándar</option>
+        <option value="Premium">Premium</option>
       </select>
     </div>
     <!-- Método de Acceso -->
-    <div style="display:flex;flex-direction:column;gap:8px;">
-      <label style="font-size:.72rem;font-weight:700;color:#43474d;text-transform:uppercase;letter-spacing:.06em;">Método de Acceso</label>
-      <div class="grid grid-cols-2 gap-2">
-        <label class="cursor-pointer">
-          <input type="radio" name="filtroAcceso" value="" class="peer sr-only" checked>
-          <div class="text-center text-xs font-semibold rounded-lg py-2 px-1 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all">Todos</div>
+    <div class="ffield">
+      <label class="flabel">Método de acceso</label>
+      <div class="fseg">
+        <label class="fseg-opt">
+          <input type="radio" name="filtroAcceso" value="" checked>
+          <span>Todos</span>
         </label>
-        <label class="cursor-pointer">
-          <input type="radio" name="filtroAcceso" value="Manual" class="peer sr-only">
-          <div class="text-center text-xs font-semibold rounded-lg py-2 px-1 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all">Manual</div>
+        <label class="fseg-opt">
+          <input type="radio" name="filtroAcceso" value="Manual">
+          <span>Manual</span>
         </label>
-        <label class="cursor-pointer">
-          <input type="radio" name="filtroAcceso" value="Código" class="peer sr-only">
-          <div class="text-center text-xs font-semibold rounded-lg py-2 px-1 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all">Código</div>
+        <label class="fseg-opt">
+          <input type="radio" name="filtroAcceso" value="Código">
+          <span>Código</span>
         </label>
-        <label class="cursor-pointer">
-          <input type="radio" name="filtroAcceso" value="QR" class="peer sr-only">
-          <div class="text-center text-xs font-semibold rounded-lg py-2 px-1 border border-outline-variant/30 text-on-surface-variant peer-checked:bg-secondary-container peer-checked:text-on-secondary-container peer-checked:border-secondary transition-all flex items-center justify-center gap-1"><i class="fa-solid fa-qrcode"></i> QR</div>
+        <label class="fseg-opt">
+          <input type="radio" name="filtroAcceso" value="QR">
+          <span>QR</span>
         </label>
       </div>
     </div>
   </div>
   <!-- Drawer Footer -->
-  <div style="padding:20px 24px;border-top:1px solid #e2e8f0;flex-shrink:0;background:inherit;display:flex;flex-direction:column;gap:10px;">
-    <button id="btnBuscar" style="width:100%;display:flex;align-items:center;justify-content:center;gap:8px;padding:13px 24px;border:none;border-radius:10px;background:linear-gradient(135deg,#002542,#1b3b5a);color:#fff;font-family:inherit;font-size:.9rem;font-weight:700;cursor:pointer;transition:all .2s;">
-      <span class="material-symbols-outlined" style="font-size:1.1rem;">search</span> Aplicar Filtros
-    </button>
-    <button id="btnLimpiar" style="width:100%;padding:12px 24px;border:1.5px solid #c3c6ce;border-radius:10px;font-family:inherit;font-size:.88rem;font-weight:600;cursor:pointer;background:transparent;color:#73777e;transition:all .2s;">
-      Limpiar Todo
-    </button>
+  <div class="fdrawer-foot">
+    <button id="btnBuscar" class="fbtn-apply">Aplicar filtros</button>
+    <button id="btnLimpiar" class="fbtn-clear">Limpiar todo</button>
   </div>
 </aside>
 
-<div class="flex-1 w-full max-w-screen-2xl mx-auto">
+<div class="explorar-shell">
 <!-- Main Content Area -->
-<main class="flex-1 p-6 md:p-10 lg:p-12 min-h-screen bg-background relative">
-<header class="mb-10 flex flex-col md:flex-row md:items-end justify-between gap-6">
-<div>
-<h1 class="font-headline text-3xl md:text-5xl font-black tracking-tighter text-primary mb-2">Espacios Disponibles</h1>
-<p class="text-on-surface-variant text-lg">Explora y reserva parqueos seguros cerca de ti.</p>
-</div>
-<div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
-  <button id="btnToggleFiltros" onclick="abrirFiltros()">
-    <span class="material-symbols-outlined" style="font-size:1.1rem;">tune</span>
-    Filtros
-  </button>
-  <div id="resultsCount" class="bg-surface-container-low text-on-surface font-medium py-2 px-4 rounded-md hidden">
-    <i class="fa-solid fa-circle-info text-secondary mr-1"></i> Se encontraron <span id="totalResults" class="font-bold">0</span> espacios
+<main class="explorar-main relative">
+<header class="explorar-hero">
+  <div class="hero-text">
+    <span class="hero-eyebrow">Encuentra tu lugar</span>
+    <h1 class="hero-title">Espacios disponibles<br><em>cerca de ti.</em></h1>
+    <p class="hero-sub">Explora y reserva parqueos verificados en segundos.</p>
   </div>
-</div>
+  <div class="hero-actions">
+    <button id="btnToggleFiltros" onclick="abrirFiltros()">
+      <span class="material-symbols-outlined" style="font-size:1.1rem;">tune</span>
+      Filtros
+    </button>
+    <div id="resultsCount" class="results-pill hidden">
+      <i class="fa-solid fa-location-dot"></i> <span id="totalResults" class="font-bold">0</span>&nbsp;espacios encontrados
+    </div>
+  </div>
 </header>
 
 <!-- Vista Toggle -->
@@ -326,4 +320,6 @@ document.addEventListener('DOMContentLoaded', function() {
   if (btnBuscar) btnBuscar.addEventListener('click', function() { setTimeout(cerrarFiltros, 200); });
 });
 </script>
+<script src="/js/conductor-nav.js" defer></script>
+<script src="/js/notificaciones.js" defer></script>
 </body></html>

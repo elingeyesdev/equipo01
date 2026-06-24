@@ -548,7 +548,7 @@
         };
         const chips = garaje.comodidades.map(c => {
           const cfg = COMODIDAD_CONFIG[c] || { icon: 'fa-tag', label: c };
-          return `<span style="display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:8px;background:rgba(0,37,66,0.05);font-size:0.8rem;font-weight:600;color:#002542;border:1px solid rgba(0,37,66,0.1);"><i class="fa-solid ${cfg.icon}" style="color:#006a62;"></i> ${cfg.label}</span>`;
+          return `<span style="display:inline-flex;align-items:center;gap:7px;padding:7px 13px;border-radius:10px;background:var(--c-paper);font-size:0.8rem;font-weight:600;color:var(--c-primary);border:1px solid var(--c-warm-border);"><i class="fa-solid ${cfg.icon}" style="color:var(--c-outline);"></i> ${cfg.label}</span>`;
         }).join('');
         garajeDescripcion.innerHTML += `
           <div style="margin-top:16px;display:flex;flex-wrap:wrap;gap:8px;">
@@ -562,41 +562,67 @@
       const accessIcons = { 'Manual': 'fa-hand', 'Código': 'fa-hashtag', 'QR': 'fa-qrcode' };
 
       garajeDescripcion.innerHTML += `
-        <div style="margin-top:24px; padding:20px; background: #f8fafc; border-radius:12px; border: 1px solid #e2e8f0;">
-          <h4 style="font-size: 0.9rem; font-weight: 700; color: #1e293b; margin-bottom: 12px; text-transform: uppercase; letter-spacing: 0.05em;">Seguridad y Acceso</h4>
+        <div style="margin-top:24px; padding:20px; background:var(--c-paper-2); border-radius:14px; border:1px solid var(--c-warm-border);">
+          <h4 style="font-size: 0.72rem; font-weight: 700; color:var(--c-on-muted); margin-bottom: 14px; text-transform: uppercase; letter-spacing: 0.08em;">Seguridad y acceso</h4>
           <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 16px;">
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <div style="width: 36px; height: 36px; border-radius: 50%; background: #e0f2fe; color: #0369a1; display: flex; align-items: center; justify-content: center;">
+            <div style="display: flex; align-items: center; gap: 11px;">
+              <div style="width: 38px; height: 38px; border-radius: 10px; background:rgba(12,110,98,.08); color:var(--c-secondary); display: flex; align-items: center; justify-content: center;">
                 <i class="fa-solid ${securityIcons[garaje.nivel_seguridad] || 'fa-shield'}"></i>
               </div>
               <div>
-                <div style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Seguridad</div>
-                <div style="font-size: 0.85rem; color: #0f172a; font-weight: 700;">${garaje.nivel_seguridad || 'Estándar'}</div>
+                <div style="font-size: 0.7rem; color:var(--c-outline); font-weight: 600;">Seguridad</div>
+                <div style="font-size: 0.85rem; color:var(--c-primary); font-weight: 700;">${garaje.nivel_seguridad || 'Estándar'}</div>
               </div>
             </div>
-            <div style="display: flex; align-items: center; gap: 10px;">
-              <div style="width: 36px; height: 36px; border-radius: 50%; background: #f0fdf4; color: #15803d; display: flex; align-items: center; justify-content: center;">
+            <div style="display: flex; align-items: center; gap: 11px;">
+              <div style="width: 38px; height: 38px; border-radius: 10px; background:rgba(12,110,98,.08); color:var(--c-secondary); display: flex; align-items: center; justify-content: center;">
                 <i class="fa-solid ${accessIcons[garaje.metodo_acceso] || 'fa-key'}"></i>
               </div>
               <div>
-                <div style="font-size: 0.7rem; color: #64748b; font-weight: 600;">Entrada</div>
-                <div style="font-size: 0.85rem; color: #0f172a; font-weight: 700;">${garaje.metodo_acceso || 'Manual'}</div>
+                <div style="font-size: 0.7rem; color:var(--c-outline); font-weight: 600;">Entrada</div>
+                <div style="font-size: 0.85rem; color:var(--c-primary); font-weight: 700;">${garaje.metodo_acceso || 'Manual'}</div>
               </div>
             </div>
           </div>
         </div>
       `;
+
+      // Instrucciones de acceso paso a paso (dentro del bloque if garajeDescripcion)
+      if (garaje.instrucciones_acceso && garaje.instrucciones_acceso.trim()) {
+        const texto = garaje.instrucciones_acceso.trim();
+        let pasos;
+        const numerados = texto.match(/\d+[\.\)]\s+[^\n]+/g);
+        if (numerados && numerados.length > 1) {
+          pasos = numerados.map(p => p.replace(/^\d+[\.\)]\s+/, '').trim()).filter(p => p.length > 0);
+        } else {
+          pasos = texto.split('\n').map(p => p.replace(/^[-•*]\s*/, '').trim()).filter(p => p.length > 0);
+        }
+        const stepsHtml = pasos.map((paso, i) => `
+          <div style="display:flex;align-items:flex-start;gap:12px;padding:10px 0;${i < pasos.length - 1 ? 'border-bottom:1px solid rgba(0,106,98,0.1);' : ''}">
+            <div style="width:26px;height:26px;border-radius:50%;background:#006a62;color:#fff;display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:800;flex-shrink:0;">${i + 1}</div>
+            <div style="font-size:0.88rem;color:#1e293b;line-height:1.55;padding-top:2px;">${paso}</div>
+          </div>`).join('');
+        garajeDescripcion.innerHTML += `
+          <div style="margin-top:24px;padding:20px;background:var(--c-paper-2);border-radius:14px;border:1px solid var(--c-warm-border);">
+            <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">
+              <i class="fa-solid fa-route" style="color:var(--c-secondary);font-size:0.9rem;"></i>
+              <h4 style="font-size:0.72rem;font-weight:700;color:var(--c-on-muted);margin:0;text-transform:uppercase;letter-spacing:0.08em;">Cómo acceder al garaje</h4>
+            </div>
+            ${stepsHtml}
+          </div>`;
+      }
     }
 
     // Quick info chips for the CTA card
     const quickInfo = document.getElementById('garajeQuickInfo');
     if (quickInfo) {
-      const chipStyle = 'display:inline-flex;align-items:center;gap:5px;padding:4px 10px;border-radius:8px;font-size:0.75rem;font-weight:600;';
+      const chipStyle = 'display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border-radius:8px;font-size:0.75rem;font-weight:600;background:var(--c-paper);color:var(--c-primary);border:1px solid var(--c-warm-border);';
+      const chipIco = 'color:var(--c-outline);';
       quickInfo.innerHTML = `
-        <span style="${chipStyle}background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;"><i class="fa-solid fa-shield-halved" style="color:#16a34a"></i> ${garaje.nivel_seguridad || 'Estándar'}</span>
-        <span style="${chipStyle}background:#eff6ff;color:#1e3a5f;border:1px solid #bfdbfe;"><i class="fa-solid fa-key" style="color:#2563eb"></i> ${garaje.metodo_acceso || 'Manual'}</span>
-        ${garaje.tipo_vehiculo ? `<span style="${chipStyle}background:#fefce8;color:#713f12;border:1px solid #fde68a;"><i class="fa-solid fa-car" style="color:#ca8a04"></i> ${TIPO_CONFIG[garaje.tipo_vehiculo]?.label || garaje.tipo_vehiculo}</span>` : ''}
-        ${PREVIEW_MODE ? `<span style="${chipStyle}background:#eef2ff;color:#3730a3;border:1px solid #c7d2fe;"><i class="fa-solid fa-eye" style="color:#4f46e5"></i> Vista previa</span>` : ''}
+        <span style="${chipStyle}"><i class="fa-solid fa-shield-halved" style="${chipIco}"></i> ${garaje.nivel_seguridad || 'Estándar'}</span>
+        <span style="${chipStyle}"><i class="fa-solid fa-key" style="${chipIco}"></i> ${garaje.metodo_acceso || 'Manual'}</span>
+        ${garaje.tipo_vehiculo ? `<span style="${chipStyle}"><i class="fa-solid fa-car" style="${chipIco}"></i> ${TIPO_CONFIG[garaje.tipo_vehiculo]?.label || garaje.tipo_vehiculo}</span>` : ''}
+        ${PREVIEW_MODE ? `<span style="${chipStyle}"><i class="fa-solid fa-eye" style="${chipIco}"></i> Vista previa</span>` : ''}
       `;
     }
 

@@ -853,9 +853,9 @@
       const estadoStr   = estadoLabel[res.estado] || res.estado;
       const descMonto   = parseFloat(res.descuento_aplicado || 0);
       const cuponRowHtml = (res.cupon_codigo && descMonto > 0)
-        ? `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:0.78rem;font-weight:600;color:#64748b;border-top:1px dashed #e2e8f0;margin-top:4px;">
-             <span>🎟️ Cupón: <strong>${res.cupon_codigo}</strong></span>
-             <span style="color:#16a34a;">-Bs. ${descMonto.toFixed(2)}</span>
+        ? `<div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;font-size:0.78rem;font-weight:600;color:#64748b;border-top:1px dashed var(--c-warm-border);margin-top:4px;">
+             <span>Cupón: <strong>${res.cupon_codigo}</strong></span>
+             <span style="color:var(--c-secondary);">-Bs. ${descMonto.toFixed(2)}</span>
            </div>`
         : '';
 
@@ -922,7 +922,10 @@
         }
 
       } else if (esConductor) {
-        if (res.instrucciones_acceso) {
+        if (res.instrucciones_acceso && (
+          (res.estado === 'confirmada' && res.estado_pago !== 'pendiente') ||
+          res.estado === 'finalizada'
+        )) {
           bloqueOpcional = `
             <div class="access-card">
               <div class="access-header"><i class="fa-solid fa-key"></i> Instrucciones de Acceso</div>
@@ -974,21 +977,41 @@
           } else {
             cardFooterHtml = `
               <div class="card-actions">
-                <button class="btn-card btn-card--pay" onclick="abrirPasarela(${res.id}, ${res.precio_total}, ${res.precio_hora || 0})"><i class="fa-solid fa-qrcode"></i> Pagar Bs. ${parseFloat(res.precio_total).toFixed(2)}</button>
+                <div class="action-banner action-banner--info"><i class="fa-solid fa-hourglass-half"></i> Esperando la aceptación del anfitrión</div>
+                <p style="text-align:center;font-size:0.75rem;color:#64748b;margin:0 0 2px;">Tu reserva se activará cuando el anfitrión la acepte.</p>
               </div>`;
           }
         } else if (res.estado === 'confirmada') {
           const metodoAcceso = res.metodo_acceso || 'QR';
           const checkinIcon  = metodoAcceso === 'QR' ? 'fa-qrcode' : metodoAcceso === 'Código' ? 'fa-hashtag' : 'fa-id-card';
           const checkinLabel = metodoAcceso === 'QR' ? 'Check-in QR' : metodoAcceso === 'Código' ? 'Ver código' : 'Mostrar al anfitrión';
-          cardFooterHtml = `
-            <div class="card-actions">
-              <div class="card-actions-row">
-                <button class="btn-card btn-card--nav" onclick="abrirRutaEnVivo(${res.id})"><i class="fa-solid fa-location-arrow"></i> Ruta en vivo</button>
-                <button class="btn-card btn-card--checkin" onclick="mostrarCheckIn(${res.id})"><i class="fa-solid ${checkinIcon}"></i> ${checkinLabel}</button>
-              </div>
-              <button class="btn-card btn-card--disabled" disabled><i class="fa-solid fa-file-pdf"></i> Descarga disponible al finalizar</button>
-            </div>`;
+          const pdfDisabled  = `<button class="btn-card btn-card--disabled" disabled><i class="fa-solid fa-file-pdf"></i> Descarga disponible al finalizar</button>`;
+
+          if (!res.estado_pago || res.estado_pago === 'pendiente') {
+            cardFooterHtml = `
+              <div class="card-actions">
+                <div class="action-banner action-banner--success"><i class="fa-solid fa-circle-check"></i> ¡Reserva aceptada! Ya puedes pagar.</div>
+                <button class="btn-card btn-card--pay" onclick="abrirPasarela(${res.id}, ${res.precio_total}, ${res.precio_hora || 0})"><i class="fa-solid fa-wallet"></i> Elegir método de pago</button>
+              </div>`;
+          } else if (res.estado_pago === 'efectivo_pendiente') {
+            cardFooterHtml = `
+              <div class="card-actions">
+                <div class="action-banner action-banner--warning"><i class="fa-solid fa-money-bill-wave"></i> Paga en efectivo al llegar al garaje</div>
+                <div class="card-actions-row">
+                  <button class="btn-card btn-card--nav" onclick="abrirRutaEnVivo(${res.id})"><i class="fa-solid fa-location-arrow"></i> Cómo llegar</button>
+                  <button class="btn-card btn-card--warn" onclick="abrirComprobantePago(${res.id})"><i class="fa-solid fa-receipt"></i> Ver reserva</button>
+                </div>
+              </div>`;
+          } else {
+            cardFooterHtml = `
+              <div class="card-actions">
+                <div class="card-actions-row">
+                  <button class="btn-card btn-card--nav" onclick="abrirRutaEnVivo(${res.id})"><i class="fa-solid fa-location-arrow"></i> Ruta en vivo</button>
+                  <button class="btn-card btn-card--checkin" onclick="mostrarCheckIn(${res.id})"><i class="fa-solid ${checkinIcon}"></i> ${checkinLabel}</button>
+                </div>
+                ${pdfDisabled}
+              </div>`;
+          }
         } else if (res.estado === 'finalizada') {
           const reviewSection = res.ha_revisado
             ? `<div class="action-banner action-banner--success"><i class="fa-solid fa-check-circle"></i> Reseña Publicada</div>`
@@ -1083,66 +1106,8 @@
   }
 
 
-  // ─── Sincronizar acciones conductor post-render ───
-  function sincronizarAccionesReservasVisibles(reservas) {
-    if (!esConductor) return;
-
-    reservas.forEach((res) => {
-      const card = document.getElementById(`reserva-${res.id}`);
-      const footer = card ? card.querySelector('.card-actions') : null;
-      if (!footer) return;
-
-      const llegarBtn = `<button class=”btn-card btn-card--nav” onclick=”abrirRutaEnVivo(${res.id})”><i class=”fa-solid fa-location-arrow”></i> Cómo llegar</button>`;
-
-      if (res.estado === 'pendiente') {
-        footer.outerHTML = `
-          <div class=”card-actions”>
-            <div class=”action-banner action-banner--info”><i class=”fa-solid fa-hourglass-half”></i> Esperando la aceptación del anfitrión</div>
-            <p style=”text-align:center;font-size:0.75rem;color:#64748b;margin:0 0 2px;”>Tu reserva se activará cuando el anfitrión la acepte.</p>
-          </div>`;
-        return;
-      }
-
-      if (res.estado !== 'confirmada') return;
-
-      const metodoAcceso = res.metodo_acceso || 'QR';
-      const checkinIcon  = metodoAcceso === 'QR' ? 'fa-qrcode' : metodoAcceso === 'Código' ? 'fa-hashtag' : 'fa-id-card';
-      const checkinLabel = metodoAcceso === 'QR' ? 'Check-in QR' : metodoAcceso === 'Código' ? 'Ver código' : 'Mostrar al anfitrión';
-      const pdfDisabled  = `<button class=”btn-card btn-card--disabled” disabled><i class=”fa-solid fa-file-pdf”></i> Descarga disponible al finalizar</button>`;
-
-      if (res.estado_pago === 'pendiente') {
-        footer.outerHTML = `
-          <div class=”card-actions”>
-            <div class=”action-banner action-banner--success”><i class=”fa-solid fa-circle-check”></i> ¡Reserva aceptada! Ya puedes pagar.</div>
-            <button class=”btn-card btn-card--pay” onclick=”abrirPasarela(${res.id}, ${res.precio_total}, ${res.precio_hora || 0})”><i class=”fa-solid fa-wallet”></i> Elegir método de pago</button>
-          </div>`;
-        return;
-      }
-
-      if (res.estado_pago === 'pagado' || res.estado_pago === 'efectivo_confirmado') {
-        footer.outerHTML = `
-          <div class=”card-actions”>
-            <div class=”card-actions-row”>
-              <button class=”btn-card btn-card--nav” onclick=”abrirRutaEnVivo(${res.id})”><i class=”fa-solid fa-location-arrow”></i> Ruta en vivo</button>
-              <button class=”btn-card btn-card--checkin” onclick=”mostrarCheckIn(${res.id})”><i class=”fa-solid ${checkinIcon}”></i> ${checkinLabel}</button>
-            </div>
-            ${pdfDisabled}
-          </div>`;
-        return;
-      }
-
-      if (res.estado_pago === 'efectivo_pendiente') {
-        footer.outerHTML = `
-          <div class=”card-actions”>
-            <div class=”action-banner action-banner--warning”><i class=”fa-solid fa-money-bill-wave”></i> Paga en efectivo al llegar al garaje</div>
-            <div class=”card-actions-row”>
-              ${llegarBtn}
-              <button class=”btn-card btn-card--warn” onclick=”abrirComprobantePago(${res.id})”><i class=”fa-solid fa-receipt”></i> Ver reserva</button>
-            </div>
-          </div>`;
-      }
-    });
-  }
+  // La lógica de footer conductor se resolvió directamente en generarTarjetas
+  function sincronizarAccionesReservasVisibles(_reservas) { }
 
   window.cambiarEstado = async function(id, nuevoEstado) {
     const accion = nuevoEstado === 'confirmada'

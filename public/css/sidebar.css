@@ -1,0 +1,219 @@
+/* =============================================================
+   EstAirbnb · Sidebar — riel de íconos (estilo Pinterest)
+   Cargado en: dashboard-anfitrion · mis-garajes · cupones ·
+               configuracion · panel-mantenimiento
+   Navy ink · acento teal · solo íconos + tooltip al hover
+   ============================================================= */
+
+/* Ancho del riel: sobreescribe la variable de AdminLTE en el
+   ancestro, para que el sidebar Y los márgenes del contenido
+   se ajusten juntos (sin huecos ni solapes). */
+.app-wrapper { --lte-sidebar-width: 76px; }
+
+/* ── Shell ─────────────────────────────────────────────────── */
+.app-sidebar {
+  background: #0A2A43 !important;
+  border-right: 1px solid rgba(255,255,255,0.06) !important;
+  box-shadow: 1px 0 0 rgba(0,0,0,0.2) !important;
+  overflow: visible !important;            /* dejar salir los tooltips */
+}
+.app-sidebar .sidebar-wrapper { background: transparent !important; overflow: visible !important; }
+
+/* OverlayScrollbars: permitir que el tooltip se vea fuera del riel */
+.app-sidebar [data-overlayscrollbars-viewport],
+.app-sidebar .os-viewport,
+.app-sidebar .os-padding,
+.app-sidebar .os-content { overflow: visible !important; }
+
+/* Estructura en columna */
+.app-sidebar nav {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  min-height: calc(100dvh - 64px);
+  padding: 6px 0 14px;
+  overflow: visible !important;
+}
+
+/* ── Brand: solo el logo, centrado ─────────────────────────── */
+.app-sidebar .sidebar-brand {
+  height: 64px !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  padding: 0 !important;
+  border-bottom: 1px solid rgba(255,255,255,0.07) !important;
+}
+.app-sidebar .brand-link {
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  text-decoration: none !important;
+}
+.app-sidebar .brand-text,
+.est-sb-logo-text { display: none !important; }   /* ocultar wordmark */
+.est-sb-logo-icon {
+  width: 40px; height: 40px;
+  background: #006a62; border-radius: 12px;
+  display: flex; align-items: center; justify-content: center;
+  color: #fff; font-size: 1.1rem; flex-shrink: 0;
+  box-shadow: 0 4px 12px rgba(0,106,98,0.45);
+}
+
+/* ── Perfil: solo el avatar (sin nombre ni badge) ──────────── */
+.est-sb-profile {
+  display: flex !important;
+  justify-content: center !important;
+  align-items: center !important;
+  padding: 14px 0 8px !important;
+  margin: 0 !important;
+  background: transparent !important;
+  border: none !important;
+}
+.est-sb-profile-info { display: none !important; }   /* ocultar "anfitrion … ANFITRION" */
+.est-sidebar-avatar,
+.est-sb-avatar {
+  position: relative;
+  width: 40px !important; height: 40px !important;
+  border-radius: 50% !important;
+  background: linear-gradient(140deg, #0C8C82, #14998c) !important;
+  color: #fff !important;
+  display: flex !important; align-items: center !important; justify-content: center !important;
+  font-size: 0.85rem !important; font-weight: 700 !important; line-height: 1 !important;
+  flex-shrink: 0 !important;
+  box-shadow: 0 0 0 2px rgba(20,153,140,0.28) !important;
+}
+.est-sb-profile .est-sb-avatar::after {
+  content: ''; position: absolute; right: -1px; bottom: -1px;
+  width: 11px; height: 11px; border-radius: 50%;
+  background: #34d399; border: 2px solid #0A2A43;
+}
+
+/* ── Ocultar encabezados de sección (OPERACION / CUENTA) ───── */
+.app-sidebar .nav-header { display: none !important; }
+
+/* ── Menú en columna; empuja el logout al fondo ────────────── */
+.app-sidebar .sidebar-menu {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: center !important;
+  flex: 1 1 auto !important;
+  gap: 4px !important;
+  margin: 0 !important;
+  padding: 10px 0 !important;
+  width: 100% !important;
+}
+.app-sidebar .sidebar-menu > .nav-item:last-child {
+  margin-top: auto !important;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+
+/* ── Items: ícono centrado en pastilla ─────────────────────── */
+.app-sidebar .nav-item {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  position: relative;
+}
+.app-sidebar .nav-item .nav-link {
+  position: relative !important;
+  width: 48px; height: 48px;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-radius: 14px !important;
+  border-left: none !important;
+  color: rgba(255,255,255,0.62) !important;
+  background: transparent !important;
+  cursor: pointer !important;
+  transition: background 0.16s ease, color 0.16s ease !important;
+}
+.app-sidebar .nav-item .nav-link .nav-icon {
+  margin: 0 !important;
+  width: auto !important;
+  font-size: 1.12rem !important;
+  color: inherit !important;
+}
+
+/* Hover */
+.app-sidebar .nav-item .nav-link:not(.est-sb-logout):hover {
+  background: rgba(255,255,255,0.08) !important;
+  color: #FFFFFF !important;
+}
+
+/* Activo — pastilla teal + riel indicador a la izquierda */
+.app-sidebar .nav-item .nav-link.active {
+  background: rgba(20,153,140,0.16) !important;
+  color: #FFFFFF !important;
+}
+.app-sidebar .nav-item .nav-link.active .nav-icon { color: #2addcd !important; }
+.app-sidebar .nav-item .nav-link.active::after {
+  content: ''; position: absolute; left: -14px; top: 50%;
+  transform: translateY(-50%);
+  width: 4px; height: 24px; border-radius: 0 4px 4px 0;
+  background: #14998c;
+}
+
+/* ── Tooltip (el <p> del label se convierte en globo al hover) ─ */
+.app-sidebar .nav-item .nav-link p {
+  position: absolute !important;
+  left: calc(100% + 14px);
+  top: 50%;
+  transform: translateY(-50%) translateX(-6px);
+  margin: 0 !important;
+  padding: 8px 12px !important;
+  white-space: nowrap;
+  font-size: 0.82rem !important;
+  font-weight: 600 !important;
+  line-height: 1 !important;
+  color: #fff !important;
+  background: #0A2A43;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 9px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.4);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.14s ease, transform 0.14s ease;
+  z-index: 1200;
+  flex: none !important;
+}
+.app-sidebar .nav-item .nav-link p::before {
+  content: '';
+  position: absolute; right: 100%; top: 50%;
+  transform: translateY(-50%);
+  border: 6px solid transparent;
+  border-right-color: #0A2A43;
+}
+.app-sidebar .nav-item .nav-link:hover p {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(-50%) translateX(0);
+}
+
+/* ── Logout (rojo contenido, al fondo) ─────────────────────── */
+.app-sidebar .nav-item .nav-link.est-sb-logout,
+.app-sidebar #btnLogoutSidebar {
+  color: rgba(248,113,113,0.85) !important;
+}
+.app-sidebar .nav-item .nav-link.est-sb-logout:hover,
+.app-sidebar #btnLogoutSidebar:hover {
+  background: rgba(239,68,68,0.12) !important;
+  color: #FCA5A5 !important;
+}
+.app-sidebar .nav-item .nav-link.est-sb-logout.active::after,
+.app-sidebar #btnLogoutSidebar.active::after { display: none !important; }
+.app-sidebar #btnLogoutSidebar .nav-icon { color: inherit !important; }
+
+/* ── Responsive ────────────────────────────────────────────── */
+@media (max-width: 991.98px) {
+  .app-sidebar nav { min-height: 0 !important; }
+}

@@ -809,20 +809,88 @@ body { font-family: 'Inter', sans-serif; background-color: #f7f9fb; color: #191c
 /* ── AdminLTE Integration Patches ── */
 .est-nav-avatar {
   width: 34px; height: 34px; border-radius: 50%;
-  background: #1a6fc4; color: #fff;
+  background: #002542; color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-size: 0.82rem; font-weight: 700; flex-shrink: 0;
   cursor: pointer; user-select: none;
 }
 .est-sidebar-avatar {
   width: 36px; height: 36px; border-radius: 50%;
-  background: #1a6fc4; color: #fff;
+  background: #002542; color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-size: 0.82rem; font-weight: 700; flex-shrink: 0;
 }
 .app-content { font-family: 'Inter', sans-serif; }
-/* Settings nav hover */
-.settings-nav-link:hover {
-  background: #f0f9ff !important;
-  color: #0369a1 !important;
+
+/* ============================================================
+   Rediseño editorial conductor — papel cálido · navy/teal · Fraunces
+   ============================================================ */
+body { background-color: var(--c-paper) !important; color: var(--c-on-surface); }
+[data-bs-theme="dark"] body, html.dark body { background-color: #0d1117 !important; }
+
+/* Botones Bootstrap → identidad navy */
+.btn-primary {
+  --bs-btn-bg: var(--c-primary);
+  --bs-btn-border-color: var(--c-primary);
+  --bs-btn-hover-bg: var(--c-primary-light);
+  --bs-btn-hover-border-color: var(--c-primary-light);
+  --bs-btn-active-bg: var(--c-primary-light);
+  --bs-btn-active-border-color: var(--c-primary-light);
+  --bs-btn-disabled-bg: var(--c-primary);
+  --bs-btn-disabled-border-color: var(--c-primary);
+  font-weight: 600;
 }
+.form-control:focus, .form-select:focus {
+  border-color: var(--c-secondary);
+  box-shadow: 0 0 0 .2rem rgba(12,110,98,.15);
+}
+.form-check-input:checked { background-color: var(--c-secondary) !important; border-color: var(--c-secondary) !important; }
+.form-check-input:focus { border-color: var(--c-secondary); box-shadow: 0 0 0 .2rem rgba(12,110,98,.2); }
+
+/* Tipografía editorial */
+.app-content-header h3,
+#settingsContent > .mb-4 h1,
+#settingsContent section > h2 {
+  font-family: var(--font-display) !important;
+  font-weight: 500 !important;
+  letter-spacing: -.01em !important;
+  color: var(--c-primary) !important;
+}
+#settingsContent > .mb-4 h1 { font-size: 2rem !important; }
+.app-content-header h3 { font-size: 1.7rem !important; }
+
+/* Tarjetas cálidas */
+#settingsContent .card, #sidebarNav {
+  border: 1px solid var(--c-warm-border) !important;
+  border-radius: 16px !important;
+  box-shadow: 0 1px 2px rgba(10,42,67,.04) !important;
+}
+
+/* Nav de configuración (columna izquierda) */
+.settings-nav-link {
+  border-radius: 10px !important;
+  margin-bottom: 3px;
+  transition: background .15s, color .15s, border-color .15s;
+}
+.settings-nav-link:hover {
+  background: var(--c-paper) !important;
+  color: var(--c-primary) !important;
+}
+.settings-nav-link.active {
+  color: var(--c-secondary) !important;
+  background: rgba(12,110,98,.08) !important;
+  border-left: 3px solid var(--c-secondary) !important;
+}
+
+/* Acentos neutralizados */
+#rolBadge { background: rgba(12,110,98,.1) !important; color: var(--c-secondary-dark) !important; }
+#sectionSoporte .text-success, #sectionSoporte .text-primary { color: var(--c-secondary) !important; }
+.app-content-header { background: transparent; }
+.breadcrumb { --bs-breadcrumb-divider-color: var(--c-outline); font-size: .82rem; }
+.breadcrumb-item a { color: var(--c-secondary); text-decoration: none; }
+
+/* Campos solo-lectura (bg-light) → papel cálido */
+#fieldsContainer .bg-light { background: var(--c-paper-2) !important; border-color: var(--c-warm-border) !important; }
+
+[data-bs-theme="dark"] #settingsContent .card,
+[data-bs-theme="dark"] #sidebarNav { background: #161b22 !important; border-color: #30363d !important; }

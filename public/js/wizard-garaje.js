@@ -110,8 +110,9 @@ function validateWizardStep(step) {
 
   if (step === 2) {
     const precio = document.getElementById('inpPrecio');
-    if (!precio || !precio.value || Number(precio.value) <= 0) {
-      setWizardError(precio, 'Ingresa un precio válido');
+    const pv = Number(precio?.value);
+    if (!precio || !precio.value || !Number.isFinite(pv) || pv < 1 || pv > 200) {
+      setWizardError(precio, 'El precio por hora debe estar entre Bs. 1 y Bs. 200.');
       valid = false;
     }
     if (horariosConfigurados.length === 0) {
@@ -532,7 +533,7 @@ function wzCapIncrement(delta) {
 function wzToggleMap() {}
 function autoGenerarPlanoLegacy(n) { return autoGenerarLinea(n); }
 
-// ── Build summary for step 5 ───────────────────────────────
+// ── Build summary for step 6 (revisión) ────────────────────
 function buildWizardSummary() {
   const setVal = (id, val) => { const el = document.getElementById(id); if (el) el.textContent = val || '—'; };
 
@@ -541,6 +542,11 @@ function buildWizardSummary() {
   setVal('sumPrecio', 'Bs. ' + (Number(document.getElementById('inpPrecio')?.value) || 0).toFixed(2) + ' /hora');
   setVal('sumSeguridad', document.getElementById('inpNivelSeguridad')?.value);
   setVal('sumAcceso', document.getElementById('inpMetodoAcceso')?.value);
+
+  // Ubicación (coordenadas marcadas en el mapa)
+  const ubicOk = typeof ubicacionGaraje !== 'undefined'
+    && Number.isFinite(ubicacionGaraje.lat) && Number.isFinite(ubicacionGaraje.lng);
+  setVal('sumUbicacion', ubicOk ? 'Marcada en el mapa' : 'Sin marcar');
 
   // Horarios
   const hText = horariosConfigurados.map(h => {
@@ -553,12 +559,35 @@ function buildWizardSummary() {
   const { espacios } = exportarMapa();
   setVal('sumEspacios', espacios.length + ' espacio(s)');
 
-  // Comodidades
-  const coms = Array.from(document.querySelectorAll('#wizardForm input[name="comodidad"]:checked')).map(c => c.parentElement.textContent.trim());
+  // Comodidades — FIX: el formulario real es #formGaraje (antes #wizardForm inexistente)
+  const coms = Array.from(document.querySelectorAll('#formGaraje input[name="comodidad"]:checked'))
+    .map(c => (c.closest('label')?.textContent || '').trim())
+    .filter(Boolean);
   setVal('sumComodidades', coms.join(', ') || 'Ninguna');
 
   // Photos
-  setVal('sumFotos', selectedFiles.length + ' foto(s)');
+  setVal('sumFotos', (typeof selectedFiles !== 'undefined' ? selectedFiles.length : 0) + ' foto(s)');
+
+  // Advertencias / recomendaciones antes de publicar
+  const warns = [];
+  if (!ubicOk) warns.push('Marca la ubicación exacta del ingreso en el mapa.');
+  if (espacios.length === 0) warns.push('Debes tener al menos un espacio de parqueo en el plano.');
+  if (typeof selectedFiles !== 'undefined' && selectedFiles.length === 0)
+    warns.push('Agrega al menos una foto: las publicaciones con fotos reciben más reservas.');
+  if (!(document.getElementById('inpDescripcion')?.value || '').trim())
+    warns.push('Una descripción breve ayuda al conductor a decidir.');
+  renderWizardWarnings(warns);
+}
+
+function renderWizardWarnings(warns) {
+  const box = document.getElementById('sumWarnings');
+  if (!box) return;
+  if (!warns.length) { box.style.display = 'none'; box.innerHTML = ''; return; }
+  box.style.display = 'block';
+  // Texto estático (sin datos del usuario) → seguro para innerHTML
+  box.innerHTML =
+    '<div class="wz-warn-title"><span class="material-symbols-outlined">tips_and_updates</span> Para una mejor publicación</div>' +
+    '<ul class="wz-warn-list">' + warns.map(w => `<li>${w}</li>`).join('') + '</ul>';
 }
 
 // ── Sync comodidades de seguridad → Nivel de Seguridad (paso 3) ─

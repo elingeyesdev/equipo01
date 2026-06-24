@@ -11,6 +11,8 @@
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
   <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400..600;1,9..144,400..600&display=swap" rel="stylesheet">
+  <link href="/css/sidebar.css" rel="stylesheet">
   <link href="/css/mis-garajes.css" rel="stylesheet">
   <link href="/css/wizard-garaje.css" rel="stylesheet">
 <!-- Dark mode init (antes de render) -->
@@ -20,6 +22,14 @@
   if (saved === 'dark') document.documentElement.setAttribute('data-bs-theme', 'dark');
 })();
 </script>
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#0A2A43">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="EstAirbnb">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+  <script src="/js/pwa.js" defer></script>
 </head>
 <body class="layout-fixed sidebar-expand-lg bg-body-tertiary">
 <div class="app-wrapper">
@@ -35,7 +45,7 @@
         </li>
       </ul>
       <a class="navbar-brand d-flex align-items-center gap-2 ms-2" href="/">
-        <span class="material-symbols-outlined" style="color:#1a6fc4;font-size:1.4rem;">local_parking</span>
+        <svg class="est-brand-mark" width="30" height="30" viewBox="0 0 36 36" role="img" aria-label="EstAirbnb" xmlns="http://www.w3.org/2000/svg"><rect width="36" height="36" rx="9" fill="#0A2A43"/><g fill="#fff"><rect x="12" y="9" width="3.8" height="18" rx="1.3"/><rect x="12" y="9" width="13" height="3.8" rx="1.3"/><rect x="12" y="16.1" width="10" height="3.6" rx="1.3"/><rect x="12" y="23.2" width="13" height="3.8" rx="1.3"/></g></svg>
         <span class="fw-bold" style="color:#002542;font-size:1.05rem;">EstAirbnb</span>
       </a>
       <ul class="navbar-nav ms-auto align-items-center gap-1">
@@ -62,49 +72,55 @@
   </nav>
 
   <!-- SIDEBAR -->
-  <aside class="app-sidebar bg-body-secondary shadow" data-bs-theme="dark">
+  <aside class="app-sidebar" data-bs-theme="dark">
     <div class="sidebar-brand">
-      <a href="/" class="brand-link d-flex align-items-center">
-        <i class="fa-solid fa-square-parking" style="font-size:1.3rem;margin-right:8px;color:#60a5fa;"></i>
-        <span class="brand-text fw-bold">EstAirbnb</span>
+      <a href="/" class="brand-link">
+        <div class="est-sb-logo-icon">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><rect x="7" y="5" width="2.8" height="14" rx="1"/><rect x="7" y="5" width="10" height="2.8" rx="1"/><rect x="7" y="10.6" width="7.8" height="2.6" rx="1"/><rect x="7" y="16.2" width="10" height="2.8" rx="1"/></svg>
+        </div>
+        <span class="brand-text est-sb-logo-text">EstAirbnb</span>
       </a>
     </div>
     <div class="sidebar-wrapper">
-      <nav class="mt-2">
-        <div class="d-flex align-items-center px-3 py-3 mb-2" style="border-bottom:1px solid rgba(255,255,255,.1);">
-          <div class="me-2 flex-shrink-0">
-            <div class="est-sidebar-avatar" id="sidebarInitials">?</div>
-          </div>
-          <div class="overflow-hidden">
-            <div class="text-white fw-semibold text-truncate" id="sidebarUserName" style="font-size:.85rem;max-width:140px;">Usuario</div>
-            <span class="badge bg-success" style="font-size:.65rem;letter-spacing:.03em;">Anfitrión</span>
+      <nav>
+        <div class="est-sb-profile">
+          <div class="est-sidebar-avatar est-sb-avatar" id="sidebarInitials">?</div>
+          <div class="est-sb-profile-info">
+            <div class="est-sb-profile-name" id="sidebarUserName">Usuario</div>
+            <span class="est-sb-host-badge">Anfitrion</span>
           </div>
         </div>
         <ul class="nav sidebar-menu flex-column" role="menu" data-lte-toggle="treeview">
-          <li class="nav-header">PANEL ANFITRIÓN</li>
+          <li class="nav-header">OPERACION</li>
+          <li class="nav-item">
+            <a href="/dashboard-anfitrion.html" class="nav-link">
+              <i class="nav-icon fa-solid fa-gauge-high"></i>
+              <p>Inicio</p>
+            </a>
+          </li>
           <li class="nav-item">
             <a href="/mis-garajes.html" class="nav-link active">
               <i class="nav-icon fa-solid fa-warehouse"></i>
-              <p>Mis Garajes</p>
+              <p>Garajes</p>
             </a>
           </li>
           <li class="nav-item">
             <a href="/cupones.html" class="nav-link">
               <i class="nav-icon fa-solid fa-ticket"></i>
-              <p>Cupones</p>
+              <p>Promociones</p>
             </a>
           </li>
           <li class="nav-item">
             <a href="/configuracion.html" class="nav-link">
               <i class="nav-icon fa-solid fa-gear"></i>
-              <p>Configuración</p>
+              <p>Ajustes</p>
             </a>
           </li>
           <li class="nav-header">CUENTA</li>
           <li class="nav-item">
-            <a href="#" class="nav-link" id="btnLogoutSidebar" style="color:#f87171;">
+            <a href="#" class="nav-link est-sb-logout" id="btnLogoutSidebar">
               <i class="nav-icon fa-solid fa-right-from-bracket"></i>
-              <p>Cerrar Sesión</p>
+              <p>Cerrar sesion</p>
             </a>
           </li>
         </ul>
@@ -170,33 +186,29 @@
             <span class="badge bg-secondary" id="contadorGarajes"></span>
           </div>
 
-          <!-- Stats -->
-          <div class="row g-3 mb-4" id="statsBar" style="display:none;">
-            <div class="col-sm-4">
-              <div class="small-box bg-body shadow-sm border">
-                <div class="inner">
-                  <h3 id="statTotal">0</h3>
-                  <p>Total de garajes</p>
-                </div>
-                <div class="small-box-icon"><i class="bi bi-p-square-fill text-primary"></i></div>
+          <!-- KPI bar -->
+          <div class="hg-kpibar" id="statsBar" style="display:none;">
+            <div class="hg-kpi">
+              <span class="hg-kpi-ico"><i class="bi bi-p-square-fill"></i></span>
+              <div class="hg-kpi-body">
+                <div class="hg-kpi-num" id="statTotal">0</div>
+                <div class="hg-kpi-lbl">Total de garajes</div>
               </div>
             </div>
-            <div class="col-sm-4">
-              <div class="small-box bg-body shadow-sm border">
-                <div class="inner">
-                  <h3 id="statActivos" class="text-success">0</h3>
-                  <p>Activos</p>
-                </div>
-                <div class="small-box-icon"><i class="bi bi-check-circle-fill text-success"></i></div>
+            <div class="hg-kpi-sep"></div>
+            <div class="hg-kpi">
+              <span class="hg-kpi-ico hg-kpi-ico--ok"><i class="bi bi-check-circle-fill"></i></span>
+              <div class="hg-kpi-body">
+                <div class="hg-kpi-num hg-kpi-num--ok" id="statActivos">0</div>
+                <div class="hg-kpi-lbl">Activos</div>
               </div>
             </div>
-            <div class="col-sm-4">
-              <div class="small-box bg-body shadow-sm border">
-                <div class="inner">
-                  <h3 id="statInactivos" class="text-secondary">0</h3>
-                  <p>Inactivos</p>
-                </div>
-                <div class="small-box-icon"><i class="bi bi-pause-circle-fill text-secondary"></i></div>
+            <div class="hg-kpi-sep"></div>
+            <div class="hg-kpi">
+              <span class="hg-kpi-ico hg-kpi-ico--muted"><i class="bi bi-pause-circle-fill"></i></span>
+              <div class="hg-kpi-body">
+                <div class="hg-kpi-num hg-kpi-num--muted" id="statInactivos">0</div>
+                <div class="hg-kpi-lbl">Inactivos</div>
               </div>
             </div>
           </div>
@@ -234,7 +246,8 @@
                 <div class="spinner-border text-primary" role="status"></div>
                 <p class="mt-2 text-muted small">Cargando reservas...</p>
               </div>
-              <div id="reservasTableWrapper" style="display:none;overflow-x:auto;"></div>
+              <div id="reservasToolbar" class="rsv-toolbar" style="display:none;"></div>
+              <div id="reservasTableWrapper" style="display:none;"></div>
               <div id="emptyReservas" style="display:none;" class="text-center py-4">
                 <i class="bi bi-calendar-x fs-1 text-muted opacity-50 d-block mb-2"></i>
                 <h6 class="fw-bold text-muted">Sin reservas aún</h6>
@@ -267,10 +280,10 @@
     <div class="wizard-progress">
       <div style="position:relative">
         <div class="wizard-steps-nav" style="display:flex;justify-content:space-between;width:100%">
-          <div class="wizard-step-item active" data-step="1"><div class="wizard-step-circle"><span class="step-num">1</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Básico</span></div>
+          <div class="wizard-step-item active" data-step="1"><div class="wizard-step-circle"><span class="step-num">1</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Ubicación</span></div>
           <div class="wizard-step-item" data-step="2"><div class="wizard-step-circle"><span class="step-num">2</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Precio</span></div>
           <div class="wizard-step-item" data-step="3"><div class="wizard-step-circle"><span class="step-num">3</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Acceso</span></div>
-          <div class="wizard-step-item" data-step="4"><div class="wizard-step-circle"><span class="step-num">4</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Plano</span></div>
+          <div class="wizard-step-item" data-step="4"><div class="wizard-step-circle"><span class="step-num">4</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Espacios</span></div>
           <div class="wizard-step-item" data-step="5"><div class="wizard-step-circle"><span class="step-num">5</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Fotos</span></div>
           <div class="wizard-step-item" data-step="6"><div class="wizard-step-circle"><span class="step-num">6</span><span class="material-symbols-outlined">check</span></div><span class="wizard-step-label">Revisión</span></div>
         </div>
@@ -281,9 +294,9 @@
     <div class="wizard-body">
 
       <section class="wizard-panel active" data-step="1">
-        <h3 class="wz-step-title">Lo esencial</h3>
-        <p class="wz-step-subtitle">Solo lo necesario para publicar rápido y con claridad.</p>
-        <div class="wz-info-card"><span class="material-symbols-outlined">info</span><p>Dirección exacta, descripción breve y comodidades que aportan valor.</p></div>
+        <h3 class="wz-step-title">Ubicación y datos básicos</h3>
+        <p class="wz-step-subtitle">¿Dónde está el parqueo y cómo se identifica?</p>
+        <div class="wz-info-card"><span class="material-symbols-outlined">info</span><p>La dirección y el punto del mapa serán <strong>visibles para el conductor</strong> al reservar. Marca el ingreso lo más exacto posible.</p></div>
         <div class="wz-field">
           <label class="wz-label" for="inpDireccion">Dirección <span class="required">*</span></label>
           <input type="text" class="wz-input" id="inpDireccion" placeholder="Ej: Av. 27 de Febrero #45, Naco" maxlength="255" required>
@@ -327,7 +340,8 @@
         <div class="wz-info-card"><span class="material-symbols-outlined">schedule</span><p>Usa una franja simple o añade múltiples horarios sin complicarte.</p></div>
         <div class="wz-field">
           <label class="wz-label" for="inpPrecio">Precio por hora (Bs.) <span class="required">*</span></label>
-          <input type="number" class="wz-input" id="inpPrecio" placeholder="Ej: 75.00" min="1" step="0.01" required>
+          <input type="number" class="wz-input" id="inpPrecio" placeholder="Ej: 12.00" min="1" max="200" step="0.01" required>
+          <p style="font-size:0.75rem;color:#64748b;margin-top:5px;"><i class="fa-solid fa-circle-info" style="margin-right:3px"></i>Define una tarifa realista: entre Bs. 1 y Bs. 200 por hora.</p>
           <span class="wz-error-msg">Ingresa un precio válido</span>
         </div>
         <hr class="wz-divider">
@@ -446,7 +460,6 @@
               <div class="wz-dim-group">
                 <div class="wz-dim-item"><span class="wz-dim-label">Altura libre</span><div class="wz-dim-control"><input type="number" class="wz-input" id="inpDimAltura" placeholder="2.2" min="0.1" max="10" step="0.1"><span class="wz-dim-unit">m</span></div></div>
                 <div class="wz-dim-item"><span class="wz-dim-label">Ancho de entrada</span><div class="wz-dim-control"><input type="number" class="wz-input" id="inpDimAncho" placeholder="2.5" min="0.1" max="10" step="0.1"><span class="wz-dim-unit">m</span></div></div>
-                <div class="wz-dim-item"><span class="wz-dim-label">Largo del espacio</span><div class="wz-dim-control"><input type="number" class="wz-input" id="inpDimLargo" placeholder="5.0" min="0.5" max="20" step="0.1"><span class="wz-dim-unit">m</span></div></div>
               </div>
             </div>
             <div class="wz-field">
@@ -466,9 +479,9 @@
       </section>
 
       <section class="wizard-panel" data-step="4" id="espacioBuilderSection">
-        <h3 class="wz-step-title">Plano del estacionamiento</h3>
-        <p class="wz-step-subtitle">La propuesta automática te da una base segura. Ajusta el plano si lo necesitas.</p>
-        <div class="wz-info-card"><span class="material-symbols-outlined">map</span><p>El plano muestra dónde entrar, circular y estacionar.</p></div>
+        <h3 class="wz-step-title">Espacios y plano del estacionamiento</h3>
+        <p class="wz-step-subtitle">La propuesta automática ya te deja todo listo. Edita solo si lo necesitas.</p>
+        <div class="wz-info-card"><span class="material-symbols-outlined">map</span><p>Este plano define los <strong>espacios que el conductor podrá reservar</strong>. Elige cuántos vehículos caben y una distribución; nosotros generamos el plano por ti.</p></div>
         <label class="wz-label">¿Cuántos vehículos caben en tu parqueo?</label>
         <div class="wz-capacity-input">
           <button type="button" class="wz-cap-btn" id="wzCapMinus">−</button>
@@ -541,10 +554,14 @@
       </section>
 
       <section class="wizard-panel" data-step="5">
-        <h3 class="wz-step-title">Fotos y portada</h3>
-        <p class="wz-step-subtitle">Sube fotos para que el conductor entienda cómo se ve el espacio.</p>
+        <h3 class="wz-step-title">Fotos y presentación</h3>
+        <p class="wz-step-subtitle">Las fotos son lo primero que ve el conductor. Buenas fotos = más reservas.</p>
+        <div class="wz-info-card"><span class="material-symbols-outlined">photo_camera</span><p>Te recomendamos mostrar: <strong>la entrada</strong>, la <strong>vista de los espacios</strong>, el <strong>acceso desde la calle</strong> y la <strong>iluminación/seguridad</strong>.</p></div>
         <div class="wz-field">
-          <label class="wz-label">Fotos del espacio</label>
+          <div class="wz-photo-head">
+            <label class="wz-label" style="margin:0;">Fotos del espacio <span class="wz-driver-hint">Visible para el conductor</span></label>
+            <span class="wz-photo-counter"><span id="fotoCount">0</span>/5 fotos</span>
+          </div>
           <div class="wz-upload-zone" id="uploadZone">
             <div class="upload-icon"><i class="fa-solid fa-cloud-arrow-up"></i></div>
             <div class="upload-text">Arrastra tus fotos aquí o haz clic</div>
@@ -557,17 +574,18 @@
 
       <section class="wizard-panel" data-step="6">
         <h3 class="wz-step-title">Revisión final</h3>
-        <p class="wz-step-subtitle">Antes de publicar, revisa que todo esté correcto.</p>
+        <p class="wz-step-subtitle">Así verá el conductor parte de tu publicación. Revísala antes de enviarla.</p>
         <div style="display:flex;align-items:center;gap:14px;background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:12px;padding:18px;margin-bottom:24px">
           <span class="material-symbols-outlined" style="color:#16a34a;font-size:28px;flex-shrink:0">verified</span>
           <div>
-            <div style="font-size:0.95rem;font-weight:700;color:#15803d">¡Todo listo para publicar!</div>
-            <div style="font-size:0.8rem;color:#16a34a;margin-top:3px">Confirma que toda la información sea correcta. Puedes volver atrás si necesitas corregir algo.</div>
+            <div style="font-size:0.95rem;font-weight:700;color:#15803d">Revisa tu publicación antes de enviarla</div>
+            <div style="font-size:0.8rem;color:#16a34a;margin-top:3px">Confirma que la información sea correcta. Puedes volver atrás para corregir cualquier paso.</div>
           </div>
         </div>
         <label class="wz-label" style="margin-bottom:12px"><i class="fa-solid fa-clipboard-check" style="margin-right:4px"></i> Resumen de tu publicación</label>
         <div class="wz-summary">
           <div class="wz-summary-item full"><div class="wz-summary-label">Dirección</div><div class="wz-summary-value" id="sumDireccion">—</div></div>
+          <div class="wz-summary-item full"><div class="wz-summary-label">Ubicación en el mapa</div><div class="wz-summary-value" id="sumUbicacion">—</div></div>
           <div class="wz-summary-item"><div class="wz-summary-label">Descripción</div><div class="wz-summary-value" id="sumDescripcion">—</div></div>
           <div class="wz-summary-item"><div class="wz-summary-label">Precio</div><div class="wz-summary-value highlight" id="sumPrecio">—</div></div>
           <div class="wz-summary-item"><div class="wz-summary-label">Horarios</div><div class="wz-summary-value" id="sumHorarios">—</div></div>
@@ -577,13 +595,14 @@
           <div class="wz-summary-item"><div class="wz-summary-label">Comodidades</div><div class="wz-summary-value" id="sumComodidades">—</div></div>
           <div class="wz-summary-item"><div class="wz-summary-label">Fotos</div><div class="wz-summary-value" id="sumFotos">—</div></div>
         </div>
+        <div id="sumWarnings" class="wz-warn-box" style="display:none;"></div>
       </section>
 
     </div><!-- /wizard-body -->
     <div class="wizard-footer">
       <div class="wizard-footer-left">
         <button type="button" class="wz-btn wz-btn-ghost" id="btnWizardPrev" style="display:none"><span class="material-symbols-outlined">arrow_back</span> Anterior</button>
-        <span class="wz-step-counter" id="wizardStepCounter">Paso 1 de 5</span>
+        <span class="wz-step-counter" id="wizardStepCounter">Paso 1 de 6</span>
       </div>
       <div class="wizard-footer-right">
         <button type="button" class="wz-btn wz-btn-primary" id="btnWizardNext">Siguiente <span class="material-symbols-outlined">arrow_forward</span></button>
@@ -626,7 +645,7 @@
       <div class="wz-row">
         <div class="wz-field">
           <label class="wz-label" for="editPrecio">Precio por hora (Bs.) <span class="required">*</span></label>
-          <input type="number" class="wz-input" id="editPrecio" min="1" step="0.01" required>
+          <input type="number" class="wz-input" id="editPrecio" min="1" max="200" step="0.01" required>
         </div>
         <div class="wz-field">
           <label class="wz-label" for="editNivelSeguridad">Nivel de Seguridad</label>

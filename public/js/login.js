@@ -8,7 +8,7 @@ const USUARIO_KEY = 'estairbnb_user';
 // Si ya está logueado, redirigir según rol
 const existingUser = JSON.parse(localStorage.getItem(USUARIO_KEY) || 'null');
 if (existingUser) {
-  window.location.href = existingUser.rol_id === 1 ? '/mis-garajes.html' : '/explorar.html';
+  window.location.href = existingUser.rol_id === 1 ? '/dashboard-anfitrion.html' : '/explorar.html';
 }
 
 // ============================================================
@@ -84,7 +84,7 @@ document.getElementById('loginForm').addEventListener('submit', async (e) => {
       showAlert('¡Bienvenido! Redirigiendo...', 'success');
 
       // Redirigir según rol
-      const destino = data.data.rol_id === 1 ? '/mis-garajes.html' : '/explorar.html';
+      const destino = data.data.rol_id === 1 ? '/dashboard-anfitrion.html' : '/explorar.html';
       setTimeout(() => { window.location.href = destino; }, 800);
     } else {
       showAlert(data.message || 'Error al iniciar sesión.');

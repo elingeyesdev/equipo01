@@ -130,14 +130,14 @@ body { font-family: 'Inter', sans-serif; background: #f7f9fb; }
 /* ── AdminLTE Integration Patches ── */
 .est-nav-avatar {
   width: 34px; height: 34px; border-radius: 50%;
-  background: #1a6fc4; color: #fff;
+  background: #002542; color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-size: 0.82rem; font-weight: 700; flex-shrink: 0;
   cursor: pointer; user-select: none;
 }
 .est-sidebar-avatar {
   width: 36px; height: 36px; border-radius: 50%;
-  background: #1a6fc4; color: #fff;
+  background: linear-gradient(140deg, #0C8C82, #14998c); color: #fff;
   display: flex; align-items: center; justify-content: center;
   font-size: 0.82rem; font-weight: 700; flex-shrink: 0;
 }
@@ -148,3 +148,133 @@ body { font-family: 'Inter', sans-serif; background: #f7f9fb; }
   margin-bottom: 1.5rem;
 }
 .app-content { font-family: 'Inter', sans-serif; }
+
+/* ============================================================
+   FASE 4 — Gestión de cupones (anfitrión)
+   ============================================================ */
+
+/* KPIs */
+.cupon-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 14px;
+  margin-bottom: 22px;
+}
+.ck-tile {
+  display: flex; align-items: center; gap: 13px;
+  background: #fff; border: 1px solid #e6e9ef; border-radius: 16px;
+  padding: 15px 18px; box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 6px 18px rgba(16,24,40,.05);
+}
+.ck-ico {
+  width: 42px; height: 42px; border-radius: 11px; flex-shrink: 0;
+  display: grid; place-items: center; font-size: 1.05rem;
+  background: rgba(0,37,66,.07); color: #002542;
+}
+.ck-num { font-family: 'Fraunces', Georgia, serif; font-size: 1.7rem; font-weight: 600; color: #002542; line-height: 1; }
+.ck-lbl { font-size: .72rem; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; color: #64748b; margin-top: 4px; }
+.ck-tile--ok  .ck-ico { background: rgba(0,106,98,.1);  color: #006a62; }
+.ck-tile--ok  .ck-num { color: #006a62; }
+.ck-tile--exp .ck-ico { background: rgba(185,28,28,.08); color: #b91c1c; }
+.ck-tile--exp .ck-num { color: #b91c1c; }
+.ck-tile--use .ck-ico { background: rgba(180,83,9,.12);  color: #b45309; }
+
+/* Lista de gestión */
+.cupon-admin-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 16px;
+  margin-bottom: 8px;
+}
+.cupon-admin {
+  background: #fff; border: 1px solid #e6e9ef; border-radius: 16px;
+  padding: 18px 20px; box-shadow: 0 1px 2px rgba(16,24,40,.04), 0 6px 18px rgba(16,24,40,.05);
+  display: flex; flex-direction: column; gap: 12px;
+  border-left: 4px solid #cbd5e1;
+}
+.cupon-admin.estado-activo     { border-left-color: #14998c; }
+.cupon-admin.estado-expirado   { border-left-color: #c0564f; }
+.cupon-admin.estado-agotado    { border-left-color: #d39612; }
+.cupon-admin.estado-programado { border-left-color: #2563a8; }
+.cupon-admin.estado-inactivo   { border-left-color: #94a3b8; opacity: .82; }
+
+.ca-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ca-code {
+  font-family: 'Courier New', monospace; font-weight: 800; letter-spacing: .1em;
+  font-size: 1rem; color: #002542;
+  background: #f4f6f8; border: 1px dashed #cbd5e1; border-radius: 8px; padding: 5px 11px;
+}
+.ca-badge {
+  font-size: .66rem; font-weight: 800; text-transform: uppercase; letter-spacing: .05em;
+  padding: 4px 10px; border-radius: 999px; white-space: nowrap;
+}
+.ca-badge--activo     { background: #d7f0ec; color: #056059; }
+.ca-badge--inactivo   { background: #f1f5f9; color: #64748b; }
+.ca-badge--expirado   { background: #fde8e6; color: #b3433c; }
+.ca-badge--agotado    { background: #fdf0d8; color: #b45309; }
+.ca-badge--programado { background: #e3edf9; color: #2563a8; }
+
+.ca-value { font-family: 'Fraunces', Georgia, serif; font-size: 1.9rem; font-weight: 600; color: #006a62; line-height: 1; }
+.ca-value-lbl { font-family: 'Inter', sans-serif; font-size: .72rem; font-weight: 700; color: #94a3b8; text-transform: uppercase; letter-spacing: .04em; margin-left: 8px; }
+.ca-desc { font-size: .82rem; color: #5B6572; line-height: 1.4; }
+.ca-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; font-size: .78rem; color: #64748b; }
+.ca-meta i { margin-right: 4px; }
+.ca-tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  background: rgba(0,106,98,.08); color: #006a62; border-radius: 999px;
+  padding: 2px 9px; font-size: .68rem; font-weight: 700;
+}
+.ca-tag i { margin: 0; font-size: .62rem; }
+
+.ca-usage-top { display: flex; justify-content: space-between; font-size: .73rem; color: #64748b; font-weight: 600; margin-bottom: 5px; }
+.ca-usage-bar { height: 7px; border-radius: 999px; background: #eef1f5; overflow: hidden; }
+.ca-usage-fill { height: 100%; background: #14998c; border-radius: 999px; transition: width .5s ease; }
+.ca-usage-inf { font-size: .76rem; color: #94a3b8; }
+.ca-usage-inf i { margin-right: 5px; }
+
+.ca-actions { margin-top: 2px; }
+.ca-toggle {
+  width: 100%; display: inline-flex; align-items: center; justify-content: center; gap: 7px;
+  padding: 8px 14px; border-radius: 10px; border: 1px solid #e6e9ef;
+  background: #fff; color: #5B6572; font: inherit; font-size: .82rem; font-weight: 700;
+  cursor: pointer; transition: background .15s ease, color .15s ease, border-color .15s ease;
+}
+.ca-toggle.is-on  { color: #b3433c; }
+.ca-toggle.is-on:hover  { background: #fdecea; border-color: #f4c9c4; }
+.ca-toggle.is-off { color: #006a62; }
+.ca-toggle.is-off:hover { background: rgba(0,106,98,.07); border-color: rgba(0,106,98,.3); }
+.ca-toggle:disabled { opacity: .6; cursor: default; }
+
+.cupon-empty {
+  grid-column: 1 / -1; text-align: center; padding: 40px 20px; color: #64748b;
+  background: #fff; border: 1px dashed #d7dbe3; border-radius: 16px;
+}
+.cupon-empty .material-symbols-outlined { font-size: 2.6rem; color: #cbd5e1; display: block; margin-bottom: 8px; }
+.cupon-empty p { margin: 0; font-size: .9rem; }
+
+/* Segmented control (tipo descuento) */
+.cseg { display: flex; gap: 4px; background: #f1f3f6; border-radius: 11px; padding: 4px; }
+.cseg-btn {
+  flex: 1; padding: 8px 10px; border: none; border-radius: 8px; background: transparent;
+  color: #5B6572; font: inherit; font-size: .8rem; font-weight: 700; cursor: pointer;
+  transition: background .15s ease, color .15s ease, box-shadow .15s ease;
+}
+.cseg-btn.active { background: #fff; color: #006a62; box-shadow: 0 1px 3px rgba(16,24,40,.12); }
+
+/* Checkbox "solo primera reserva" */
+.cupon-check {
+  display: flex; align-items: center; gap: 10px; cursor: pointer;
+  font-size: .86rem; color: #182430; padding: 10px 12px;
+  background: #f8fafb; border: 1px solid #e6e9ef; border-radius: 10px;
+}
+.cupon-check input { width: 17px; height: 17px; accent-color: #006a62; cursor: pointer; flex-shrink: 0; }
+
+/* ── Dark mode ── */
+.dark .ck-tile, .dark .cupon-admin, .dark .cupon-empty { background: #1e293b; border-color: #334155; }
+.dark .ck-num, .dark .ca-value, .dark .ca-code { color: #e2e8f0; }
+.dark .ck-ico { background: rgba(255,255,255,.06); color: #cbd5e1; }
+.dark .ca-code { background: #0f172a; border-color: #334155; }
+.dark .ca-toggle { background: #0f172a; border-color: #334155; }
+.dark .ca-usage-bar { background: #334155; }
+.dark .cseg { background: #0f172a; }
+.dark .cseg-btn.active { background: #1e293b; }
+.dark .cupon-check { background: #0f172a; border-color: #334155; color: #e2e8f0; }
